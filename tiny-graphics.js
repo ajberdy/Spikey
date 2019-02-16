@@ -86,6 +86,11 @@ class Vec extends Float32Array {
     to_string() {
         return "[vec " + this.join(", ") + "]"
     }
+
+    // mine
+    inverse() {
+        return this.map(x => 1/x);
+    }
 }
 
 
@@ -100,6 +105,10 @@ class Quaternion extends Vec {
             this[0]*q[2] - this[1]*q[3] + this[2]*q[0] - this[3]*q[1],
             this[0]*q[3] + this[1]*q[2] - this[2]*q[1] + this[3]*q[0]
         );
+    }
+
+    inverse() {
+        return Quaternion.of(this[0], -this[1], -this[2], -this[3]);
     }
 }
 
@@ -191,6 +200,14 @@ class Mat extends Array {
         return "[" + this.map((r, i) => "[" + r.join(", ") + "]").join(" ") + "]"
     }
 }
+
+
+class Mat3 extends Mat {
+    static identity() {
+        return Mat.of([1, 0, 0], [0, 1, 0], [0, 0, 1]);
+    };
+}
+
 
 // Generate special 4x4 matrices that are useful for graphics.
 class Mat4 extends Mat {
@@ -290,7 +307,7 @@ class Mat4 extends Mat {
 
     static quaternion_rotation(q) {
         let a = q[0], b = q[1], c = q[2], d = q[3];
-        return Mat.of(
+        return Mat4.of(
             [a*a + b*b - c*c - d*d, 2*b*c - 2*a*d, 2*b*d + 2*a*c, 0],
             [2*b*c + 2*a*d, a*a - b*b + c*c - d*d, 2*c*d - 2*a*b, 0],
             [2*b*d - 2*a*c, 2*c*d + 2*a*b, a*a - b*b - c*c + d*d, 0],

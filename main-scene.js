@@ -15,6 +15,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
         // Locate the camera here (inverted matrix).
         const r = context.width / context.height;
         context.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(0, 20,0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
+//         context.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 0, 30), Vec.of(0, 0,0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
+
         context.globals.graphics_state.projection_transform = Mat4.perspective(Math.PI / 4, r, .1, 1000);
 
         // At the beginning of our program, load one of each of these shape
@@ -83,7 +85,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.t = 0;
 
-        this.gravity_off = true;
+//         this.gravity_off = true;
 
         this.entities = [];
         this.initialize_entities();
@@ -137,7 +139,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.do_collisions();
 //             if (this.entities[0].momentum[0] != -200)
 //                 alert();
-            this.apply_forces();
+//             this.apply_forces();
             this.update_entities(dt);
         }
 
@@ -150,14 +152,15 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Ball(this, Vec.of(45, -5, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 20, 10, 1));
+        this.entities.push(new Ball(this, Vec.of(45, -5, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, .1));
         this.entities.push(new Ball(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Ball(this, Vec.of(45, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
-        this.entities.push(new Ball(this, Vec.of(-45, 27, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+        this.entities.push(new Box(this, Vec.of(45, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+        this.entities.push(new Ball(this, Vec.of(-45, 27, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+
     }
 
     apply_forces() {
@@ -166,6 +169,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             if (!this.gravity_off) {
                 entity.force(Vec.of(0, -G, 0), Vec.of(0, 0, 0));
             }
+            entity.force(Vec.of(0, G, 0), Mat4.quaternion_rotation(entity.orientation).times(Vec.of(0, 0, 0)));
         }
     }
 
