@@ -1,5 +1,7 @@
 class Physics_Object {
     constructor(scene, pos, vel, w, mass, e) {
+        if (mass == Infinity && (vel.norm() != 0 || w.norm() != 0))
+            throw new Error("Infinitely massive objects cannot move");
         // scene which the object exists in
         this.scene = scene;
 
@@ -41,8 +43,8 @@ class Physics_Object {
     get z() { return this.pos[2]; }
 
     initialize() {
-        this.momentum = this.vel.times(this.m);
-        this.L = this.I.times(this.w);
+        this.momentum = this.vel.norm() ? this.vel.times(this.m) : Vec.of(0, 0, 0);
+        this.L = this.w.norm() ? this.I.times(this.w) : Vec.of(0, 0, 0);
     }
 
     recalc() {
@@ -161,7 +163,7 @@ class Collision_Detection {
 
                 
                 const percent = 0.1;
-                var penetration_depth = contact.minus(i_contact.minus(e_contact)).norm() - (e.r + i.r),
+                var penetration_depth = i_contact.minus(e_contact).norm() - (e.r + i.r),
                     slop = 0.01,
                     correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
             }
