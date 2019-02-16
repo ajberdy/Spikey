@@ -134,35 +134,55 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //             this.materials.floor);
 
         if (dt) {
+            this.do_collisions();
+//             if (this.entities[0].momentum[0] != -200)
+//                 alert();
             this.apply_forces();
             this.update_entities(dt);
         }
+
 
         this.draw_entities(graphics_state);
 
     }
 
     initialize_entities() {
-        this.entities.push(new Ball(this, Vec.of(15, 5, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5));
-        this.entities.push(new Ball(this, Vec.of(-15, 5, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, this.clay));
+        this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
+        this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+
+        this.entities.push(new Ball(this, Vec.of(45, -5, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 20, 10, 1));
+        this.entities.push(new Ball(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+
+        this.entities.push(new Ball(this, Vec.of(45, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
+        this.entities.push(new Ball(this, Vec.of(-45, 27, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+
+        this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
+        this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
     }
 
     apply_forces() {
         for (let e in this.entities) {
-            for (var i = 0; i < e; ++i){
-                var impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
-                
-                for (var F in impacts.i_to_e) {
-                    this.entities[e].force(impacts.i_to_e.force, impacts.i_to_e.contact);
-                }
-
-                for (var F in impacts.e_to_i) {
-                    this.entities[e].force(impacts.e_to_i.force, impacts.e_to_i.contact);
-                }
-            }
             let entity = this.entities[e];
             if (!this.gravity_off) {
                 entity.force(Vec.of(0, -G, 0), Vec.of(0, 0, 0));
+            }
+        }
+    }
+
+    do_collisions() {
+        for (var e = 0; e < this.entities.length; ++e) {
+            for (var i = 0; i < e; ++i){
+                var impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
+                if (impacts.i_to_e.length)
+                    console.log(impacts);
+                
+                for (var J in impacts.i_to_e) {
+                    this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
+                }
+
+                for (var J in impacts.e_to_i) {
+                    this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
+                }
             }
         }
     }
@@ -177,71 +197,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
         for (let e in this.entities) {
             this.entities[e].draw(graphics_state);
         }
-    }
-}
-
-class Physics_Object {
-    constructor(scene, pos, vel, w, mass) {
-        this.scene = scene;
-
-        this.pos = pos;
-        this.momentum;
-        this.orientation = Quaternion.of(1, 0, 0, 0);
-        this.angular_momentum = w.times(this.I);
-
-
-        this.vel = vel;
-        this.w = w;
-
-        this.b = .0;
-        this.m = mass;
-        this.I;
-
-        this.F = Vec.of(0, 0, 0);
-        this.T = Vec.of(0, 0, 0);
-    }
-
-    get x() { return this.pos[0]; }
-    get y() { return this.pos[1]; }
-    get z() { return this.pos[2]; }
-
-    get spin() {return Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation.normalized()).times(0.5); }
-
-    force(F, r) {
-        this.F = this.F.plus(F);
-        this.T = this.T.plus(r.cross(F));
-    }
-
-    update(dt) {
-        let a = this.F.times(1/this.m);
-        this.vel = this.vel.plus(a.times(dt));
-        this.pos = this.pos.plus(this.vel.times(dt));
-        this.F = Vec.of(0, 0, 0);
-
-        let a_ = this.T.times(1/this.I);
-        this.w = this.w.plus(a_.times(dt));
-        this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
-        console.log(this.orientation);
-    }
-}
-
-
-class Ball extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, radius, material) {
-        super(scene, pos, vel, w, mass);
-        this.mat = material;
-        this.r = radius;
-        this.I = 2/5*this.m*Math.pow(this.r, 2);
-    }
-
-    draw(graphics_state) {
-//         console.log(Mat4.quaternion_rotation(this.orientation));
-        this.scene.shapes.ball.draw(
-            graphics_state,
-            Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
-                Mat4.quaternion_rotation(this.orientation.normalized())).times(
-                Mat4.scale(Vec.of(this.r, this.r, this.r))),
-            this.mat ? this.mat : this.scene.materials.soccer);
     }
 }
 
