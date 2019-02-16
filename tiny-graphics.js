@@ -206,6 +206,22 @@ class Mat3 extends Mat {
     static identity() {
         return Mat.of([1, 0, 0], [0, 1, 0], [0, 0, 1]);
     };
+
+    static det(m) {
+        const m00 = m[0][0],
+              m01 = m[0][1],
+              m02 = m[0][2],
+              m10 = m[1][0],
+              m11 = m[1][1],
+              m12 = m[1][2],
+              m20 = m[2][0],
+              m21 = m[2][1],
+              m22 = m[2][2];
+
+        return m00 * (m11 * m22 - m12 * m21) -
+               m01 * (m10 * m22 - m12 * m20) +
+               m02 * (m10 * m21 - m11 * m20);
+    }
 }
 
 

@@ -36,7 +36,16 @@ class Physics_Object {
 
         this.F = Vec.of(0, 0, 0);
         this.T = Vec.of(0, 0, 0);
+
+        // geometric props
+        this.base_points;
     }
+
+    get transform() { return null; }
+
+    get points() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
+
+    get com() { return this.pos; }
 
     get x() { return this.pos[0]; }
     get y() { return this.pos[1]; }
@@ -81,6 +90,21 @@ class Physics_Object {
         this.pos = this.pos.plus(this.vel.times(dt));
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
     }
+
+    support(d) {
+        var max_v, max_dot = -Infinity;
+        for (var v_base of this.base_points) {
+            let v = this.transform.times(v_base.to4(1)).to3(),
+                dot = v.dot(d);
+
+            if (dot > max_dot) {
+                max_v = v;
+                max_dot = dot;
+            }
+        }
+
+        return max_v;
+    }
 }
 
 
@@ -93,15 +117,25 @@ class Ball extends Physics_Object {
         this.I_inv = Mat3.identity().times(1/(2/5*this.m*Math.pow(this.r, 2)));
 
         this.initialize();
+
+        this.base_points = scene.shapes.ball.positions;
+    }
+
+    get transform() {
+        return Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
+               Mat4.quaternion_rotation(this.orientation.normalized())).times(
+               Mat4.scale(Vec.of(this.r, this.r, this.r)));
     }
 
     draw(graphics_state) {
         this.scene.shapes.ball.draw(
             graphics_state,
-            Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
-                Mat4.quaternion_rotation(this.orientation.normalized())).times(
-                Mat4.scale(Vec.of(this.r, this.r, this.r))),
+            this.transform,
             this.mat ? this.mat : this.scene.materials.soccer);
+    }
+
+    support(d) {
+        return this.pos.plus(d.normalized().times(this.r));
     }
 }
 
@@ -124,6 +158,12 @@ class Box extends Physics_Object {
         this.initialize();
     }
 
+    get transform() {
+        return Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
+               Mat4.quaternion_rotation(this.orientation)).times(
+               Mat4.scale(this.dims.times(1/2)));
+    }
+
     get width() { return this.dims[0]; }
     get height() { return this.dims[1]; }
     get depth() { return this.dims[2]; }
@@ -131,9 +171,7 @@ class Box extends Physics_Object {
     draw(graphics_state) {
         this.scene.shapes.box.draw(
             graphics_state,
-            Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
-                Mat4.quaternion_rotation(this.orientation)).times(
-                Mat4.scale(this.dims.times(1/2))),
+            transform,
             this.mat);
     }
 }
@@ -141,6 +179,127 @@ class Box extends Physics_Object {
 
 
 class Collision_Detection {
+
+    static support(points, d) {
+        var max_v, max_dot = -Infinity;
+        for (var v of points) {
+            v = v.to3();
+            var dot = v.dot(d);
+
+            if (dot > max_dot) {
+                max_v = v;
+                max_dot = dot;
+            }
+        }
+
+        return max_v;
+    }
+
+    static do_simplex(simplex, dir) {
+        var a = simplex[0], b = simplex[1],
+            ab = b.minus(a), a0 = a.times(-1);
+
+        switch (simplex.length) {
+            case 2:
+                if (ab.dot(a0) > 0)
+                    return ab.cross(a0).cross(ab);
+                else
+                    return a0;
+                break;
+
+            case 3:
+                var c = simplex[2],
+                    ac = c.minus(a),
+                    abc = ab.cross(ac);
+                
+                if (abc.cross(ac).dot(a0) > 0)
+                    if (ac.dot(a0))
+                        return ac.cross(a0).cross(ac);
+                    else if (ab.dot(a0) > 0)
+                        return ab.cross(a0).cross(ab);
+                    else
+                        return a0;
+                else if (ab.cross(abc).dot(a0) > 0)
+                    if (ab.dot(a0) > 0)
+                        return ab.cross(a0).cross(ab);
+                    else
+                        return a0;
+                else if (abc.dot(a0) > 0)
+                    return abc;
+                else
+                    return abc.times(-1);
+
+            case 4:
+                var c = simplex[2],
+                    d = simplex[3],
+                    ac = c.minus(a),
+                    ad = d.minus(a);
+                
+                var D1 =  Mat3.det(Mat3.of(b, c, d)),
+                    D2 = -Mat3.det(Mat3.of(a, c, d)),
+                    D3 =  Mat3.det(Mat3.of(a, b, d)),
+                    D4 = -Mat3.det(Mat3.of(a, b, c)),
+                    D0 = D1 + D2 + D3 + D4;
+
+                return !D1 || !D2 || !D3 || !D4 ||
+                       Math.sign(D0) == Math.sign(D1) &&
+                       Math.sign(D0) == Math.sign(D2) &&
+                       Math.sign(D0) == Math.sign(D3) &&
+                       Math.sign(D0) == Math.sign(D4);
+                
+        }
+    }
+
+    static GJK_points(s1, s2) {
+        /* accept two sets of points and return whether their convex hulls intersect */
+        var d = Vec.of(1, 0, 0),
+            s = Collision_Detection.support(s1, d).minus(Collision_Detection.support(s2, d.times(-1))),
+            simplex = [s];
+
+        d = s.times(-1);
+
+        while (simplex.length < 4) {
+            var A = Collision_Detection.support(s1, d).minus(Collision_Detection.support(s2, d.times(-1)));
+
+//             console.log(A, d);
+            if (A.dot(d) < 0)
+                return false;
+            if (d.norm() == 0)
+                return true;
+
+            simplex.unshift(A);
+
+            d = Collision_Detection.do_simplex(simplex, d);
+
+        }
+        return d;
+
+    }
+
+    static GJK(s1, s2) {
+        /* GJK for shapes */
+        var d = Vec.of(1, 0, 0),
+            s = s1.support(d).minus(s2.support(d.times(-1))),
+            simplex = [s];
+
+        d = s.times(-1);
+
+        while (simplex.length < 4) {
+            var A = s1.support(d).minus(s2.support(d.times(-1)));
+
+//             console.log(A, d);
+            if (A.dot(d) < 0)
+                return false;
+            if (d.norm() == 0)
+                return true;
+
+            simplex.unshift(A);
+
+            d = Collision_Detection.do_simplex(simplex, d);
+
+        }
+        return d;
+    }
     
     static get_impacts(e, i) {
         var impacts = {
@@ -148,6 +307,11 @@ class Collision_Detection {
 
             e_to_i: []
         }
+
+        if (Collision_Detection.GJK(e, i))
+            console.log("yo");
+
+//         return impacts;
 
         // both are spheres, no friction/spinning
         if (e instanceof Ball && i instanceof Ball) {
