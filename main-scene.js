@@ -182,10 +182,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 
                 for (var J in impacts.i_to_e) {
                     this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
+                    this.entities[e].shift(impacts.i_to_e[J].pos_correction);
                 }
 
                 for (var J in impacts.e_to_i) {
                     this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
+                    this.entities[i].shift(impacts.e_to_i[J].pos_correction);
                 }
             }
         }

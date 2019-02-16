@@ -55,6 +55,10 @@ class Physics_Object {
         this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation).times(0.5);
     }
 
+    shift(vec) {
+        this.pos = this.pos.plus(vec);
+    }
+
     force(F, r) {
         this.F = this.F.plus(F);
         this.T = this.T.plus(r.cross(F));
@@ -139,6 +143,7 @@ class Collision_Detection {
     static get_impacts(e, i) {
         var impacts = {
             i_to_e: [],
+
             e_to_i: []
         }
 
@@ -153,6 +158,12 @@ class Collision_Detection {
                 var rest = Math.min(e.restitution, i.restitution),
                     normal = i_contact.normalized(),
                     vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
+
+                
+                const percent = 0.1;
+                var penetration_depth = contact.minus(i_contact.minus(e_contact)).norm() - (e.r + i.r),
+                    slop = 0.01,
+                    correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
             }
 
             else
@@ -175,6 +186,8 @@ class Collision_Detection {
                 var rest = Math.min(e.restitution, i.restitution),
                     normal = i_contact.normalized(),
                     vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
+
+                var correction = Vec.of(0, 0, 0);
                 
             }
             
@@ -189,14 +202,20 @@ class Collision_Detection {
             impulse_ie /= i.m_inv + e.m_inv;
             impulse_ie = normal.times(impulse_ie);
 
+        
+        var i_pos_correct = correction.times(i.m_inv),
+            e_pos_correct = correction.times(-e.m_inv);
+
         impacts.i_to_e.push({
             impulse: impulse_ie,
-            contact: i_contact
+            contact: i_contact,
+            pos_correction: e_pos_correct
         });
 
         impacts.e_to_i.push({
             impulse: impulse_ie.times(-1),
-            contact: e_contact
+            contact: e_contact,
+            pos_correction: i_pos_correct
         });
 
         return impacts;
