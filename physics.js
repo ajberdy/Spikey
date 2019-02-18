@@ -41,7 +41,7 @@ class Physics_Object {
         this.base_points;
     }
 
-    get transform() { return null; }
+    get transform() { return Mat4.identity(); }
 
     get points() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
 
@@ -91,13 +91,15 @@ class Physics_Object {
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
     }
 
-    support(d) {
+    support(d, used) {
         var max_v, max_dot = -Infinity;
         for (var v_base of this.base_points) {
             let v = this.transform.times(v_base.to4(1)).to3(),
                 dot = v.dot(d);
 
-            if (dot > max_dot) {
+            if (dot >= max_dot) {
+                if (dot == max_dot && used != undefined && used.includes(v))
+                    continue;
                 max_v = v;
                 max_dot = dot;
             }
@@ -156,6 +158,8 @@ class Box extends Physics_Object {
             [0, 0, 1/(dims[0]**2 + dims[1]**2)]);
 
         this.initialize();
+
+        this.base_points = scene.shapes.box.positions;
     }
 
     get transform() {
@@ -171,7 +175,7 @@ class Box extends Physics_Object {
     draw(graphics_state) {
         this.scene.shapes.box.draw(
             graphics_state,
-            transform,
+            this.transform,
             this.mat);
     }
 }
@@ -195,16 +199,22 @@ class Collision_Detection {
         return max_v;
     }
 
-    static do_simplex(simplex, dir) {
+    static do_simplex(args){//}simplex, dir) {
+        var simplex = args.simplex,
+            dir = args.dir;
         var a = simplex[0], b = simplex[1],
             ab = b.minus(a), a0 = a.times(-1);
 
         switch (simplex.length) {
             case 2:
-                if (ab.dot(a0) > 0)
-                    return ab.cross(a0).cross(ab);
-                else
-                    return a0;
+                if (ab.dot(a0) > 0) {
+                    args.simplex = [a, b];
+                    args.dir = ab.cross(a0).cross(ab);
+                }
+                else {
+                    args.simplex = [a];
+                    args.dir = a0;
+                }
                 break;
 
             case 3:
@@ -213,21 +223,36 @@ class Collision_Detection {
                     abc = ab.cross(ac);
                 
                 if (abc.cross(ac).dot(a0) > 0)
-                    if (ac.dot(a0))
-                        return ac.cross(a0).cross(ac);
-                    else if (ab.dot(a0) > 0)
-                        return ab.cross(a0).cross(ab);
-                    else
-                        return a0;
+                    if (ac.dot(a0)) {
+                        args.simplex = [a, c];
+                        args.dir = ac.cross(a0).cross(ac);
+                    }
+                    else if (ab.dot(a0) > 0) {
+                        args.simplex = [a, b]
+                        args.dir = ab.cross(a0).cross(ab);
+                    }
+                    else {
+                        args.simplex = [a];
+                        args.dir = a0;
+                    }
                 else if (ab.cross(abc).dot(a0) > 0)
-                    if (ab.dot(a0) > 0)
-                        return ab.cross(a0).cross(ab);
-                    else
-                        return a0;
-                else if (abc.dot(a0) > 0)
-                    return abc;
-                else
-                    return abc.times(-1);
+                    if (ab.dot(a0) > 0) {
+                        args.simplex = [a, b];
+                        args.dir = ab.cross(a0).cross(ab);
+                    }
+                    else {
+                        args.simplex = [a];
+                        args.dir = a0;
+                    }
+                else if (abc.dot(a0) > 0) {
+                    args.simplex = [a, b, c];
+                    args.dir = abc;
+                }
+                else {
+                    args.simplex = [a, c, b];
+                    args.dir = abc.times(-1);
+                }
+                break;
 
             case 4:
                 var c = simplex[2],
@@ -241,13 +266,15 @@ class Collision_Detection {
                     D4 = -Mat3.det(Mat3.of(a, b, c)),
                     D0 = D1 + D2 + D3 + D4;
 
-                return !D1 || !D2 || !D3 || !D4 ||
+                return (!D1 || !D2 || !D3 || !D4 || (
                        Math.sign(D0) == Math.sign(D1) &&
                        Math.sign(D0) == Math.sign(D2) &&
                        Math.sign(D0) == Math.sign(D3) &&
-                       Math.sign(D0) == Math.sign(D4);
+                       Math.sign(D0) == Math.sign(D4)));
                 
         }
+
+        return false;
     }
 
     static GJK_points(s1, s2) {
@@ -261,7 +288,7 @@ class Collision_Detection {
         while (simplex.length < 4) {
             var A = Collision_Detection.support(s1, d).minus(Collision_Detection.support(s2, d.times(-1)));
 
-//             console.log(A, d);
+            console.log(A, d);
             if (A.dot(d) < 0)
                 return false;
             if (d.norm() == 0)
@@ -269,7 +296,7 @@ class Collision_Detection {
 
             simplex.unshift(A);
 
-            d = Collision_Detection.do_simplex(simplex, d);
+            d = Collision_Detection.do_simplex([simplex, d]);
 
         }
         return d;
@@ -283,22 +310,36 @@ class Collision_Detection {
             simplex = [s];
 
         d = s.times(-1);
+        var args = {simplex: simplex, dir: d},
+            result;
 
         while (simplex.length < 4) {
+            d = d.normalized()
             var A = s1.support(d).minus(s2.support(d.times(-1)));
 
 //             console.log(A, d);
             if (A.dot(d) < 0)
                 return false;
-            if (d.norm() == 0)
-                return true;
+//             if (d.norm() == 0)
+//                 return true;
 
             simplex.unshift(A);
 
-            d = Collision_Detection.do_simplex(simplex, d);
+            args.simplex = simplex;
+            args.dir = d;
+
+            result = Collision_Detection.do_simplex(args);
+
+            simplex = args.simplex;
+//             simplex.reverse();
+            d = args.dir;
+//             console.log(simplex);
 
         }
-        return d;
+        
+        if (Math.abs(s1.x - s2.x) < 10)
+            console.log("man..");
+        return result;
     }
     
     static get_impacts(e, i) {
@@ -309,9 +350,9 @@ class Collision_Detection {
         }
 
         if (Collision_Detection.GJK(e, i))
-            console.log("yo");
+            return 0;
 
-//         return impacts;
+        return impacts;
 
         // both are spheres, no friction/spinning
         if (e instanceof Ball && i instanceof Ball) {
