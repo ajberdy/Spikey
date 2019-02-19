@@ -39,11 +39,14 @@ class Physics_Object {
 
         // geometric props
         this.base_points;
+        this.base_normals;
     }
 
     get transform() { return Mat4.identity(); }
 
     get points() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
+
+    get normals() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
 
     get com() { return this.pos; }
 
@@ -63,7 +66,10 @@ class Physics_Object {
 
         this.orientation.normalize()
         
-        this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation).times(0.5);
+        if (this.w.norm() == -90)
+            this.spin = Quaternion.of(1, 0, 0, 0);
+        else
+            this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation).times(0.5);
     }
 
     shift(vec) {
@@ -77,7 +83,7 @@ class Physics_Object {
 
     impulse(J, r) {
         this.momentum = this.momentum.plus(J);
-        this.L = this.L.plus(J.cross(r));
+        this.L = this.L.plus(r.cross(J));
     }
 
     update(dt) {
@@ -86,6 +92,8 @@ class Physics_Object {
         this.L = this.L.plus(this.T.times(dt));
 
         this.recalc();
+
+//         console.log(this.spin.times(dt));
 
         this.pos = this.pos.plus(this.vel.times(dt));
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
@@ -121,6 +129,7 @@ class Ball extends Physics_Object {
         this.initialize();
 
         this.base_points = scene.shapes.ball.positions;
+        this.base_normals = scene.shapes.ball.normals;
     }
 
     get transform() {
@@ -155,11 +164,13 @@ class Box extends Physics_Object {
         this.I_inv = Mat3.of(
             [1/(dims[1]**2 + dims[2]**2), 0, 0],
             [0, 1/(dims[0]**2 + dims[2]**2), 0],
-            [0, 0, 1/(dims[0]**2 + dims[1]**2)]);
+            [0, 0, 1/(dims[0]**2 + dims[1]**2)]
+        ).times(12/mass);
 
         this.initialize();
 
         this.base_points = scene.shapes.box.positions;
+        this.base_normals = scene.shapes.box.normals;
     }
 
     get transform() {
@@ -184,6 +195,31 @@ class Box extends Physics_Object {
 
 class Collision_Detection {
 
+    static icosohedron_normals() {
+        return Vec.cast(
+            [0.1876, -0.7947, 0.5774],
+            [0.6071, -0.7947, 0.0000],
+            [-0.4911, -0.7947, 0.3568],
+            [-0.4911, -0.7947, -0.3568],
+            [0.1876, -0.7947, -0.5774],
+            [0.9822, -0.1876, 0.0000],
+            [0.3035, -0.1876, 0.9342],
+            [-0.7946, -0.1876, 0.5774],
+            [-0.7946, -0.1876, -0.5774],
+            [0.3035, -0.1876, -0.9342],
+            [0.7946, 0.1876, 0.5774],
+            [-0.3035, 0.1876, 0.9342],
+            [-0.9822, 0.1876, 0.0000],
+            [-0.3035, 0.1876, -0.9342],
+            [0.7946, 0.1876, -0.5774],
+            [0.4911, 0.7947, 0.3568],
+            [-0.1876, 0.7947, 0.5774],
+            [-0.6071, 0.7947, 0.0000],
+            [-0.1876, 0.7947, -0.5774],
+            [0.4911, 0.7947, -0.3568]
+        )
+    }
+
     static support(points, d) {
         var max_v, max_dot = -Infinity;
         for (var v of points) {
@@ -199,7 +235,7 @@ class Collision_Detection {
         return max_v;
     }
 
-    static do_simplex(args){//}simplex, dir) {
+    static do_simplex(args){
         var simplex = args.simplex,
             dir = args.dir;
         var a = simplex[0], b = simplex[1],
@@ -258,50 +294,31 @@ class Collision_Detection {
                 var c = simplex[2],
                     d = simplex[3],
                     ac = c.minus(a),
-                    ad = d.minus(a);
-                
-                var D1 =  Mat3.det(Mat3.of(b, c, d)),
-                    D2 = -Mat3.det(Mat3.of(a, c, d)),
-                    D3 =  Mat3.det(Mat3.of(a, b, d)),
-                    D4 = -Mat3.det(Mat3.of(a, b, c)),
-                    D0 = D1 + D2 + D3 + D4;
+                    ad = d.minus(a),
+                    abc = ab.cross(ac),
+                    acd = ac.cross(ad),
+                    adb = ad.cross(ab);
 
-                return (!D1 || !D2 || !D3 || !D4 || (
-                       Math.sign(D0) == Math.sign(D1) &&
-                       Math.sign(D0) == Math.sign(D2) &&
-                       Math.sign(D0) == Math.sign(D3) &&
-                       Math.sign(D0) == Math.sign(D4)));
+                if (abc.dot(a0) > 0) {
+                    args.simplex = [a, b, c];
+                    return Collision_Detection.do_simplex(args);
+                }
+                else if (acd.dot(a0) > 0) {
+                    args.simplex = [a, c, d];
+                    return Collision_Detection.do_simplex(args);
+                }
+                else if (adb.dot(a0) > 0) {
+                    args.simplex = [a, d, b];
+                    return Collision_Detection.do_simplex(args);
+                }
+                else 
+                    return true;
                 
         }
 
         return false;
     }
 
-    static GJK_points(s1, s2) {
-        /* accept two sets of points and return whether their convex hulls intersect */
-        var d = Vec.of(1, 0, 0),
-            s = Collision_Detection.support(s1, d).minus(Collision_Detection.support(s2, d.times(-1))),
-            simplex = [s];
-
-        d = s.times(-1);
-
-        while (simplex.length < 4) {
-            var A = Collision_Detection.support(s1, d).minus(Collision_Detection.support(s2, d.times(-1)));
-
-            console.log(A, d);
-            if (A.dot(d) < 0)
-                return false;
-            if (d.norm() == 0)
-                return true;
-
-            simplex.unshift(A);
-
-            d = Collision_Detection.do_simplex([simplex, d]);
-
-        }
-        return d;
-
-    }
 
     static GJK(s1, s2) {
         /* GJK for shapes */
@@ -331,14 +348,9 @@ class Collision_Detection {
             result = Collision_Detection.do_simplex(args);
 
             simplex = args.simplex;
-//             simplex.reverse();
             d = args.dir;
-//             console.log(simplex);
-
         }
-        
-        if (Math.abs(s1.x - s2.x) < 10)
-            console.log("man..");
+
         return result;
     }
     
@@ -349,83 +361,146 @@ class Collision_Detection {
             e_to_i: []
         }
 
-        if (Collision_Detection.GJK(e, i))
-            return 0;
-
-        return impacts;
-
-        // both are spheres, no friction/spinning
-        if (e instanceof Ball && i instanceof Ball) {
-            if (e.pos.minus(i.pos).norm() <= e.r + i.r) {
-                var contact = i.pos.times(i.r).plus(e.pos.times(e.r)).times(1/(e.r + i.r)),
-                    i_contact = i.pos.minus(contact),
-                    e_contact = e.pos.minus(contact);
-
-
-                var rest = Math.min(e.restitution, i.restitution),
-                    normal = i_contact.normalized(),
-                    vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
-
-                
-                const percent = 0.1;
-                var penetration_depth = i_contact.minus(e_contact).norm() - (e.r + i.r),
-                    slop = 0.01,
-                    correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
+        if (Collision_Detection.GJK(e, i)) {
+            var normals = i.normals.concat(e.normals),
+                collision_dir,
+                smol_ones = [null, null, null],
+                smallest_mink_norm = Infinity;
+            for (var dir of normals) {//Collision_Detection.icosohedron_normals()) {
+                var mink = e.support(dir.times(1)).minus(i.support(dir.times(-1)));
+//                 for (var ix in smallest_mink_norms) {
+//                     if (mink.norm() < smallest_mink_norms[ix] && smallest_mink_norms[ix] == Math.max.apply(null, smallest_mink_norms)) {
+//                         smallest_mink_norms[ix] = mink.norm();
+//                         smol_ones[ix] = dir;
+//                         break;
+//                     }
+//                 }
+                if (mink.norm() < smallest_mink_norm) {
+                    smallest_mink_norm = mink.norm();
+                    collision_dir = dir;
+                }
             }
 
-            else
-                return impacts;
-        }
-        
-        else if (e instanceof Box && i instanceof Ball) {
-            e = [i, i = e][0];
-        }
-
-        if (e instanceof Ball && i instanceof Box) {
-            if (e.pos.minus(i.pos).norm() <= e.r + i.width/2) {
-                var contact = i.pos.times(i.width/2).plus(e.pos.times(e.r)).times(1/(e.r + i.width/2));
-                    contact[1] = e.pos[1];
-                    contact[2] = e.pos[2];
-//                     contact = contact.times(-1);
-                var i_contact = i.pos.minus(contact),
-                    e_contact = e.pos.minus(contact);
-
-                var rest = Math.min(e.restitution, i.restitution),
-                    normal = i_contact.normalized(),
-                    vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
-
-                var correction = Vec.of(0, 0, 0);
-                
-            }
+//             collision_dir = smol_ones[0].plus(smol_ones[1]).plus(smol_ones[2]).times(1/3);
             
-            else
+            var i_contact = i.support(collision_dir.times(-1)),
+                e_contact = e.support(collision_dir.times(1));
+
+            var e_r = e_contact.minus(e.com),
+                i_r = i_contact.minus(i.com);
+
+
+            var rest = Math.min(e.restitution, i.restitution),
+                normal = collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
+                vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
+
+            const percent = 0.00;
+            var penetration_depth = i_contact.minus(e_contact).norm(),
+                slop = 0.1,
+                correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
+
+            if (vel_along_normal < 0)
                 return impacts;
+
+            var impulse_ie = vel_along_normal*(-(1 + rest));
+                impulse_ie /= i.m_inv + e.m_inv + 
+                    e.I_inv.times(e_r.cross(normal)).cross(e_r).dot(normal) + 
+                    i.I_inv.times(i_r.cross(normal)).cross(i_r).dot(normal);
+                impulse_ie = normal.times(impulse_ie);
+
+
+            var i_pos_correct = correction.times(i.m_inv),
+                e_pos_correct = correction.times(-e.m_inv);
+
+            impacts.i_to_e.push({
+                impulse: impulse_ie,
+                contact: e_r,
+                pos_correction: e_pos_correct
+            });
+
+            impacts.e_to_i.push({
+                impulse: impulse_ie.times(-1),
+                contact: i_r,
+                pos_correction: i_pos_correct
+            });
+            
         }
 
-        if (vel_along_normal < 0)
-            return impacts;
+        return impacts;
 
-        var impulse_ie = vel_along_normal*(-(1 + rest));
-            impulse_ie /= i.m_inv + e.m_inv;
-            impulse_ie = normal.times(impulse_ie);
+
+//         // both are spheres, no friction/spinning
+//         if (e instanceof Ball && i instanceof Ball) {
+//             if (e.pos.minus(i.pos).norm() <= e.r + i.r) {
+//                 var contact = i.pos.times(i.r).plus(e.pos.times(e.r)).times(1/(e.r + i.r)),
+//                     i_contact = i.pos.minus(contact),
+//                     e_contact = e.pos.minus(contact);
+
+
+//                 var rest = Math.min(e.restitution, i.restitution),
+//                     normal = i_contact.normalized(),
+//                     vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
+
+                
+//                 const percent = 0.1;
+//                 var penetration_depth = i_contact.minus(e_contact).norm() - (e.r + i.r),
+//                     slop = 0.01,
+//                     correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
+//             }
+
+//             else
+//                 return impacts;
+//         }
+        
+//         else if (e instanceof Box && i instanceof Ball) {
+//             e = [i, i = e][0];
+//         }
+
+//         if (e instanceof Ball && i instanceof Box) {
+//             if (e.pos.minus(i.pos).norm() <= e.r + i.width/2) {
+//                 var contact = i.pos.times(i.width/2).plus(e.pos.times(e.r)).times(1/(e.r + i.width/2));
+//                     contact[1] = e.pos[1];
+//                     contact[2] = e.pos[2];
+// //                     contact = contact.times(-1);
+//                 var i_contact = i.pos.minus(contact),
+//                     e_contact = e.pos.minus(contact);
+
+//                 var rest = Math.min(e.restitution, i.restitution),
+//                     normal = i_contact.normalized(),
+//                     vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
+
+//                 var correction = Vec.of(0, 0, 0);
+                
+//             }
+            
+//             else
+//                 return impacts;
+//         }
+
+//         if (vel_along_normal < 0)
+//             return impacts;
+
+//         var impulse_ie = vel_along_normal*(-(1 + rest));
+//             impulse_ie /= i.m_inv + e.m_inv;
+//             impulse_ie = normal.times(impulse_ie);
 
         
-        var i_pos_correct = correction.times(i.m_inv),
-            e_pos_correct = correction.times(-e.m_inv);
+//         var i_pos_correct = correction.times(i.m_inv),
+//             e_pos_correct = correction.times(-e.m_inv);
 
-        impacts.i_to_e.push({
-            impulse: impulse_ie,
-            contact: i_contact,
-            pos_correction: e_pos_correct
-        });
+//         impacts.i_to_e.push({
+//             impulse: impulse_ie,
+//             contact: i_contact,
+//             pos_correction: e_pos_correct
+//         });
 
-        impacts.e_to_i.push({
-            impulse: impulse_ie.times(-1),
-            contact: e_contact,
-            pos_correction: i_pos_correct
-        });
+//         impacts.e_to_i.push({
+//             impulse: impulse_ie.times(-1),
+//             contact: e_contact,
+//             pos_correction: i_pos_correct
+//         });
 
-        return impacts;
+//         return impacts;
     }
 }
 

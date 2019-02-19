@@ -117,9 +117,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
         // Find how much time has passed in seconds, and use that to place shapes.
         let old_t = this.t;
         if (!this.paused)
-            this.t += graphics_state.animation_delta_time / 10000;
+            this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
         let dt = t - old_t;
+//         console.log(dt);
 
         const g = this.gravity_off ? 0 : G;
 
@@ -142,8 +143,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         if (dt) {
             this.do_collisions();
-//             if (this.entities[0].momentum[0] != -200)
-//                 alert();
             this.apply_forces();
             this.update_entities(dt);
         }
@@ -160,18 +159,27 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, -2, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, 5, .1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Box(this, Vec.of(45, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
-//         this.entities.push(new Ball(this, Vec.of(-45, 27, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+        this.entities.push(new Box(this, Vec.of(45, 0, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 100, Vec.of(10, 10, 10), 1, this.materials.floor));
+        this.entities.push(new Box(this, Vec.of(-45, 8, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 100, Vec.of(10, 10, 10), 1, this.plastic));
+
+//         this.entities.push(new Ball(this, Vec.of(-45, 0, -3), Vec.of(20, 40, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Box(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 5, 100), 1, this.materials.floor));
-//         this.entities.push(new Ball(this, Vec.of(40, 40, 0), Vec.of(-15, 10, 0), Vec.of(0, 0, 0), 50, 20, 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 1, 100), .1, this.materials.floor));
+        
+//         for (var i = -1; i < 2; ++i) {
+//             for (var j = -1; j < 2; ++j) {
+//                 this.entities.push(new Box(this, Vec.of(20*i, 10, 20*j), Vec.of(Math.random()*10, 10, Math.random()*10), 
+//                     Vec.of(0, 0, 0), 20*Math.random(), Vec.of(Math.random()*10, Math.random()*10, Math.random()*10), 1, this.plastic));
+//             }
+//         }
+//         this.entities.push(new Box(this, Vec.of(40, 40, 0), Vec.of(-15, 10, 0), Vec.of(.7, .9, .4), 50, Vec.of(10, 10, 10), 1, this.plastic));
 
         
-        this.entities.push(new Box(this, Vec.of(11, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(-11, 27, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
+//         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
 //         this.entities[1].orientation = Quaternion.of(0, .5, .5, .5).normalized();
     }
 
@@ -189,11 +197,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
         for (var e = 0; e < this.entities.length; ++e) {
             for (var i = 0; i < e; ++i){
                 var impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
-                
-                if (impacts == 0) {
-                    this.paused = true;
-                    return;
-                }
                 
                 if (impacts.i_to_e.length)
                     console.log(impacts);
