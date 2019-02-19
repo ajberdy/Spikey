@@ -44,6 +44,24 @@ class Physics_Object {
 
     get transform() { return Mat4.identity(); }
 
+    get R() { 
+        var R = Mat4.quaternion_rotation(this.orientation.normalized());
+        return Mat.of(
+            [R[0][0], R[0][1], R[0][2]],
+            [R[1][0], R[1][1], R[1][2]],
+            [R[2][0], R[2][1], R[2][2]]
+        )
+     }
+
+     get R_inv() { 
+        var R = Mat4.quaternion_rotation(this.orientation.normalized());
+        return Mat.of(
+            [R[0][0], R[1][0], R[2][0]],
+            [R[0][1], R[1][1], R[2][1]],
+            [R[0][2], R[1][2], R[2][2]]
+        )
+     }
+
     get points() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
 
     get normals() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
@@ -66,10 +84,7 @@ class Physics_Object {
 
         this.orientation.normalize()
         
-        if (this.w.norm() == -90)
-            this.spin = Quaternion.of(1, 0, 0, 0);
-        else
-            this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation).times(0.5);
+        this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation).times(0.5);
     }
 
     shift(vec) {
@@ -404,9 +419,11 @@ class Collision_Detection {
 
             var impulse_ie = vel_along_normal*(-(1 + rest));
                 impulse_ie /= i.m_inv + e.m_inv + 
-                    e.I_inv.times(e_r.cross(normal)).cross(e_r).dot(normal) + 
-                    i.I_inv.times(i_r.cross(normal)).cross(i_r).dot(normal);
+                    e.R.times(e.I_inv).times(e.R_inv).times(e_r.cross(normal)).cross(e_r).dot(normal) + 
+                    i.R.times(i.I_inv).times(i.R_inv).times(i_r.cross(normal)).cross(i_r).dot(normal);
                 impulse_ie = normal.times(impulse_ie);
+
+            console.log(e.R.times(e.I_inv));
 
 
             var i_pos_correct = correction.times(i.m_inv),
