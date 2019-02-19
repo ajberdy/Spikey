@@ -219,62 +219,87 @@ class Collision_Detection {
 
     static do_simplex(args){
         var simplex = args.simplex,
+            simplex_a = args.simplex_a,
+            simplex_b = args.simplex_b,
             dir = args.dir;
         var a = simplex[0], b = simplex[1],
+            a_a = simplex_a[0], a_b = simplex_a[1],
+            b_a = simplex_b[0], b_b = simplex_b[1],
             ab = b.minus(a), a0 = a.times(-1);
 
         switch (simplex.length) {
             case 2:
                 if (ab.dot(a0) > 0) {
                     args.simplex = [a, b];
+                    args.simplex_a = [a_a, a_b];
+                    args.simplex_b = [b_a, b_b];
                     args.dir = ab.cross(a0).cross(ab);
                 }
                 else {
                     args.simplex = [a];
+                    args.simplex_a = [a_a];
+                    args.simplex_b = [b_a];
                     args.dir = a0;
                 }
                 break;
 
             case 3:
                 var c = simplex[2],
+                    a_c = simplex_a[2],
+                    b_c = simplex_b[2],
                     ac = c.minus(a),
                     abc = ab.cross(ac);
                 
                 if (abc.cross(ac).dot(a0) > 0)
                     if (ac.dot(a0)) {
                         args.simplex = [a, c];
+                        args.simplex_a = [a_a, a_c];
+                        args.simplex_b = [b_a, b_c];
                         args.dir = ac.cross(a0).cross(ac);
                     }
                     else if (ab.dot(a0) > 0) {
                         args.simplex = [a, b]
+                        args.simplex_a = [a_a, a_b]
+                        args.simplex_b = [b_a, b_b]
                         args.dir = ab.cross(a0).cross(ab);
                     }
                     else {
                         args.simplex = [a];
+                        args.simplex_a = [a_a];
+                        args.simplex_b = [b_a];
                         args.dir = a0;
                     }
                 else if (ab.cross(abc).dot(a0) > 0)
                     if (ab.dot(a0) > 0) {
                         args.simplex = [a, b];
+                        args.simplex_a = [a_a, a_b];
+                        args.simplex_b = [b_a, b_b];
                         args.dir = ab.cross(a0).cross(ab);
                     }
                     else {
                         args.simplex = [a];
+                        args.simplex_a = [a_a];
+                        args.simplex_b = [b_a];
                         args.dir = a0;
                     }
                 else if (abc.dot(a0) > 0) {
                     args.simplex = [a, b, c];
+                    args.simplex_a = [a_a, a_b, a_c];
+                    args.simplex_b = [b_a, b_b, b_c];
                     args.dir = abc;
                 }
                 else {
                     args.simplex = [a, c, b];
+                    args.simplex_a = [a_a, a_c, a_b];
+                    args.simplex_a = [b_a, b_c, b_b];
                     args.dir = abc.times(-1);
                 }
                 break;
 
             case 4:
-                var c = simplex[2],
-                    d = simplex[3],
+                var c = simplex[2], d = simplex[3],
+                    a_c = simplex_a[2], a_d = simplex_a[3],
+                    b_c = simplex_b[2], b_d = simplex_b[3],
                     ac = c.minus(a),
                     ad = d.minus(a),
                     abc = ab.cross(ac),
@@ -283,14 +308,20 @@ class Collision_Detection {
 
                 if (abc.dot(a0) > 0) {
                     args.simplex = [a, b, c];
+                    args.simplex_a = [a_a, a_b, a_c];
+                    args.simplex_b = [b_a, b_b, b_c];
                     return Collision_Detection.do_simplex(args);
                 }
                 else if (acd.dot(a0) > 0) {
                     args.simplex = [a, c, d];
+                    args.simplex_a = [a_a, a_c, a_d];
+                    args.simplex_b = [b_a, b_c, b_d];
                     return Collision_Detection.do_simplex(args);
                 }
                 else if (adb.dot(a0) > 0) {
                     args.simplex = [a, d, b];
+                    args.simplex_a = [a_a, a_d, a_b];
+                    args.simplex_b = [b_a, b_d, b_b];
                     return Collision_Detection.do_simplex(args);
                 }
                 else 
@@ -314,36 +345,149 @@ class Collision_Detection {
         };
 
         Collision_Detection.support(support_args);
-        args.simplex = [support_args.support];
+        args.simplex = [support_args.support],
+        args.simplex_a = [support_args.support_a],
+        args.simplex_b = [support_args.support_b];
 
         support_args.dir = support_args.support.times(-1);
-        var simplex_args = {simplex: args.simplex, dir: support_args.dir},
+        var simplex_args = {
+                simplex: args.simplex,
+                simplex_a: args.simplex_a, 
+                simplex_b: args.simplex_b, 
+                dir: support_args.dir
+            },
             result;
 
         while (args.simplex.length < 4) {
             support_args.dir = support_args.dir.normalized();
             Collision_Detection.support(support_args);
 
-//             console.log(A, d);
             if (support_args.support.dot(support_args.dir) < 0)
                 return false;
-//             if (d.norm() == 0)
-//                 return true;
 
             args.simplex.unshift(support_args.support);
+            args.simplex_a.unshift(support_args.support_a);
+            args.simplex_b.unshift(support_args.support_b);
 
             simplex_args.simplex = args.simplex;
+            simplex_args.simplex_a = args.simplex_a;
+            simplex_args.simplex_b = args.simplex_b;
             simplex_args.dir = support_args.dir;
 
             result = Collision_Detection.do_simplex(simplex_args);
 
             args.simplex = simplex_args.simplex;
+            args.simplex_a = simplex_args.simplex_a;
+            args.simplex_b = simplex_args.simplex_b;
             support_args.dir = simplex_args.dir.normalized();
         }
 
         return result;
     }
 
+    static EPA(args, epsilon=0.0001) {
+        /* expanding polytope algorithm */
+        if (args.simplex.length != 4)
+            throw new Error("I don't think this should happen");
+
+        var s = args.simplex,
+            sa = args.simplex_a,
+            sb = args.simplex_b;
+
+        var triangles = [
+                    Triangle.of(s[0], s[1], s[2]),
+                    Triangle.of(s[0], s[3], s[1]),
+                    Triangle.of(s[0], s[2], s[3]),
+                    Triangle.of(s[1], s[3], s[2])
+                ],
+            triangles_a = [
+                    Triangle.of(sa[0], sa[1], sa[2]),
+                    Triangle.of(sa[0], sa[3], sa[1]),
+                    Triangle.of(sa[0], sa[2], sa[3]),
+                    Triangle.of(sa[1], sa[3], sa[2])
+                ],
+            triangles_b = [
+                    Triangle.of(sb[0], sb[1], sb[2]),
+                    Triangle.of(sb[0], sb[3], sb[1]),
+                    Triangle.of(sb[0], sb[2], sb[3]),
+                    Triangle.of(sb[1], sb[3], sb[2])
+                ];
+
+
+        var new_dist = -Infinity,
+            min_dist = Infinity,
+            min_ix = 0,
+            support_args = {
+                a: args.a,
+                b: args.b,
+                dir: triangles[min_ix].normal.times(-1),
+                support_a: null,
+                support_b: null,
+                support: null
+            };
+
+        while (new_dist + epsilon < min_dist) {
+            for (var i in triangles) {
+                var dist = Math.abs(triangles[i].normal.dot(triangles[i].a));
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    min_ix = i;
+                }
+            }
+
+            Collision_Detection.support(support_args);
+
+            new_dist = support_args.support.norm();
+            if (new_dist + epsilon >= min_dist) {
+                break;
+            }
+
+            var edges = [];
+            for (var i in triangles) {
+                var t = triangles[i];
+                if (t.normal.dot(t.a.minus(support_args.support)) > 0) {
+                    triangles.splice(i, 1);
+                    var te = [[t.a, t.b], [t.b, t.c], [t.c, t.a]];
+
+                    for (var i in edges) {
+                        var e = edges[i];
+                
+                        if (e[0].equals(te[1]) && e[1].equals(te[2]))
+                            delete edges[i];
+                        else
+                            edges.push(e);
+                    }
+                    edges = edges.filter(x => x != undefined);
+                }
+            }
+
+
+        }
+
+        var t = triangles[min_ix],
+            ta = triangles_a[min_ix],
+            tb = triangles_b[min_ix],
+            normal = t.normal,
+            penetration = min_dist,
+            p = normal.times(-min_dist),
+            tA = t.b.minus(t.a).cross(t.c.minus(t.a)).norm(),
+            barry_coords = Vec.of(
+                    t.b.minus(p).cross(t.c.minus(p)).norm()/tA,
+                    t.a.minus(p).cross(t.c.minus(p)).norm()/tA,
+                    t.a.minus(p).cross(t.b.minus(p)).norm()/tA,
+                ),
+            contact_a = ta.a.times(barry_coords[0]).plus(ta.b.times(barry_coords[1])).plus(ta.c.times(barry_coords[2])),
+            contact_b = tb.a.times(barry_coords[0]).plus(tb.b.times(barry_coords[1])).plus(tb.c.times(barry_coords[2])),
+            manifold = {
+                normal: normal,
+                penetration_depth: penetration,
+                contact_a: contact_a,
+                contact_b: contact_b
+            };
+        
+        return manifold;  
+    }
+    
     static get_impacts(e, i) {
         var impacts = {
             i_to_e: [],
@@ -351,41 +495,54 @@ class Collision_Detection {
             e_to_i: []
         }
 
-        if (Collision_Detection.GJK({a: e, b: i, simplex: null})) {
-            var normals = i.normals.concat(e.normals),
-                collision_dir,
-                smol_ones = [null, null, null],
-                smallest_mink_norm = Infinity;
-            for (var dir of normals) {//Collision_Detection.icosohedron_normals()) {
-                var mink = e.support(dir.times(1)).minus(i.support(dir.times(-1)));
-//                 for (var ix in smallest_mink_norms) {
-//                     if (mink.norm() < smallest_mink_norms[ix] && smallest_mink_norms[ix] == Math.max.apply(null, smallest_mink_norms)) {
-//                         smallest_mink_norms[ix] = mink.norm();
-//                         smol_ones[ix] = dir;
-//                         break;
-//                     }
-//                 }
-                if (mink.norm() < smallest_mink_norm) {
-                    smallest_mink_norm = mink.norm();
-                    collision_dir = dir;
-                }
-            }
+        var GJK_args = {a: e, b: i, simplex: null, simplex_a: null, simplex_b: null};
+        if (Collision_Detection.GJK(GJK_args)) {
+            console.log(GJK_args.simplex);
 
-//             collision_dir = smol_ones[0].plus(smol_ones[1]).plus(smol_ones[2]).times(1/3);
+            var manifold = Collision_Detection.EPA(GJK_args);
+
+
+
+//             var normals = i.normals.concat(e.normals),
+//                 collision_dir,
+//                 smol_ones = [null, null, null],
+//                 smallest_mink_norm = Infinity;
+//             for (var dir of normals) {//Collision_Detection.icosohedron_normals()) {
+//                 var mink = e.support(dir.times(1)).minus(i.support(dir.times(-1)));
+// //                 for (var ix in smallest_mink_norms) {
+// //                     if (mink.norm() < smallest_mink_norms[ix] && smallest_mink_norms[ix] == Math.max.apply(null, smallest_mink_norms)) {
+// //                         smallest_mink_norms[ix] = mink.norm();
+// //                         smol_ones[ix] = dir;
+// //                         break;
+// //                     }
+// //                 }
+//                 if (mink.norm() < smallest_mink_norm) {
+//                     smallest_mink_norm = mink.norm();
+//                     collision_dir = dir;
+//                 }
+//             }
+
+// //             collision_dir = smol_ones[0].plus(smol_ones[1]).plus(smol_ones[2]).times(1/3);
             
-            var i_contact = i.support(collision_dir.times(-1)),
-                e_contact = e.support(collision_dir.times(1));
+//             var i_contact = i.support(collision_dir.times(-1)),
+//                 e_contact = e.support(collision_dir.times(1));
+
+//             var e_r = e_contact.minus(e.com),
+//                 i_r = i_contact.minus(i.com);
+
+            var i_contact = manifold.contact_b,
+                e_contact = manifold.contact_a;
 
             var e_r = e_contact.minus(e.com),
-                i_r = i_contact.minus(i.com);
+                i_r = e_contact.minus(i.com);
 
 
             var rest = Math.min(e.restitution, i.restitution),
-                normal = collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
+                normal = manifold.normal,   //collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
                 vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
 
             const percent = 0.00;
-            var penetration_depth = i_contact.minus(e_contact).norm(),
+            var penetration_depth = manifold.penetration_depth, //i_contact.minus(e_contact).norm(),
                 slop = 0.1,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
 

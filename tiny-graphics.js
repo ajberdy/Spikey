@@ -333,6 +333,44 @@ class Mat4 extends Mat {
 }
 
 
+class Triangle {
+    constructor(a, b, c) {
+      this.a = a;
+      this.b = b;
+      this.c = c;
+
+      this.normal = b.minus(a).cross(c.minus(a)).normalized();
+    }
+
+    static of(a, b, c) {
+        return new Triangle(a, b, c);
+    }
+
+    projection_of(v) {
+        var b, c;
+        if (Math.abs(v[0]) >= 0.57735)
+            b = Vec.of(v[1], -v[0], 0);
+        else
+            b = Vec.of(0, v[2], -v[1]);
+        
+        b.normalize();
+        c = a.cross(b);
+
+        return b.times(b.dot(v)).plus(c.times(c.dot(v)));
+    }
+}
+
+class Edge {
+    constructor(a, b) {
+      this.a = a;
+      this.b = b;
+    }
+
+    static of(a, b) {
+        return new Edge(a, b);
+    }
+}
+
 // This class maintains a running list of which keys are depressed.  You can map combinations of shortcut
 // keys to trigger callbacks you provide by calling add().  See add()'s arguments.  The shortcut list is 
 // indexed by convenient strings showing each bound shortcut combination.  The constructor optionally
