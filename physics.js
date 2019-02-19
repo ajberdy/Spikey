@@ -207,8 +207,225 @@ class Box extends Physics_Object {
 }
 
 
-
 class Collision_Detection {
+
+    static support(args) {
+        args.support_a = args.a.support(args.dir);
+        args.support_b = args.b.support(args.dir.times(-1));
+        args.support = args.support_a.minus(args.support_b);
+
+        return;
+    }
+
+    static do_simplex(args){
+        var simplex = args.simplex,
+            dir = args.dir;
+        var a = simplex[0], b = simplex[1],
+            ab = b.minus(a), a0 = a.times(-1);
+
+        switch (simplex.length) {
+            case 2:
+                if (ab.dot(a0) > 0) {
+                    args.simplex = [a, b];
+                    args.dir = ab.cross(a0).cross(ab);
+                }
+                else {
+                    args.simplex = [a];
+                    args.dir = a0;
+                }
+                break;
+
+            case 3:
+                var c = simplex[2],
+                    ac = c.minus(a),
+                    abc = ab.cross(ac);
+                
+                if (abc.cross(ac).dot(a0) > 0)
+                    if (ac.dot(a0)) {
+                        args.simplex = [a, c];
+                        args.dir = ac.cross(a0).cross(ac);
+                    }
+                    else if (ab.dot(a0) > 0) {
+                        args.simplex = [a, b]
+                        args.dir = ab.cross(a0).cross(ab);
+                    }
+                    else {
+                        args.simplex = [a];
+                        args.dir = a0;
+                    }
+                else if (ab.cross(abc).dot(a0) > 0)
+                    if (ab.dot(a0) > 0) {
+                        args.simplex = [a, b];
+                        args.dir = ab.cross(a0).cross(ab);
+                    }
+                    else {
+                        args.simplex = [a];
+                        args.dir = a0;
+                    }
+                else if (abc.dot(a0) > 0) {
+                    args.simplex = [a, b, c];
+                    args.dir = abc;
+                }
+                else {
+                    args.simplex = [a, c, b];
+                    args.dir = abc.times(-1);
+                }
+                break;
+
+            case 4:
+                var c = simplex[2],
+                    d = simplex[3],
+                    ac = c.minus(a),
+                    ad = d.minus(a),
+                    abc = ab.cross(ac),
+                    acd = ac.cross(ad),
+                    adb = ad.cross(ab);
+
+                if (abc.dot(a0) > 0) {
+                    args.simplex = [a, b, c];
+                    return Collision_Detection.do_simplex(args);
+                }
+                else if (acd.dot(a0) > 0) {
+                    args.simplex = [a, c, d];
+                    return Collision_Detection.do_simplex(args);
+                }
+                else if (adb.dot(a0) > 0) {
+                    args.simplex = [a, d, b];
+                    return Collision_Detection.do_simplex(args);
+                }
+                else 
+                    return true;
+                
+        }
+
+        return false;
+    }
+
+    static GJK(args) {
+        /* GJK for shapes */
+
+        var support_args = {
+            a: args.a,
+            b: args.b,
+            dir: Vec.of(1, 0, 0),
+            support_a: null,
+            support_b: null,
+            support: null
+        };
+
+        Collision_Detection.support(support_args);
+        args.simplex = [support_args.support];
+
+        support_args.dir = support_args.support.times(-1);
+        var simplex_args = {simplex: args.simplex, dir: support_args.dir},
+            result;
+
+        while (args.simplex.length < 4) {
+            support_args.dir = support_args.dir.normalized();
+            Collision_Detection.support(support_args);
+
+//             console.log(A, d);
+            if (support_args.support.dot(support_args.dir) < 0)
+                return false;
+//             if (d.norm() == 0)
+//                 return true;
+
+            args.simplex.unshift(support_args.support);
+
+            simplex_args.simplex = args.simplex;
+            simplex_args.dir = support_args.dir;
+
+            result = Collision_Detection.do_simplex(simplex_args);
+
+            args.simplex = simplex_args.simplex;
+            support_args.dir = simplex_args.dir.normalized();
+        }
+
+        return result;
+    }
+
+    static get_impacts(e, i) {
+        var impacts = {
+            i_to_e: [],
+
+            e_to_i: []
+        }
+
+        if (Collision_Detection.GJK({a: e, b: i, simplex: null})) {
+            var normals = i.normals.concat(e.normals),
+                collision_dir,
+                smol_ones = [null, null, null],
+                smallest_mink_norm = Infinity;
+            for (var dir of normals) {//Collision_Detection.icosohedron_normals()) {
+                var mink = e.support(dir.times(1)).minus(i.support(dir.times(-1)));
+//                 for (var ix in smallest_mink_norms) {
+//                     if (mink.norm() < smallest_mink_norms[ix] && smallest_mink_norms[ix] == Math.max.apply(null, smallest_mink_norms)) {
+//                         smallest_mink_norms[ix] = mink.norm();
+//                         smol_ones[ix] = dir;
+//                         break;
+//                     }
+//                 }
+                if (mink.norm() < smallest_mink_norm) {
+                    smallest_mink_norm = mink.norm();
+                    collision_dir = dir;
+                }
+            }
+
+//             collision_dir = smol_ones[0].plus(smol_ones[1]).plus(smol_ones[2]).times(1/3);
+            
+            var i_contact = i.support(collision_dir.times(-1)),
+                e_contact = e.support(collision_dir.times(1));
+
+            var e_r = e_contact.minus(e.com),
+                i_r = i_contact.minus(i.com);
+
+
+            var rest = Math.min(e.restitution, i.restitution),
+                normal = collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
+                vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
+
+            const percent = 0.00;
+            var penetration_depth = i_contact.minus(e_contact).norm(),
+                slop = 0.1,
+                correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
+
+            if (vel_along_normal < 0)
+                return impacts;
+
+            var impulse_ie = vel_along_normal*(-(1 + rest));
+                impulse_ie /= i.m_inv + e.m_inv + 
+                    e.R.times(e.I_inv).times(e.R_inv).times(e_r.cross(normal)).cross(e_r).dot(normal) + 
+                    i.R.times(i.I_inv).times(i.R_inv).times(i_r.cross(normal)).cross(i_r).dot(normal);
+                impulse_ie = normal.times(impulse_ie);
+
+            console.log(e.R.times(e.I_inv));
+
+
+            var i_pos_correct = correction.times(i.m_inv),
+                e_pos_correct = correction.times(-e.m_inv);
+
+            impacts.i_to_e.push({
+                impulse: impulse_ie,
+                contact: e_r,
+                pos_correction: e_pos_correct
+            });
+
+            impacts.e_to_i.push({
+                impulse: impulse_ie.times(-1),
+                contact: i_r,
+                pos_correction: i_pos_correct
+            });
+            
+        }
+
+        return impacts;
+    }
+
+
+}
+
+
+class Collision_Detection_ {
 
     static icosohedron_normals() {
         return Vec.cast(
@@ -235,19 +452,12 @@ class Collision_Detection {
         )
     }
 
-    static support(points, d) {
-        var max_v, max_dot = -Infinity;
-        for (var v of points) {
-            v = v.to3();
-            var dot = v.dot(d);
+    static support(args) {
+        args.support_a = args.a.support(args.dir);
+        args.support_b = args.b.support(args.dir.times(-1));
+        args.support = args.support_b.minus(args.support_a);
 
-            if (dot > max_dot) {
-                max_v = v;
-                max_dot = dot;
-            }
-        }
-
-        return max_v;
+        return;
     }
 
     static do_simplex(args){
@@ -346,7 +556,7 @@ class Collision_Detection {
             result;
 
         while (simplex.length < 4) {
-            d = d.normalized()
+            d = d.normalized();
             var A = s1.support(d).minus(s2.support(d.times(-1)));
 
 //             console.log(A, d);
