@@ -100,11 +100,20 @@ class Physics_Object {
     }
 
     force(F, r) {
+
+        if (this.m == Infinity)
+            return;
+
         this.F = this.F.plus(F);
-        this.T = this.T.plus(r.cross(F));
+
+        if (r.norm())
+            this.T = this.T.plus(r.cross(F));
     }
 
     impulse(J, r) {
+        if (this.m == Infinity)
+            return;
+
         this.momentum = this.momentum.plus(J);
         this.L = this.L.plus(r.cross(J));
     }
@@ -125,15 +134,13 @@ class Physics_Object {
         this.T = Vec.of(0, 0, 0);
     }
 
-    support(d, used) {
+    support(d) {
         var max_v, max_dot = -Infinity;
         for (var v_base of this.base_points) {
             let v = this.transform.times(v_base.to4(1)).to3(),
                 dot = v.dot(d);
 
             if (dot >= max_dot) {
-                if (dot == max_dot && used != undefined && used.includes(v))
-                    continue;
                 max_v = v;
                 max_dot = dot;
             }
@@ -625,9 +632,9 @@ class Collision_Detection {
 
             var manifold = Collision_Detection.EPA(GJK_args);
 
-            if (manifold.normal.dot(Vec.of(0, 1, 0)) < 0) {
-                GJK_args.a.resting = true;
-            }
+//             if (manifold.normal.dot(Vec.of(0, 1, 0)) < 0) {
+//                 GJK_args.a.resting = true;
+//             }
 
 
 
@@ -666,35 +673,48 @@ class Collision_Detection {
 
 
             var rest = Math.min(e.restitution, i.restitution),
-                normal = manifold.normal,   //collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
-                vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
+                normal = manifold.normal;   //collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
 
-//             console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
+            
+            console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
 //             if (normal.dot(Vec.of(0, 1, 0)) > 0)
 //                 normal = normal.times(-1);
 
-//             console.log(normal);
-            console.log(i_r);
+            var vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
 
-            const percent = .4;
+
+//             console.log(normal);
+//             console.log(i_r);
+
+            const percent = .8;
             var penetration_depth = manifold.penetration_depth, //i_contact.minus(e_contact).norm(),
                 slop = .01,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
 
-            if (vel_along_normal < 0)
-                return impacts;
-
-            var impulse_ie = vel_along_normal*(-(1 + rest));
+            if (vel_along_normal < 0){
+                impulse_ie = Vec.of(0, 0, 0);
+            }
+//                 return impacts;
+            else {
+                if (vel_along_normal > 100)
+                    console.log(e.vel, e.w);
+                var impulse_ie = vel_along_normal*(-(1 + rest));
                 impulse_ie /= i.m_inv + e.m_inv + 
                     e.R.times(e.I_inv).times(e.R_inv).times(e_r.cross(normal)).cross(e_r).dot(normal) + 
                     i.R.times(i.I_inv).times(i.R_inv).times(i_r.cross(normal)).cross(i_r).dot(normal);
                 impulse_ie = normal.times(impulse_ie);
+            }
+
+            
 
 //             console.log(e.R.times(e.I_inv));
 
 
             var i_pos_correct = correction.times(i.m_inv),
                 e_pos_correct = correction.times(-e.m_inv);
+            
+            console.log(normal);
+            console.log(i_pos_correct);
 
             impacts.i_to_e.push({
                 impulse: impulse_ie,
