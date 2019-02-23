@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 19.8;
+      G = 1*9.8;
 
 
 
@@ -144,19 +144,21 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         if (dt) {
 //             return;
-            var n = 5;
+            var n = 1;
             var resting = [];
             
-            this.apply_forces(resting);
+//             this.apply_forces(resting);
             for (var i = 0; i < n; i++) {
                 if (this.paused)
                     break;
-                this.do_collisions(dt/n);
 //                 this.apply_forces();
                 this.apply_impulses(dt/n);
+                this.do_collisions(dt/n);
 
 
                 this.update_entities(dt/n);
+
+//                 console.log(this.entities[1].momentum.norm());
 //             }
 //             this.do_collisions(dt, 1);;
 //             this.apply_impulses(dt);
@@ -188,7 +190,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
         this.entities.push(new Box(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 10, 100), 1, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), 1, this.plastic));
+        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), .1, this.plastic));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
@@ -200,7 +202,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         
 //         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
 //         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-        this.entities[1].orientation = Quaternion.of(0, .3, .7, 0).normalized();
+        this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
     }
 
     apply_forces() {
@@ -245,8 +247,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
                         this.entities[e].force(Vec.of(0, this.entities[e].m*G, 0), impacts.i_to_e[J].contact);
                         this.entities[e].shift(impacts.i_to_e[J].pos_correction);
                         var e_pos_correct = impacts.i_to_e[J].pos_correction;
-                        if (e_pos_correct.dot(e_pos_correct))
-                            this.entities[e].momentum = this.entities[e].momentum.plus(e_pos_correct.times(this.entities[e].m/dt));
+                        if (e_pos_correct.dot(e_pos_correct)) {
+                            var correct_norm = e_pos_correct.normalized();
+                            this.entities[e].momentum = correct_norm.cross(this.entities[e].momentum).cross(
+                                correct_norm);
+                        }
+//                             this.entities[e].momentum = this.entities[e].momentum.minus(e_pos_correct.times(this.entities[e].m/dt).times(
+//                             this.entities[e].vel.dot(e_pos_correct)));
                     }
 
                     for (var J in impacts.e_to_i) {
@@ -255,7 +262,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
                         this.entities[i].shift(impacts.e_to_i[J].pos_correction);
                         var i_pos_correct = impacts.e_to_i[J].pos_correction;
                         if (i_pos_correct.dot(i_pos_correct))
-                            this.entities[i].momentum = this.entities[i].momentum.plus(i_pos_correct.times(this.entities[i].m/dt));
+                            this.entities[i].momentum = this.entities[i].momentum.minus(i_pos_correct.times(this.entities[i].m/dt).times(
+                            this.entities[i].vel.dot(i_pos_correct)));
                     
                     }
 

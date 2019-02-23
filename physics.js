@@ -309,7 +309,7 @@ class Collision_Detection {
                 else {
                     args.simplex = [a, c, b];
                     args.simplex_a = [a_a, a_c, a_b];
-                    args.simplex_a = [b_a, b_c, b_b];
+                    args.simplex_b = [b_a, b_c, b_b];
                     args.dir = abc.times(-1);
                 }
                 break;
@@ -377,7 +377,7 @@ class Collision_Detection {
             result;
 
         while (args.simplex.length < 4) {
-            support_args.dir = support_args.dir;
+//             support_args.dir = support_args.dir;
             Collision_Detection.support(support_args);
 
             if (support_args.dir.norm() == 0)
@@ -505,11 +505,11 @@ class Collision_Detection {
                 support: null
             };
 
-        console.log("starting epa");
+//         console.log("starting epa");
         for (var iter = 0; iter < 20; ++iter) {
             min_ix = 0;
             min_dist = Infinity;
-            console.log("iter");
+//             console.log("iter");
             for (var i in triangles) {
                 var dist = Math.abs(triangles[i].normal.dot(triangles[i].a));
                 if (dist < min_dist) {
@@ -665,6 +665,7 @@ class Collision_Detection {
 //             var e_r = e_contact.minus(e.com),
 //                 i_r = i_contact.minus(i.com);
 
+
             var i_contact = manifold.contact_b,
                 e_contact = manifold.contact_a;
 
@@ -674,17 +675,20 @@ class Collision_Detection {
 
             var rest = Math.min(e.restitution, i.restitution),
                 normal = manifold.normal;   //collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
-
             
-            console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
+            if (Math.max(e.vel.norm(), i.vel.norm()) < 100)
+                rest = 0;
+            
+//             console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
 //             if (normal.dot(Vec.of(0, 1, 0)) > 0)
 //                 normal = normal.times(-1);
 
-            var vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
+            var vel_along_normal = (e.vel.plus(e.w.cross(e_r).times(1)).minus(i.vel.plus(i.w.cross(i_r).times(1)))).dot(normal);
 
 
 //             console.log(normal);
-//             console.log(i_r);
+            if (e.momentum.norm() > 1000)
+                console.log(i_r, e_r);
 
             const percent = .8;
             var penetration_depth = manifold.penetration_depth, //i_contact.minus(e_contact).norm(),
@@ -697,7 +701,7 @@ class Collision_Detection {
 //                 return impacts;
             else {
                 if (vel_along_normal > 100)
-                    console.log(e.vel, e.w);
+                    console.log(e.vel, e.w, e_r);
                 var impulse_ie = vel_along_normal*(-(1 + rest));
                 impulse_ie /= i.m_inv + e.m_inv + 
                     e.R.times(e.I_inv).times(e.R_inv).times(e_r.cross(normal)).cross(e_r).dot(normal) + 
@@ -713,8 +717,8 @@ class Collision_Detection {
             var i_pos_correct = correction.times(i.m_inv),
                 e_pos_correct = correction.times(-e.m_inv);
             
-            console.log(normal);
-            console.log(i_pos_correct);
+//             console.log(normal);
+//             console.log(i_pos_correct);
 
             impacts.i_to_e.push({
                 impulse: impulse_ie,
