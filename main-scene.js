@@ -211,9 +211,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, .5, .05, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(0, 0, -60), Vec.of(0, 15, 8), Vec.of(0.2, 1, 0.1), 50, Vec.of(10, 3, 10), .1, .5, .01, this.plastic));
+//         this.entities.push(new Box(this, Vec.of(0, 15, 0), Vec.of(0, 0, 0), Vec.of(0.2, 1, 0.1).times(0), 50, Vec.of(10, 10, 10), .5, .5, .1, this.plastic));
 
-//         this.entities.push(new Ball(this, Vec.of(0, 0, -60), Vec.of(0, 15, 8), Vec.of(0.2, 1, 0.1), 50, 5, .1, .5, .1, this.materials.soccer));
+        this.entities.push(new Ball(this, Vec.of(-50, 5, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 50, 5, .1, .5, .1, this.materials.soccer));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
@@ -225,7 +225,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         
 //         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
 //         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-//         this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
+        this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
     }
 
     apply_forces() {

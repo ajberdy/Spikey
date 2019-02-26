@@ -748,15 +748,15 @@ class Collision_Detection {
 
 //             console.log(rel_vel.dot(tangent));
 
-            a.impulse(friction_impulse.times(1), a_contact);
-            b.impulse(friction_impulse.times(-1), b_contact);
+            a.impulse(friction_impulse.times(1), a_r);
+            b.impulse(friction_impulse.times(-1), b_r);
 
-//             b.scene.shapes.vector.draw(
-//                 b.scene.globals.graphics_state,
-//                 Mat4.y_to_vec(friction_impulse.times(1000), b_contact).times(
-//                     Mat4.scale(Vec.of(1, .03, 1))),
-//                 b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-//                 "LINES");
+            b.scene.shapes.vector.draw(
+                b.scene.globals.graphics_state,
+                Mat4.y_to_vec(friction_impulse.times(-1000), b_contact).times(
+                    Mat4.scale(Vec.of(1, .03, 1))),
+                b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+                "LINES");
 
         }
     }
