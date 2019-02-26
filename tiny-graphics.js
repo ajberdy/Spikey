@@ -94,17 +94,52 @@ class Vec extends Float32Array {
 }
 
 
+// class Quaternion extends Vec {
+
+//     constructor(p, v) {
+//         super(p, v[0], v[1], v[2]);
+//         this.p = p;
+//         this.v = v;
+//     }
+
+//     static from(p, v) {
+//         return new Quaternion(p, v)
+//     }
+
+//     times(q) {
+//         if (!isNaN(q)){
+//             return Quaternion.from(this.p*q, this.v.times(q))
+//         }
+//             return super.times(q);
+// //         q.normalize();
+//         return Quaternion.of(
+//             this[0]*q[0] - this[1]*q[1] - this[2]*q[2] - this[3]*q[3],
+//             this[0]*q[1] + this[1]*q[0] + this[2]*q[3] - this[3]*q[2],
+//             this[0]*q[2] - this[1]*q[3] + this[2]*q[0] - this[3]*q[1],
+//             this[0]*q[3] + this[1]*q[2] - this[2]*q[1] + this[3]*q[0]
+//         );
+//     }
+
+//     inverse() {
+//         return Quaternion.of(this[0], -this[1], -this[2], -this[3]);
+//     }
+// }
+
 class Quaternion extends Vec {
     times(q) {
         if (!isNaN(q))
             return super.times(q);
-        q.normalize();
-        return Quaternion.of(
-            this[0]*q[0] - this[1]*q[1] - this[2]*q[2] - this[3]*q[3],
-            this[0]*q[1] + this[1]*q[0] + this[2]*q[3] - this[3]*q[2],
-            this[0]*q[2] - this[1]*q[3] + this[2]*q[0] - this[3]*q[1],
-            this[0]*q[3] + this[1]*q[2] - this[2]*q[1] + this[3]*q[0]
-        );
+        var pw = this[0],
+            qw = q[0],
+            pv = Vec.of(this[1], this[2], this[3]),
+            qv = Vec.of(q[1], q[2], q[3]);
+
+        var rw = pw*qw - pv.dot(qv),
+            rv = pv.times(qw).plus(
+                 qv.times(pw)).plus(
+                 pv.cross(qv));
+
+        return Quaternion.of(rw, rv[0], rv[1], rv[2]);
     }
 
     inverse() {
@@ -329,6 +364,17 @@ class Mat4 extends Mat {
             [2*b*d - 2*a*c, 2*c*d + 2*a*b, a*a - b*b - c*c + d*d, 0],
             [0, 0, 0, 1]
         )
+    }
+
+    static y_to_vec(v, at) {
+        let scale = v.norm(),
+            phi = Math.atan(v[1]/Math.sqrt(v[0]**2 + v[2]**2)),
+            theta = Math.atan(v[0]/v[2]) + Math.PI*(v[2] < 0);
+
+        return Mat4.translation(at).times(
+            Mat4.rotation(theta, Vec.of(0, 1, 0))).times(
+            Mat4.rotation(Math.PI/2 - phi, Vec.of(1, 0, 0))).times(
+            Mat4.scale(Vec.of(1, scale, 1)));
     }
 }
 

@@ -26,6 +26,7 @@ class Physics_Object {
         this.momentum;
 
         this.orientation = Quaternion.of(1, 0, 0, 0);
+//         this.orientation = Quaternion.from(1, Vec.of(0, 0, 0));
         this.L;
 
         // first time derivatives
@@ -85,14 +86,39 @@ class Physics_Object {
         this.vel = this.momentum.times(this.m_inv);
 
         this.w = this.R.times(this.I_inv).times(this.R_inv).times(this.L);
+        console.log(this.orientation);
+        console.log(this.w);
+//         this.w = this.I_inv.times(this.L);
 
         this.orientation.normalize()
+
+//         var halfAngle = this.w.norm() * .5,
+//             sa = Math.sin(halfAngle)/this.w.norm(),
+//             ca = Math.cos(halfAngle),
+//             wp = this.w.times(sa);
+
+//         var x = this.w[0],
+//             y = this.orientation[1],
+//             z = this.orientation[2],
+//             w = this.orientation[3],
+//             qx = this.orientation[0],
+//             qy = this.orientation[1],
+//             qz = this.orientation[2],
+//             qw = this.orientation[3];
         
-//         this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(this.orientation).times(0.5);
-        if (this.w.norm() == 0)
-            this.spin = Quaternion.of(0, 0, 0, 0);
-        else
-            this.spin = this.orientation.times(Quaternion.of(0, this.w[0], this.w[1], this.w[2])).times(0.5);
+//         this.orientation = Quaternion.of(
+//             x*qw + y*qz - z*qy + ca*qx,
+//             -x*qz + y*qw + z*qx + ca*qy,
+//             x*qy - y*qx + z*qw + ca*qz,
+//             -x*qx - y*qy -z*qz + ca*qw
+//         ).normalized();
+        
+        this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(0.5).times(this.orientation);
+        console.log(this.spin);
+//         if (this.w.norm() == 0)
+//             this.spin = Quaternion.of(0, 0, 0, 0);
+//         else
+//             this.spin = this.orientation.times(Quaternion.of(0, this.w[0], this.w[1], this.w[2])).times(0.5);
     }
 
     shift(vec) {
@@ -128,7 +154,9 @@ class Physics_Object {
 //         console.log(this.spin.times(dt));
 
         this.pos = this.pos.plus(this.vel.times(dt));
+        console.log("before: ", this.orientation);
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
+        console.log("after: ", this.orientation);
     
         this.F = Vec.of(0, 0, 0);
         this.T = Vec.of(0, 0, 0);
