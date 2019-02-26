@@ -94,52 +94,33 @@ class Vec extends Float32Array {
 }
 
 
-// class Quaternion extends Vec {
-
-//     constructor(p, v) {
-//         super(p, v[0], v[1], v[2]);
-//         this.p = p;
-//         this.v = v;
-//     }
-
-//     static from(p, v) {
-//         return new Quaternion(p, v)
-//     }
-
-//     times(q) {
-//         if (!isNaN(q)){
-//             return Quaternion.from(this.p*q, this.v.times(q))
-//         }
-//             return super.times(q);
-// //         q.normalize();
-//         return Quaternion.of(
-//             this[0]*q[0] - this[1]*q[1] - this[2]*q[2] - this[3]*q[3],
-//             this[0]*q[1] + this[1]*q[0] + this[2]*q[3] - this[3]*q[2],
-//             this[0]*q[2] - this[1]*q[3] + this[2]*q[0] - this[3]*q[1],
-//             this[0]*q[3] + this[1]*q[2] - this[2]*q[1] + this[3]*q[0]
-//         );
-//     }
-
-//     inverse() {
-//         return Quaternion.of(this[0], -this[1], -this[2], -this[3]);
-//     }
-// }
-
 class Quaternion extends Vec {
+
+    get w() { return this[0]; }
+    get v() { return Vec.of(this[1], this[2], this[3]); }
+
+    static unit() {
+        return Quaternion.from(1);
+    }
+    
     times(q) {
         if (!isNaN(q))
             return super.times(q);
-        var pw = this[0],
-            qw = q[0],
-            pv = Vec.of(this[1], this[2], this[3]),
-            qv = Vec.of(q[1], q[2], q[3]);
 
-        var rw = pw*qw - pv.dot(qv),
-            rv = pv.times(qw).plus(
-                 qv.times(pw)).plus(
-                 pv.cross(qv));
+        var p = this,
+            rw = p.w*q.w - p.v.dot(q.v),
+            rv = p.v.times(q.w).plus(
+                 q.v.times(p.w)).plus(
+                 p.v.cross(q.v));
 
-        return Quaternion.of(rw, rv[0], rv[1], rv[2]);
+        return Quaternion.from(rw, rv);
+    }
+
+    static from(w, v) {
+        if (v == undefined)
+            v = Vec.of(0, 0, 0);
+        
+        return Quaternion.of(w, v[0], v[1], v[2]);
     }
 
     inverse() {
@@ -386,6 +367,9 @@ class Triangle {
       this.c = c;
 
       this.normal = b.minus(a).cross(c.minus(a)).normalized();
+
+//       if (this.normal.dot(this.a) < 0)
+//         this.normal = this.normal.times(-1);
     }
 
     static of(a, b, c) {

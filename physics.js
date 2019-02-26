@@ -25,8 +25,7 @@ class Physics_Object {
         this.pos = pos;
         this.momentum;
 
-        this.orientation = Quaternion.of(1, 0, 0, 0);
-//         this.orientation = Quaternion.from(1, Vec.of(0, 0, 0));
+        this.orientation = Quaternion.unit();
         this.L;
 
         // first time derivatives
@@ -86,39 +85,10 @@ class Physics_Object {
         this.vel = this.momentum.times(this.m_inv);
 
         this.w = this.R.times(this.I_inv).times(this.R_inv).times(this.L);
-        console.log(this.orientation);
-        console.log(this.w);
-//         this.w = this.I_inv.times(this.L);
 
         this.orientation.normalize()
-
-//         var halfAngle = this.w.norm() * .5,
-//             sa = Math.sin(halfAngle)/this.w.norm(),
-//             ca = Math.cos(halfAngle),
-//             wp = this.w.times(sa);
-
-//         var x = this.w[0],
-//             y = this.orientation[1],
-//             z = this.orientation[2],
-//             w = this.orientation[3],
-//             qx = this.orientation[0],
-//             qy = this.orientation[1],
-//             qz = this.orientation[2],
-//             qw = this.orientation[3];
-        
-//         this.orientation = Quaternion.of(
-//             x*qw + y*qz - z*qy + ca*qx,
-//             -x*qz + y*qw + z*qx + ca*qy,
-//             x*qy - y*qx + z*qw + ca*qz,
-//             -x*qx - y*qy -z*qz + ca*qw
-//         ).normalized();
         
         this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(0.5).times(this.orientation);
-        console.log(this.spin);
-//         if (this.w.norm() == 0)
-//             this.spin = Quaternion.of(0, 0, 0, 0);
-//         else
-//             this.spin = this.orientation.times(Quaternion.of(0, this.w[0], this.w[1], this.w[2])).times(0.5);
     }
 
     shift(vec) {
@@ -151,12 +121,8 @@ class Physics_Object {
 
         this.recalc();
 
-//         console.log(this.spin.times(dt));
-
         this.pos = this.pos.plus(this.vel.times(dt));
-        console.log("before: ", this.orientation);
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
-        console.log("after: ", this.orientation);
     
         this.F = Vec.of(0, 0, 0);
         this.T = Vec.of(0, 0, 0);
@@ -527,14 +493,15 @@ class Collision_Detection {
             support_args = {
                 a: args.a,
                 b: args.b,
-                dir: triangles[min_ix].normal.times(1),
+                dir: triangles[min_ix].normal,
                 support_a: null,
                 support_b: null,
                 support: null
             };
 
 //         console.log("starting epa");
-        for (var iter = 0; iter < 20; ++iter) {
+        var max_iters = 20;
+        for (var iter = 0; iter < max_iters; ++iter) {
             min_ix = 0;
             min_dist = Infinity;
 //             console.log("iter");
@@ -546,16 +513,16 @@ class Collision_Detection {
                 }
             }
 
-            support_args.dir = triangles[min_ix].normal.times(1);
+            support_args.dir = triangles[min_ix].normal;
 
             Collision_Detection.support(support_args);
 
-            new_dist = support_args.support.norm();
-            if (true){//}new_dist < min_dist + epsilon) {
+            new_dist = support_args.support.dot(support_args.dir);
+            if (new_dist < min_dist + epsilon)
                 break;
-            }
-            else
-                console.log(min_dist, new_dist);
+
+//             else
+//                 console.log(min_dist, new_dist);
 
             var edges = [],
                 edges_a = [],
@@ -618,6 +585,9 @@ class Collision_Detection {
 
         }
 
+//         if (triangles[min_ix].normal[1] < 0)
+//             console.log(triangles[min_ix].normal);
+
         var t = triangles[min_ix],
             ta = triangles_a[min_ix],
             tb = triangles_b[min_ix],
@@ -641,10 +611,61 @@ class Collision_Detection {
         
 //         console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
 
-        if (isNaN(manifold.contact_a[0]))
+        if (isNaN(manifold.contact_b[0]))
             var x = 1;
 
         return manifold;  
+    }
+
+    static collide(a, b) {
+        var GJK_args = {a: a, b: b, simplex: null, simplex_a: null, simplex_b: null};
+        if (Collision_Detection.GJK(GJK_args)) {
+
+            var manifold = Collision_Detection.EPA(GJK_args);
+
+            var a_contact = manifold.contact_a,
+                b_contact = manifold.contact_b;
+
+            var a_r = a_contact.minus(a.com),
+                b_r = b_contact.minus(b.com);
+
+
+            var rest = Math.min(a.restitution, b.restitution),
+                normal = manifold.normal;
+
+            var vel_along_normal = a.vel.plus(a.w.cross(a_r)).minus(b.vel.plus(b.w.cross(b_r))).dot(normal);
+
+            if (vel_along_normal < 0)
+                return;
+
+//             console.log(normal);
+
+            const percent = 1;
+            var penetration_depth = manifold.penetration_depth,
+                slop = .01,
+                correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);
+
+            var j = vel_along_normal*(-(1 + rest));
+                j /= a.m_inv + b.m_inv + 
+                     a.R.times(a.I_inv).times(a.R_inv).times(a_r.cross(normal)).cross(a_r).dot(normal) + 
+                     b.R.times(b.I_inv).times(b.R_inv).times(b_r.cross(normal)).cross(b_r).dot(normal);
+                
+            var impulse_a = normal.times(j),
+                impulse_b = normal.times(-j);
+
+//             if (correction.norm())
+//                 console.log(correction);
+
+            a.impulse(impulse_a, a_r);
+            b.impulse(impulse_b, b_r);
+            
+            var correction_a = correction.times(-a.m_inv),
+                correction_b = correction.times(b.m_inv);
+
+            a.shift(correction_a);
+            b.shift(correction_b);
+
+        }
     }
     
     static get_impacts(e, i) {
@@ -725,6 +746,7 @@ class Collision_Detection {
 
             if (vel_along_normal < 0){
                 impulse_ie = Vec.of(0, 0, 0);
+                correction = Vec.of(0, 0, 0);
             }
 //                 return impacts;
             else {
