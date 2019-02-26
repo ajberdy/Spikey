@@ -116,6 +116,9 @@ class Physics_Object {
 
     update(dt) {
 
+        if (this.resting)
+            return;
+
         this.momentum = this.momentum.plus(this.F.times(dt));
         this.L = this.L.plus(this.T.times(dt));
 
@@ -141,6 +144,19 @@ class Physics_Object {
         }
 
         return max_v;
+    }
+
+    chill() {
+        this.momentum = this.L = Vec.of(0, 0, 0);
+        this.resting = true;
+    }
+
+    unchill() {
+        this.resting = false;
+    }
+
+    is_chill() {
+        return this.resting;
     }
 }
 
@@ -400,11 +416,11 @@ class Collision_Detection {
         return result;
     }
 
-    static EPA(args, epsilon=0.0001) {
+    static EPA(args, epsilon=0.01) {
         /* expanding polytope algorithm */
         if (args.simplex.length != 4) {
-            const epsilon = 0.00001,
-                  epsilonSq = epsilon ** 2;
+//             const epsilon = 0.1,
+//                   epsilonSq = epsilon ** 2;
             switch(args.simplex.length) {
                 case 2:
                     var b, c, v = args.simplex[1].minus(args.simplex[0]);
@@ -531,7 +547,7 @@ class Collision_Detection {
                 var t = triangles[i],
                     ta = triangles_a[i],
                     tb = triangles_b[i];
-                if (t.normal.dot(t.a.minus(support_args.support)) < 0) {
+                if (t.normal.dot(t.a.minus(support_args.support)) <= 0) {
                     delete triangles[i];
                     delete triangles_a[i];
                     delete triangles_b[i];
@@ -592,17 +608,38 @@ class Collision_Detection {
             ta = triangles_a[min_ix],
             tb = triangles_b[min_ix],
             normal = t.normal,
-            penetration = min_dist,
-            p = normal.times(-min_dist),
-            tA = t.b.minus(t.a).cross(t.c.minus(t.a)).norm(),
-            barry_coords = Vec.of(
-                    t.b.minus(p).cross(t.c.minus(p)).norm()/tA,
-                    t.a.minus(p).cross(t.c.minus(p)).norm()/tA,
-                    t.a.minus(p).cross(t.b.minus(p)).norm()/tA,
-                ),
-            contact_a = ta.a.times(barry_coords[0]).plus(ta.b.times(barry_coords[1])).plus(ta.c.times(barry_coords[2])),
-            contact_b = tb.a.times(barry_coords[0]).plus(tb.b.times(barry_coords[1])).plus(tb.c.times(barry_coords[2])),
-            manifold = {
+            penetration = min_dist;
+
+        if (isNaN(1)) {
+            var indices = t[0] == t[2] ? [0, 1] : [0, 2],
+                e = [t[indices[0]], t[indices[1]]],
+                ea = [ta[indices[0]], ta[indices[1]]],
+                eb = [tb[indices[0]], tb[indices[1]]],
+                normal = e[1].minus(e[0]).cross(e[0]).cross(e[1].minus(e[0])).normalized(),
+                p = normal.times(-min_dist),
+                ratios = [e[0].minus(p).dot(e[0].minus(e[1])),
+                          e[1].minus(p).dot(e[1].minus(e[0]))],
+                barry_coords = Vec.of(
+                        ratios[0]/(ratios[0] + ratios[1]),
+                        ratios[1]/(ratios[0] + ratios[1])
+                    ),
+                contact_a = ea[0].times(barry_coords[0]).plus(ea[1].times(barry_coords[1])),
+                contact_b = eb[0].times(barry_coords[0]).plus(eb[1].times(barry_coords[1]));
+                
+        }
+        else {
+            var p = normal.times(-min_dist),
+                tA = t.b.minus(t.a).cross(t.c.minus(t.a)).norm(),
+                barry_coords = Vec.of(
+                        t.b.minus(p).cross(t.c.minus(p)).norm()/tA,
+                        t.a.minus(p).cross(t.c.minus(p)).norm()/tA,
+                        t.a.minus(p).cross(t.b.minus(p)).norm()/tA,
+                    ),
+                contact_a = ta.a.times(barry_coords[0]).plus(ta.b.times(barry_coords[1])).plus(ta.c.times(barry_coords[2])),
+                contact_b = tb.a.times(barry_coords[0]).plus(tb.b.times(barry_coords[1])).plus(tb.c.times(barry_coords[2]));
+            }
+
+        var manifold = {
                 normal: normal,
                 penetration_depth: penetration,
                 contact_a: contact_a,
@@ -612,16 +649,28 @@ class Collision_Detection {
 //         console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
 
         if (isNaN(manifold.contact_b[0]))
-            var x = 1;
+            return null;
 
         return manifold;  
     }
 
     static collide(a, b) {
+        if (a.is_chill() && b.is_chill())
+            return;
+        a.unchill();
+        b.unchill();
+
         var GJK_args = {a: a, b: b, simplex: null, simplex_a: null, simplex_b: null};
         if (Collision_Detection.GJK(GJK_args)) {
 
-            var manifold = Collision_Detection.EPA(GJK_args);
+            var manifold = Collision_Detection.EPA(GJK_args, .1);
+
+            if (!manifold) {
+                a.chill();
+                b.chill();
+                console.log("resting...");
+                return;
+            }
 
             var a_contact = manifold.contact_a,
                 b_contact = manifold.contact_b;
@@ -640,7 +689,7 @@ class Collision_Detection {
 
 //             console.log(normal);
 
-            const percent = 1;
+            const percent = .8;
             var penetration_depth = manifold.penetration_depth,
                 slop = .01,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);
@@ -739,7 +788,7 @@ class Collision_Detection {
             if (e.momentum.norm() > 1000)
                 console.log(i_r, e_r);
 
-            const percent = .8;
+            const percent = .2;
             var penetration_depth = manifold.penetration_depth, //i_contact.minus(e_contact).norm(),
                 slop = .01,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);

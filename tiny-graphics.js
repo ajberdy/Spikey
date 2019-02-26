@@ -360,8 +360,9 @@ class Mat4 extends Mat {
 }
 
 
-class Triangle {
+class Triangle extends Array {
     constructor(a, b, c) {
+      super(a, b, c);
       this.a = a;
       this.b = b;
       this.c = c;

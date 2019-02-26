@@ -211,7 +211,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), .2, this.plastic));
+        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), .01, this.plastic));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
