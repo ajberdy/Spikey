@@ -95,16 +95,32 @@ class Vec extends Float32Array {
 
 
 class Quaternion extends Vec {
+
+    get w() { return this[0]; }
+    get v() { return Vec.of(this[1], this[2], this[3]); }
+
+    static unit() {
+        return Quaternion.from(1);
+    }
+    
     times(q) {
         if (!isNaN(q))
             return super.times(q);
-        q.normalize();
-        return Quaternion.of(
-            this[0]*q[0] - this[1]*q[1] - this[2]*q[2] - this[3]*q[3],
-            this[0]*q[1] + this[1]*q[0] + this[2]*q[3] - this[3]*q[2],
-            this[0]*q[2] - this[1]*q[3] + this[2]*q[0] - this[3]*q[1],
-            this[0]*q[3] + this[1]*q[2] - this[2]*q[1] + this[3]*q[0]
-        );
+
+        var p = this,
+            rw = p.w*q.w - p.v.dot(q.v),
+            rv = p.v.times(q.w).plus(
+                 q.v.times(p.w)).plus(
+                 p.v.cross(q.v));
+
+        return Quaternion.from(rw, rv);
+    }
+
+    static from(w, v) {
+        if (v == undefined)
+            v = Vec.of(0, 0, 0);
+        
+        return Quaternion.of(w, v[0], v[1], v[2]);
     }
 
     inverse() {
@@ -330,8 +346,61 @@ class Mat4 extends Mat {
             [0, 0, 0, 1]
         )
     }
+
+    static y_to_vec(v, at) {
+        let scale = v.norm(),
+            phi = Math.atan(v[1]/Math.sqrt(v[0]**2 + v[2]**2)),
+            theta = Math.atan(v[0]/v[2]) + Math.PI*(v[2] < 0);
+
+        return Mat4.translation(at).times(
+            Mat4.rotation(theta, Vec.of(0, 1, 0))).times(
+            Mat4.rotation(Math.PI/2 - phi, Vec.of(1, 0, 0))).times(
+            Mat4.scale(Vec.of(1, scale, 1)));
+    }
 }
 
+
+class Triangle extends Array {
+    constructor(a, b, c) {
+      super(a, b, c);
+      this.a = a;
+      this.b = b;
+      this.c = c;
+
+      this.normal = b.minus(a).cross(c.minus(a)).normalized();
+
+//       if (this.normal.dot(this.a) < 0)
+//         this.normal = this.normal.times(-1);
+    }
+
+    static of(a, b, c) {
+        return new Triangle(a, b, c);
+    }
+
+    projection_of(v) {
+        var b, c;
+        if (Math.abs(v[0]) >= 0.57735)
+            b = Vec.of(v[1], -v[0], 0);
+        else
+            b = Vec.of(0, v[2], -v[1]);
+        
+        b.normalize();
+        c = a.cross(b);
+
+        return b.times(b.dot(v)).plus(c.times(c.dot(v)));
+    }
+}
+
+class Edge {
+    constructor(a, b) {
+      this.a = a;
+      this.b = b;
+    }
+
+    static of(a, b) {
+        return new Edge(a, b);
+    }
+}
 
 // This class maintains a running list of which keys are depressed.  You can map combinations of shortcut
 // keys to trigger callbacks you provide by calling add().  See add()'s arguments.  The shortcut list is 

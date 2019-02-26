@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 9.8;
+      G = 1*9.8;
 
 
 
@@ -28,6 +28,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
         // same thing here.
         const shapes = {
             'square': new Square(),
+            'mysquare': new MySquare(Color.of(0, 0, 1, 1)),
+            "linesegement": new LineSegment,
+            "vector": new Vector,
             'circle': new Circle(15),
             'pyramid': new Tetrahedron(false),
             'simplebox': new SimpleCube(),
@@ -90,10 +93,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.t = 0;
 
-        this.gravity_off = true;
+//         this.gravity_off = true;
 
         this.entities = [];
         this.initialize_entities();
+
+        this.physics_shader = context.get_instance(Physics_Shader);
     }
 
 
@@ -117,9 +122,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
         // Find how much time has passed in seconds, and use that to place shapes.
         let old_t = this.t;
         if (!this.paused)
-            this.t += graphics_state.animation_delta_time / 10000;
+            this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
         let dt = t - old_t;
+//         console.log(dt);
 
         const g = this.gravity_off ? 0 : G;
 
@@ -134,18 +140,49 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //             m = m.times(Mat4.translation(Vec.of(spacing, 0, 0)));
 //         }
 
-//         this.shapes.square.draw(
-//             graphics_state,
-//             Mat4.rotation(PI/2, Vec.of(-1, 0, 0)).times(
-//             Mat4.scale(100, 100, 1)),
-//             this.materials.floor);
 
         if (dt) {
-            this.do_collisions();
-//             if (this.entities[0].momentum[0] != -200)
-//                 alert();
+
+//             var e = this.entities[0];
+
+//             var spin = Quaternion.of(0, e.w[0], e.w[1], e.w[2]).times(0.5).times(e.orientation);
+
+//             e.orientation = e.orientation.plus(spin.times(dt));
+//             e.orientation.normalize();
+//             e.vel = e.vel.plus(Vec.of(0, -G, 0).times(dt));
+//             e.pos = e.pos.plus(e.vel.times(dt));
+
+//             return;
+//             var n = 1;
+//             var resting = [];
+            
+// //             this.apply_forces(resting);
+//             for (var i = 0; i < n; i++) {
+//                 if (this.paused)
+//                     break;
+// //                 this.apply_forces();
+//                 this.apply_impulses(dt/n);
+//                 this.do_collisions(dt/n);
+
+
+//                 this.update_entities(dt/n);
+
+// //                 console.log(this.entities[1].momentum.norm());
+// //             }
+
             this.apply_forces();
-            this.update_entities(dt);
+            var n = 1;
+            for (var i = 0; i < n; ++i) {
+                this.collide(this.entities[0], this.entities[1]);
+                this.update_entities(dt/n);
+
+            }
+//             this.do_collisions(dt, 1);
+// //             this.apply_impulses(dt);
+//             }
+
+//             this.update_entities(dt);
+//             }
         }
 
 
@@ -153,62 +190,183 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
     }
 
+    collide(a, b) {
+        Collision_Detection.collide(a, b);
+    }
+
     initialize_entities() {
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Ball(this, Vec.of(45, -2, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, 5, .1));
-//         this.entities.push(new Ball(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+//         this.entities.push(new Box(this, Vec.of(45, -2, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.clay));
+//         this.entities.push(new Ball(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, 20, 1, this.materials.soccer));
 
-//         this.entities.push(new Box(this, Vec.of(45, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
-//         this.entities.push(new Ball(this, Vec.of(-45, 27, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
+//         this.entities.push(new Box(this, Vec.of(45, 0, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, Vec.of(10, 10, 10).times(2), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(-46, 3, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 100, Vec.of(10, 10, 10), 1, this.plastic));
+
+//         this.entities.push(new Ball(this, Vec.of(-45, 0, -3), Vec.of(20, 40, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Box(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 5, 100), 1, this.materials.floor));
-//         this.entities.push(new Ball(this, Vec.of(40, 40, 0), Vec.of(-15, 10, 0), Vec.of(0, 0, 0), 50, 20, 1, this.materials.floor));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, this.materials.floor));
+        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), .01, this.plastic));
+
+// //         for (var i = -1; i < 2; ++i) {
+//             for (var j = -1; j < 2; ++j) {
+//                 this.entities.push(new Box(this, Vec.of(20*i, 10, 20*j), Vec.of(Math.random()*10, 10, Math.random()*10), 
+//                     Vec.of(0, 0, 0), 20*Math.random(), Vec.of(Math.random()*10, Math.random()*10, Math.random()*10), 1, this.plastic));
+//             }
+//         }
 
         
-        this.entities.push(new Box(this, Vec.of(11, 25, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(-11, 27, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-//         this.entities[1].orientation = Quaternion.of(0, .5, .5, .5).normalized();
+//         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
+        this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
     }
 
     apply_forces() {
         for (let e in this.entities) {
             let entity = this.entities[e];
+//             if (resting.includes(parseInt(e))) {
+//                 entity.F = Vec.of(0, 0, 0);
+//                 entity.momentum = Vec.of(0, 0 ,0);
+//                 entity.T = Vec.of(0, 0, 0);
+//                 entity.L = Vec.of(0, 0, 0);
+//             }
             if (!this.gravity_off) {
-                entity.force(Vec.of(0, -G, 0), Vec.of(0, 0, 0));
+                entity.force(Vec.of(0, -entity.m*G, 0), Vec.of(0, 0, 0));
             }
 //             entity.force(Vec.of(0, G, 0), Mat4.quaternion_rotation(entity.orientation).times(Vec.of(0, 0, 0)));
         }
     }
 
-    do_collisions() {
+    apply_impulses(dt) {
+        for (let e in this.entities) {
+            let entity = this.entities[e];
+            if (!this.gravity_off) {
+                entity.impulse(Vec.of(0, -entity.m*G, 0).times(dt), Vec.of(0, 0, 0));
+            }
+//             entity.force(Vec.of(0, G, 0), Mat4.quaternion_rotation(entity.orientation).times(Vec.of(0, 0, 0)));
+        }
+    }
+
+    do_collisions(dt, iters) {
+        var touching = [];
         for (var e = 0; e < this.entities.length; ++e) {
             for (var i = 0; i < e; ++i){
-                var impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
-                
-                if (impacts == 0) {
-                    this.paused = true;
-                    return;
-                }
-                
-                if (impacts.i_to_e.length)
-                    console.log(impacts);
+//                 for (var iter = 0; iter < 1; ++iters) {
 
-                for (var J in impacts.i_to_e) {
-                    this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
-                    this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-                }
+                    var impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
+                    var corrected = false;
 
-                for (var J in impacts.e_to_i) {
-                    this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
-                    this.entities[i].shift(impacts.e_to_i[J].pos_correction);
+//                     if (impacts.i_to_e.length)
+//                         this.paused = 1;
+
+                    for (var J in impacts.i_to_e) {
+                        if (impacts.i_to_e[J].pos_correction.norm()){
+                            this.entities[e].shift(impacts.i_to_e[J].pos_correction);
+                            corrected = true;
+                            continue;
+
+                        }
+
+                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
+
+                        this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
+                        this.entities[e].force(Vec.of(0, this.entities[e].m*G, 0), impacts.i_to_e[J].contact);
+                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
+                        var e_pos_correct = impacts.i_to_e[J].pos_correction;
+                        if (e_pos_correct.dot(e_pos_correct)) {
+                            var correct_norm = e_pos_correct.normalized();
+//                             this.entities[e].momentum = correct_norm.cross(this.entities[e].momentum).cross(correct_norm);
+//                                 mom_dif = correct_norm.cross(this.entities[e].momentum).cross(correct_norm).minus(this.entities[e].momentum);
+//                             this.entities[e].impulse(mom_dif, impacts.i_to_e[J].contact);
+                        }
+                            this.entities[e].momentum = this.entities[e].momentum.minus(e_pos_correct.times(this.entities[e].m/dt).times(
+                            this.entities[e].vel.dot(e_pos_correct)));
+                    }
+
+                    for (var J in impacts.e_to_i) {
+                        if (impacts.e_to_i[J].pos_correction.norm()){
+                            this.entities[i].shift(impacts.e_to_i[J].pos_correction);
+                            corrected = true;
+                            continue;
+
+                        }
+                        this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
+                        this.entities[i].force(Vec.of(0, this.entities[i].m*G, 0), impacts.e_to_i[J].contact);
+                        this.entities[i].shift(impacts.e_to_i[J].pos_correction);
+                        var i_pos_correct = impacts.e_to_i[J].pos_correction;
+                        if (i_pos_correct.dot(i_pos_correct))
+                            this.entities[i].momentum = this.entities[i].momentum.minus(i_pos_correct.times(this.entities[i].m/dt).times(
+                            this.entities[i].vel.dot(i_pos_correct)));
+                    
+                    }
+
+//                     var epsilon = .3;
+//                     if (impacts.i_to_e.length) {
+//                         if (this.entities[e].vel.norm() < epsilon && this.entities[e].w.norm() < epsilon)
+//                             touching.push(e);
+//                         if (this.entities[e].vel.norm() < epsilon && this.entities[e].w.norm() < epsilon)
+//                             touching.push(i);
+//                     }
+
+//                     this.entities[e].update(dt);
+//                     this.entities[i].update(dt);
+//                 }
+
+                if (corrected) {
+                    impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
+                    
+                    for (var J in impacts.i_to_e) {
+//                         if (impacts.i_to_e[J].pos_correction.norm()){
+//                             this.entities[e].shift(impacts.i_to_e[J].pos_correction);
+//                             corrected = true;
+//                             continue;
+
+//                         }
+
+                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
+
+                        this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
+                        this.entities[e].force(Vec.of(0, this.entities[e].m*G, 0), impacts.i_to_e[J].contact);
+                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
+                        var e_pos_correct = impacts.i_to_e[J].pos_correction;
+                        if (e_pos_correct.dot(e_pos_correct)) {
+                            var correct_norm = e_pos_correct.normalized();
+//                             this.entities[e].momentum = correct_norm.cross(this.entities[e].momentum).cross(correct_norm);
+//                                 mom_dif = correct_norm.cross(this.entities[e].momentum).cross(correct_norm).minus(this.entities[e].momentum);
+//                             this.entities[e].impulse(mom_dif, impacts.i_to_e[J].contact);
+                        }
+                            this.entities[e].momentum = this.entities[e].momentum.minus(e_pos_correct.times(this.entities[e].m/dt).times(
+                            this.entities[e].vel.dot(e_pos_correct)));
+                    }
+
+                    for (var J in impacts.e_to_i) {
+//                         if (impacts.e_to_i[J].pos_correction.norm()){
+//                             this.entities[i].shift(impacts.e_to_i[J].pos_correction);
+//                             corrected = true;
+//                             continue;
+
+//                         }
+                        this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
+                        this.entities[i].force(Vec.of(0, this.entities[i].m*G, 0), impacts.e_to_i[J].contact);
+                        this.entities[i].shift(impacts.e_to_i[J].pos_correction);
+                        var i_pos_correct = impacts.e_to_i[J].pos_correction;
+                        if (i_pos_correct.dot(i_pos_correct))
+                            this.entities[i].momentum = this.entities[i].momentum.minus(i_pos_correct.times(this.entities[i].m/dt).times(
+                            this.entities[i].vel.dot(i_pos_correct)));
+                    
+                    }
+
                 }
             }
         }
+        if (touching.length)
+            var c  = 1;
+        return touching;
     }
 
     update_entities(dt) {
@@ -220,6 +378,27 @@ class Assignment_Two_Skeleton extends Scene_Component {
     draw_entities(graphics_state) {
         for (let e in this.entities) {
             this.entities[e].draw(graphics_state);
+
+            this.shapes.vector.draw(
+                graphics_state,
+                    Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(
+                    Mat4.scale(Vec.of(1, .03, 1))),
+                this.physics_shader.material(Color.of(1, 0, 0, 1)),
+                "LINES");
+
+            this.shapes.vector.draw(
+                graphics_state,
+                    Mat4.y_to_vec(this.entities[e].L.times(.05), this.entities[e].com).times(
+                    Mat4.scale(Vec.of(1, .03, 1))),
+                this.physics_shader.material(Color.of(1, 1, 0, 1)),
+                "LINES");
+
+            this.shapes.vector.draw(
+                graphics_state,
+                    Mat4.y_to_vec(this.entities[e].w.times(1000), this.entities[e].com).times(
+                    Mat4.scale(Vec.of(1, .03, 1))),
+                this.physics_shader.material(Color.of(1, 0, 0, 1)),
+                "LINES");
         }
     }
 }

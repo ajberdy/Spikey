@@ -1,10 +1,60 @@
 window.Square = window.classes.Square = class Square extends Shape {
-    constructor() {
+    constructor(color) {
         super("positions", "normals", "texture_coords");
         this.positions.push(     ...Vec.cast([-1, -1, 0], [1, -1, 0], [-1, 1, 0], [1, 1, 0] ));
         this.normals.push(       ...Vec.cast([ 0,  0, 1], [0,  0, 1], [ 0, 0, 1], [0, 0, 1] ));
         this.texture_coords.push(...Vec.cast([ 0, 0],     [1, 0],     [ 0, 1],    [1, 1]   ));
         this.indices.push(0, 1, 2, 1, 3, 2);
+    }
+}
+
+window.MySquare = window.classes.MySquare = class MySquare extends Shape {
+    constructor(color) {
+        super("positions", "normals", "texture_coords", "colors");
+        this.positions.push(     ...Vec.cast([-1, -1, 0], [1, -1, 0], [-1, 1, 0], [1, 1, 0] ));
+        this.normals.push(       ...Vec.cast([ 0,  0, 1], [0,  0, 1], [ 0, 0, 1], [0, 0, 1] ));
+        this.texture_coords.push(...Vec.cast([ 0, 0],     [1, 0],     [ 0, 1],    [1, 1]   ));
+        this.indices.push(0, 1, 2, 1, 3, 2);
+        for (var i in this.positions)
+            this.colors.push(color);
+    }
+}
+
+window.LineSegment = window.classes.LineSegment = class LineSegment extends Shape {
+    constructor() {
+        super("positions");
+        this.positions.push(     ...Vec.cast([0, 0, 0], [0, 1, 0] ));
+        this.indices.push(0, 1, 0);
+    }
+}
+
+window.Vector = window.classes.Vector = class Vector extends Shape {
+    constructor() {
+        super("positions");
+        LineSegment.insert_transformed_copy_into( this, [], Mat4.identity() );
+
+//         this.positions.push(Vec.of(0, 0, 0), Vec.of(1, 0, 0), Vec.of(1, 1, 0));
+//         this.indices.push(2, 4, 3);
+
+        
+        let head_length = .1,
+            angle = Math.PI/8,
+            radius = Math.atan(angle) * head_length,
+            y = 1 - head_length;
+
+        let n = 8;
+        for (var i = 0; i < n; ++i) {
+            var theta = 2*(i+1)/n*Math.PI,
+                x = radius*Math.sin(theta),
+                z = radius*Math.cos(theta);
+
+            this.positions.push(     ...Vec.cast([x, y, z]));
+
+            if (i == n - 1)
+                this.indices.push(1, i + 2, 2);
+            else
+                this.indices.push(1, i + 2, i + 3);
+        }
     }
 }
 
