@@ -1,5 +1,5 @@
 class Physics_Object {
-    constructor(scene, pos, vel, w, mass, e) {
+    constructor(scene, pos, vel, w, mass, e=1, mu_s=0, mu_d=0) {
         if (mass == Infinity && (vel.norm() != 0 || w.norm() != 0))
             throw new Error("Infinitely massive objects cannot move");
         // scene which the object exists in
@@ -9,6 +9,8 @@ class Physics_Object {
         this.m = mass;
         this.m_inv = 1 / mass;  // for efficiency
         this.restitution = e;
+        this.mu_s = mu_s;
+        this.mu_d = mu_d;
 
         this.I = Mat.of(
             [2/3*mass, 0, 0],
@@ -162,8 +164,8 @@ class Physics_Object {
 
 
 class Ball extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, radius, e, material) {
-        super(scene, pos, vel, w, mass, e);
+    constructor(scene, pos, vel, w, mass, radius, e, mu_s, mu_d, material) {
+        super(scene, pos, vel, w, mass, e, mu_s, mu_d);
         this.mat = material;
         this.r = radius;
         this.I = Mat3.identity().times(2/5*this.m*Math.pow(this.r, 2));
@@ -195,8 +197,8 @@ class Ball extends Physics_Object {
 
 
 class Box extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, dims, e, material) {
-        super(scene, pos, vel, w, mass, e);
+    constructor(scene, pos, vel, w, mass, dims, e, mu_s, mu_d, material) {
+        super(scene, pos, vel, w, mass, e, mu_s, mu_d);
         this.mat = material;
         this.dims = dims;
         this.I = Mat3.of(
@@ -610,7 +612,7 @@ class Collision_Detection {
             normal = t.normal,
             penetration = min_dist;
 
-        if (isNaN(1)) {
+        if (isNaN(normal[0])) {
             var indices = t[0] == t[2] ? [0, 1] : [0, 2],
                 e = [t[indices[0]], t[indices[1]]],
                 ea = [ta[indices[0]], ta[indices[1]]],
@@ -654,7 +656,7 @@ class Collision_Detection {
         return manifold;  
     }
 
-    static collide(a, b) {
+    static collide(a, b, dt) {
         if (a.is_chill() && b.is_chill())
             return;
         a.unchill();
@@ -682,14 +684,15 @@ class Collision_Detection {
             var rest = Math.min(a.restitution, b.restitution),
                 normal = manifold.normal;
 
-            var vel_along_normal = a.vel.plus(a.w.cross(a_r)).minus(b.vel.plus(b.w.cross(b_r))).dot(normal);
-
+            var rel_vel = a.vel.plus(a.w.cross(a_r)).minus(b.vel.plus(b.w.cross(b_r)));
+            var vel_along_normal = rel_vel.dot(normal);
+            
             if (vel_along_normal < 0)
                 return;
+            if (vel_along_normal < .1)
+                rest = 0;
 
-//             console.log(normal);
-
-            const percent = .8;
+            const percent = .2;
             var penetration_depth = manifold.penetration_depth,
                 slop = .01,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);
@@ -713,6 +716,39 @@ class Collision_Detection {
 
             a.shift(correction_a);
             b.shift(correction_b);
+
+            rel_vel = b.vel.plus(b.w.cross(b_r)).minus(a.vel.plus(a.w.cross(a_r)));
+            if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
+                return;
+
+            var tangent = rel_vel.minus(normal.times(rel_vel.dot(normal))).normalized();
+
+            var jt = -rel_vel.dot(tangent);
+            jt /= a.m_inv + b.m_inv + 
+                     a.R.times(a.I_inv).times(a.R_inv).times(a_r.cross(tangent)).cross(a_r).dot(tangent) + 
+                     b.R.times(b.I_inv).times(b.R_inv).times(b_r.cross(tangent)).cross(b_r).dot(tangent);
+
+            var mu_s = Math.sqrt(a.mu_s**2 + b.mu_s**2);
+
+            var friction_impulse;
+            if (Math.abs(jt) < j*mu_s)
+                friction_impulse = tangent.times(jt);
+            else {
+                var mu_d = Math.sqrt(a.mu_d**2 + b.mu_d**2);
+                friction_impulse = tangent.times(-j * mu_d);
+            }
+
+            console.log(rel_vel.dot(tangent));
+
+            a.impulse(friction_impulse.times(1), a_contact);
+            b.impulse(friction_impulse.times(-1), b_contact);
+
+//             b.scene.shapes.vector.draw(
+//                 b.scene.globals.graphics_state,
+//                 Mat4.y_to_vec(friction_impulse.times(1000), b_contact).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
 
         }
     }

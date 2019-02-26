@@ -173,7 +173,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.apply_forces();
             var n = 1;
             for (var i = 0; i < n; ++i) {
-                this.collide(this.entities[0], this.entities[1]);
+                this.collide(this.entities[0], this.entities[1], dt/n);
                 this.update_entities(dt/n);
 
             }
@@ -190,8 +190,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
     }
 
-    collide(a, b) {
-        Collision_Detection.collide(a, b);
+    collide(a, b, dt) {
+        Collision_Detection.collide(a, b, dt);
     }
 
     initialize_entities() {
@@ -210,8 +210,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), .01, this.plastic));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, .5, .05, this.materials.floor));
+        this.entities.push(new Box(this, Vec.of(0, 0, -60), Vec.of(0, 15, 8), Vec.of(0.2, 1, 0.1), 50, Vec.of(10, 3, 10), .1, .5, .01, this.plastic));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
@@ -223,7 +223,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         
 //         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
 //         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-        this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
+//         this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
     }
 
     apply_forces() {
@@ -379,26 +379,26 @@ class Assignment_Two_Skeleton extends Scene_Component {
         for (let e in this.entities) {
             this.entities[e].draw(graphics_state);
 
-            this.shapes.vector.draw(
-                graphics_state,
-                    Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                this.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//             this.shapes.vector.draw(
+//                 graphics_state,
+//                     Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 this.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
 
-            this.shapes.vector.draw(
-                graphics_state,
-                    Mat4.y_to_vec(this.entities[e].L.times(.05), this.entities[e].com).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                this.physics_shader.material(Color.of(1, 1, 0, 1)),
-                "LINES");
+//             this.shapes.vector.draw(
+//                 graphics_state,
+//                     Mat4.y_to_vec(this.entities[e].L.times(.05), this.entities[e].com).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 this.physics_shader.material(Color.of(1, 1, 0, 1)),
+//                 "LINES");
 
-            this.shapes.vector.draw(
-                graphics_state,
-                    Mat4.y_to_vec(this.entities[e].w.times(1000), this.entities[e].com).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                this.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//             this.shapes.vector.draw(
+//                 graphics_state,
+//                     Mat4.y_to_vec(this.entities[e].w.times(1000), this.entities[e].com).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 this.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
         }
     }
 }
