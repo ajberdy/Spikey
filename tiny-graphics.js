@@ -363,16 +363,16 @@ class Mat4 extends Mat {
 class Triangle extends Array {
     constructor(a, b, c) {
       super(a, b, c);
-      this.a = a;
-      this.b = b;
-      this.c = c;
 
       this.normal = b.minus(a).cross(c.minus(a)).normalized();
 
-//       if (this.normal.dot(this.a) < 0)
+//       if (this.normal.dot(a) < 0)
 //         this.normal = this.normal.times(-1);
     }
 
+    get a() { return this[0]; }
+    get b() { return this[1]; }
+    get c() { return this[2]; }
     static of(a, b, c) {
         return new Triangle(a, b, c);
     }

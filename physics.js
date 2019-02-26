@@ -520,11 +520,14 @@ class Collision_Detection {
 //         console.log("starting epa");
         var max_iters = 20;
         for (var iter = 0; iter < max_iters; ++iter) {
+//             if (iter > 15)
+//                 console.log();
+
             min_ix = 0;
             min_dist = Infinity;
 //             console.log("iter");
             for (var i in triangles) {
-                var dist = Math.abs(triangles[i].normal.dot(triangles[i].a));
+                var dist = triangles[i].normal.dot(triangles[i].a);
                 if (dist < min_dist) {
                     min_dist = dist;
                     min_ix = i;
@@ -536,6 +539,7 @@ class Collision_Detection {
             Collision_Detection.support(support_args);
 
             new_dist = support_args.support.dot(support_args.dir);
+//             console.log(new_dist, min_dist);
             if (new_dist < min_dist + epsilon)
                 break;
 
@@ -549,7 +553,8 @@ class Collision_Detection {
                 var t = triangles[i],
                     ta = triangles_a[i],
                     tb = triangles_b[i];
-                if (t.normal.dot(t.a.minus(support_args.support)) <= 0) {
+//                 console.log(t, t.normal.dot(t.a.minus(support_args.support)));
+                if (t.normal.dot(support_args.support.minus(t.a)) >= 0) {
                     delete triangles[i];
                     delete triangles_a[i];
                     delete triangles_b[i];
@@ -565,9 +570,9 @@ class Collision_Detection {
 
                             if (e[0].equals(te[1]) && e[1].equals(te[0])) {
                                 dont_add = true;
-                                delete edges[j];
-                                delete edges_a[j];
-                                delete edges_b[j];
+                                delete edges[k];
+                                delete edges_a[k];
+                                delete edges_b[k];
                             }
                         }
                         if (!dont_add) {
@@ -581,9 +586,9 @@ class Collision_Detection {
                     edges_b = edges_b.filter(x => x != undefined);
                 }
             }
-            delete triangles[min_ix];
-            delete triangles_a[min_ix];
-            delete triangles_b[min_ix];
+//             delete triangles[min_ix];
+//             delete triangles_a[min_ix];
+//             delete triangles_b[min_ix];
             triangles = triangles.filter(x => x != undefined);
             triangles_a = triangles_a.filter(x => x != undefined);
             triangles_b = triangles_b.filter(x => x != undefined);
@@ -595,13 +600,16 @@ class Collision_Detection {
                     a = e[0], b = e[1],
                     aa = ea[0], ab = ea[1],
                     ba = eb[0], bb = eb[1];
+                if (support_args.support.equals(a) || support_args.support.equals(b))
+                    console.log();
                 triangles.push(Triangle.of(a, b, support_args.support));
                 triangles_a.push(Triangle.of(aa, ab, support_args.support_a));
                 triangles_b.push(Triangle.of(ba, bb, support_args.support_b));
             }
-
-
         }
+        if (iter > 10)
+            console.log(iter);
+
 
 //         if (triangles[min_ix].normal[1] < 0)
 //             console.log(triangles[min_ix].normal);
@@ -738,7 +746,7 @@ class Collision_Detection {
                 friction_impulse = tangent.times(-j * mu_d);
             }
 
-            console.log(rel_vel.dot(tangent));
+//             console.log(rel_vel.dot(tangent));
 
             a.impulse(friction_impulse.times(1), a_contact);
             b.impulse(friction_impulse.times(-1), b_contact);
