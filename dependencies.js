@@ -62,6 +62,84 @@ window.Basic_Shader = window.classes.Basic_Shader = class Basic_Shader extends S
 }
 
 
+window.Physics_Shader = window.classes.Physics_Shader = class Physics_Shader extends Shader {
+    // Define an internal class "Material" that stores the standard settings found in Phong lighting.
+    material(color) {
+        // Possible properties: ambient, diffusivity, specularity, smoothness, texture.
+        return new class Material {
+            constructor(shader, color=Color.of(1, 0, 0, 1)) {
+                // Assign defaults.
+                Object.assign(this, {
+                    shader,
+                    color
+                });
+            }
+
+        }
+        (this,color);
+    }
+    
+    // The shader will pull single entries out of the vertex arrays, by their data fields'
+    // names.  Map those names onto the arrays we'll pull them from.  This determines
+    // which kinds of Shapes this Shader is compatible with.  Thanks to this function, 
+    // Vertex buffers in the GPU can get their pointers matched up with pointers to 
+    // attribute names in the GPU.  Shapes and Shaders can still be compatible even
+    // if some vertex data feilds are unused. 
+    map_attribute_name_to_buffer_name(name) {
+        // Use a simple lookup table.
+        return {
+            object_space_pos: "positions"
+        }[name];
+    }
+
+    // Define how to synchronize our JavaScript's variables to the GPU's:
+    update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
+        const PCM = g_state.projection_transform.times(g_state.camera_transform).times(model_transform);
+        gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
+
+
+        gl.uniform4fv(gpu.shapeColor_loc,  material.color);
+    }
+
+    // ********* SHARED CODE, INCLUDED IN BOTH SHADERS *********
+    shared_glsl_code() {
+        return `
+            precision mediump float;
+            varying vec4 VERTEX_COLOR;
+
+            uniform vec4 shapeColor;`;
+    }
+
+    // ********* VERTEX SHADER *********
+    vertex_glsl_code() {
+        return `
+            attribute vec4 color;
+            attribute vec3 object_space_pos;
+            uniform mat4 projection_camera_model_transform;
+
+            void main() {
+                // The vertex's final resting place (in NDCS).
+                gl_Position = projection_camera_model_transform * vec4(object_space_pos, 1.0);
+                gl_PointSize = 10.;
+//                 gl_LineWidth = 10.;
+
+                // Use the hard-coded color of the vertex.
+//                 VERTEX_COLOR = color;
+                VERTEX_COLOR = shapeColor;
+            }`;
+    }
+
+    // ********* FRAGMENT SHADER *********
+    fragment_glsl_code() {
+        return `
+            void main() {
+                // The interpolation gets done directly on the per-vertex colors.
+                gl_FragColor = VERTEX_COLOR;
+            }`;
+    }
+}
+
+
 // THE DEFAULT SHADER: This uses the Phong Reflection Model, with optional Gouraud shading. 
 // Wikipedia has good defintions for these concepts.  Subclasses of class Shader each store 
 // and manage a complete GPU program.  This particular one is a big "master shader" meant to 
