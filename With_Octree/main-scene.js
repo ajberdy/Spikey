@@ -183,9 +183,16 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
             this.apply_forces();
 
+//             for (var a in this.entities)
+//                 for (var bi = 0; bi < a; ++bi)
+//                     this.collide(this.entities[a], this.entities[bi]);
+//             this.update_entities(dt);
+//             this.draw_entities(graphics_state);
+//             return;
+
             console.log(points_collection)
              
-             var n=2  
+             var n=this.entities.length; 
              for (var x = 1; x < n; ++x) {
                  
                 var myMap=new Map();
@@ -262,14 +269,16 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, .5, .05, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(0, 0, -60), Vec.of(0, 15, 8), Vec.of(0.2, 1, 0.1), 50, Vec.of(10, 3, 10), .1, .5, .01, this.plastic));
+//         this.entities.push(new Box(this, Vec.of(0, 0, -60), Vec.of(0, 15, 8), Vec.of(0.2, 1, 0.1), 50, Vec.of(10, 3, 10), .1, .5, .1, this.plastic));
 
-// //         for (var i = -1; i < 2; ++i) {
-//             for (var j = -1; j < 2; ++j) {
-//                 this.entities.push(new Box(this, Vec.of(20*i, 10, 20*j), Vec.of(Math.random()*10, 10, Math.random()*10), 
-//                     Vec.of(0, 0, 0), 20*Math.random(), Vec.of(Math.random()*10, Math.random()*10, Math.random()*10), 1, this.plastic));
-//             }
-//         }
+        for (var i = -1; i < 5; ++i) {
+            for (var j = -1; j < 5; ++j) {
+                this.entities.push(new Box(this, Vec.of(20*i, 50, 20*j), Vec.of(0, 0, 0), 
+                    Vec.of(0, 0, 0), 20*Math.random(), Vec.of(Math.random()*10 + 3, Math.random()*10 + 3, Math.random()*10 + 3), .8, .5, .1, this.plastic));
+            }
+        }
+
+        console.log(this.entities.length);
 
         
 //         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));

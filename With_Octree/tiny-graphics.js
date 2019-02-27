@@ -465,6 +465,8 @@ Octree.Cell.prototype.findNearbyPoints = function (p, r, result, options) {
     }
   }
 };
+
+
 class Vec extends Float32Array {
     copy() {
         return Vec.from(this)
@@ -811,8 +813,6 @@ class Triangle extends Array {
 
       this.normal = b.minus(a).cross(c.minus(a)).normalized();
 
-//       if (this.normal.dot(this.a) < 0)
-//         this.normal = this.normal.times(-1);
     }
 
     static of(a, b, c) {
