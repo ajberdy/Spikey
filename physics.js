@@ -45,6 +45,8 @@ class Physics_Object {
 
         this.shader_mat = mat.shader_mat;
 
+        this.bounding_radius;
+
 
         // hacky stuff
         this.resting = false;
@@ -183,6 +185,8 @@ class Ball extends Physics_Object {
 
         this.base_points = scene.shapes.ball.positions;
         this.base_normals = scene.shapes.ball.normals;
+
+        this.bounding_radius = this.r;
     }
 
     get transform() {
@@ -223,6 +227,8 @@ class Box extends Physics_Object {
 
         this.base_points = scene.shapes.box.positions;
         this.base_normals = scene.shapes.box.normals;
+
+        this.bounding_radius = this.dims.norm();
     }
 
     get transform() {

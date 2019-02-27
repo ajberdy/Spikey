@@ -6,7 +6,7 @@ const spikey_body_mass = 50,
       spikey_mass = spikey_body_mass + num_spikes*spikey_spike_mass,
       sphere_radius = 10,
       min_spike_protrusion = 5,
-      max_spike_protrusion = 20,
+      max_spike_protrusion = 15,
       spike_base_radius = 3,
       spikey_restitution = .4;
 
