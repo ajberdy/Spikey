@@ -187,15 +187,17 @@ class Assignment_Two_Skeleton extends Scene_Component {
              
              var n=2  
              for (var x = 1; x < n; ++x) {
-//                 let x=1
+                 
                 var myMap=new Map();
-                this.temp_collision=SpikeyOctree.findNearbyPoints(new Vec3(this.entities[x].pos[0],this.entities[x].pos[1],this.entities[x].pos[2]),500,false).points
-                console.log(this.temp_collision)
+
+                this.temp_collision=SpikeyOctree.findNearbyPoints(new Vec3(this.entities[x].pos[0],this.entities[x].pos[1],this.entities[x].pos[2]),250,false).points
                  for (var k = 0; k < this.temp_collision.length; ++k) {
 
-//                     let k=0
+                     this.check=Math.pow(this.temp_collision[k].x,2)+Math.pow(this.temp_collision[k].y,2)+Math.pow(this.temp_collision[k].z,2)+this.temp_collision[k].x*this.temp_collision[k].y+this.temp_collision[k].x*this.temp_collision[k].z+this.temp_collision[k].z*this.temp_collision[k].y
+                            
+                     this.index=points_collection.indexOf(this.check)
 
-                    if (!(myMap.has((k,e)))){
+                    if (!(myMap.has((this.index,x)))){
 
                         if (this.temp_collision.length === 0){
 
@@ -204,26 +206,19 @@ class Assignment_Two_Skeleton extends Scene_Component {
                         }
 
                         else{
-                            console.log(this.temp_collision[k].x)
-                            
-                            this.check=Math.pow(this.temp_collision[k].x,2)+Math.pow(this.temp_collision[k].y,2)+Math.pow(this.temp_collision[k].z,2)+this.temp_collision[k].x*this.temp_collision[k].y+this.temp_collision[k].x*this.temp_collision[k].z+this.temp_collision[k].z*this.temp_collision[k].y
-                            
-                            this.index=points_collection.indexOf(this.check)
-
-
                             this.collide(this.entities[x], this.entities[this.index], dt/n)
+                            myMap.set((this.index,x),'yes');
 
                                                     
                         }
 
-                        
-                           myMap.clear();
-
+                           
                     }
 
                     this.update_entities(dt/n); 
 
                  }
+                 myMap.clear();
                 
 
              }
