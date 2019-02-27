@@ -1,5 +1,5 @@
 class Physics_Object {
-    constructor(scene, pos, vel, w, mass, e=1, mu_s=0, mu_d=0) {
+    constructor(scene, pos, vel, w, mass, e=1, mat) {
         if (mass == Infinity && (vel.norm() != 0 || w.norm() != 0))
             throw new Error("Infinitely massive objects cannot move");
         // scene which the object exists in
@@ -9,8 +9,8 @@ class Physics_Object {
         this.m = mass;
         this.m_inv = 1 / mass;  // for efficiency
         this.restitution = e;
-        this.mu_s = mu_s;
-        this.mu_d = mu_d;
+        this.mu_s = mat.mu_s;
+        this.mu_d = mat.mu_d;
 
         this.I = Mat.of(
             [2/3*mass, 0, 0],
@@ -43,12 +43,21 @@ class Physics_Object {
         this.base_points;
         this.base_normals;
 
+        this.shader_mat = mat.shader_mat;
+
 
         // hacky stuff
         this.resting = false;
+
+        // initialize
+        this.initialize();
     }
 
-    get transform() { return Mat4.identity(); }
+    get transform() { 
+        // TODO: take into account com/pos discrepancy
+        return Mat4.translation(this.pos).times(
+               Mat4.quaternion_rotation(this.orientation.normalized()));
+    }
 
     get R() { 
         var R = Mat4.quaternion_rotation(this.orientation.normalized());
@@ -164,9 +173,8 @@ class Physics_Object {
 
 
 class Ball extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, radius, e, mu_s, mu_d, material) {
-        super(scene, pos, vel, w, mass, e, mu_s, mu_d);
-        this.mat = material;
+    constructor(scene, pos, vel, w, mass, radius, e, material) {
+        super(scene, pos, vel, w, mass, e, material);
         this.r = radius;
         this.I = Mat3.identity().times(2/5*this.m*Math.pow(this.r, 2));
         this.I_inv = Mat3.identity().times(1/(2/5*this.m*Math.pow(this.r, 2)));
@@ -187,7 +195,7 @@ class Ball extends Physics_Object {
         this.scene.shapes.ball.draw(
             graphics_state,
             this.transform,
-            this.mat ? this.mat : this.scene.materials.soccer);
+            this.shader_mat ? this.shader_mat : this.scene.materials.soccer);
     }
 
     support(d) {
@@ -197,9 +205,8 @@ class Ball extends Physics_Object {
 
 
 class Box extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, dims, e, mu_s, mu_d, material) {
-        super(scene, pos, vel, w, mass, e, mu_s, mu_d);
-        this.mat = material;
+    constructor(scene, pos, vel, w, mass, dims, e, material) {
+        super(scene, pos, vel, w, mass, e, material);
         this.dims = dims;
         this.I = Mat3.of(
             [dims[1]**2 + dims[2]**2, 0, 0],
@@ -232,10 +239,9 @@ class Box extends Physics_Object {
         this.scene.shapes.box.draw(
             graphics_state,
             this.transform,
-            this.mat);
+            this.shader_mat);
     }
 }
-
 
 class Collision_Detection {
 

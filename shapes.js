@@ -283,3 +283,53 @@ window.Subdivision_Sphere = window.classes.Subdivision_Sphere = class Subdivisio
         this.subdivideTriangle(ab, bc, ac, count - 1);
     }
 }
+
+
+window.Spikey_Shape = window.classes.Spikey_Shape = class Spikey_Shape extends Shape {
+    constructor(spikey_consts) {
+        super("positions", "normals", "texture_coords", "tips");
+        Subdivision_Sphere.insert_transformed_copy_into(this, [4], Mat4.scale(1, 1, 1).times(spikey_consts.sphere_radius));
+
+        var spike_vectors = [],
+            r = spikey_consts.sphere_radius / Math.sqrt(PHI + 2),
+            R = r * PHI;
+
+        for (var s1 = -1; s1 < 2; s1 += 2){
+            for (var s2 = -1; s2 < 2; s2 += 2) {
+                spike_vectors.push(Vec.of(0, s1*r, s2*R));
+                spike_vectors.push(Vec.of(s1*r, s2*R, 0));
+                spike_vectors.push(Vec.of(s2*R, 0, s1*r));
+            }
+        }
+
+        var r2 = Math.sqrt(r**2 + R**2);
+
+        for (var spike of spike_vectors) {
+                       
+            var x = spike[0],
+                y = spike[1],
+                z = spike[2];
+
+            var phi = Math.atan(y/Math.sqrt(x**2 + z**2)),
+                theta = Math.atan(x/z) + (z < 0 ? PI : 0);
+
+            var spike_rotate_v = Mat4.rotation(phi, Vec.of(-1, 0, 0)),
+                spike_rotate_h = Mat4.rotation(theta, Vec.of(0, 1, 0)),
+                spike_translate = Mat4.translation(spike.normalized().times(R)),
+                spike_scale = Mat4.scale(Vec.of(spikey_consts.spike_base_radius, 
+                                                spikey_consts.spike_base_radius, 
+                                                spikey_consts.max_spike_protrusion));
+
+            
+            var transform = spike_translate.times(
+                spike_rotate_h).times(
+                spike_rotate_v).times(
+                spike_scale);
+
+            Cone.insert_transformed_copy_into(this, [20], transform);
+
+            var tip_transform = spike_translate;
+            this.tips.push(transform.times(Vec.of(0, 0, 1, 1)));
+        }
+    }
+}

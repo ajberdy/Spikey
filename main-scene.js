@@ -1,5 +1,6 @@
 const PI = Math.PI,
-      G = 1*9.8;
+      G = 1*9.8,
+      PHI = (1 + Math.sqrt(5)) / 2;
 
 
 
@@ -37,7 +38,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'box': new Cube(),
             'cylinder': new Cylinder(15),
             'cone': new Cone(20),
-            'ball': new Subdivision_Sphere(4)
+            'ball': new Subdivision_Sphere(4),
+
+            'spikey': new Spikey_Shape(spikey_consts)
         }
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
@@ -85,6 +88,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }),
             soccer: this.texture_base.override({
                 texture: context.get_instance(shape_textures.ball)
+            }),
+            spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
+                ambient: .2,
+                diffusivity: .9,
+                specularity: .2,
+                smoothness: 20
             })
         };
         
@@ -139,6 +148,11 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //                 this.shape_materials[k] || this.plastic);
 //             m = m.times(Mat4.translation(Vec.of(spacing, 0, 0)));
 //         }
+
+//         this.shapes.cone.draw(
+//             graphics_state,
+//             Mat4.identity(),
+//             this.plastic);
 
 
         if (dt) {
@@ -210,10 +224,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, .5, .05, this.materials.floor));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(300, 100, 500), .01, Material.of(.5, .7, this.materials.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 15, 0), Vec.of(0, 0, 0), Vec.of(0.2, 1, 0.1).times(0), 50, Vec.of(10, 10, 10), .5, .5, .1, this.plastic));
 
-        this.entities.push(new Ball(this, Vec.of(-45, 5, 0), Vec.of(30, 0, 0), Vec.of(0, 0, 30), 50, 5, .1, .5, .5, this.materials.soccer));
+//         this.entities.push(new Ball(this, Vec.of(-45, 5, 0), Vec.of(30, 0, 0), Vec.of(0, 0, 30), 50, 5, .9, Material.of(.5, .7, this.materials.soccer)));
+
+        this.entities.push(new Spikey_Object(this, Vec.of(0, 50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0)));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
