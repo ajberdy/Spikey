@@ -48,6 +48,8 @@ class Physics_Object {
 
         this.bounding_radius;
 
+        this.convex = true;
+
 
 //         // hacky stuff
 //         this.resting = false;
@@ -205,6 +207,10 @@ class Ball extends Physics_Object {
                Mat4.scale(Vec.of(this.r, this.r, this.r)));
     }
 
+    static of(...args) {
+        return new Ball(...args);
+    }
+
     draw(graphics_state) {
         this.scene.shapes.ball.draw(
             graphics_state,
@@ -250,6 +256,10 @@ class Box extends Physics_Object {
     get width() { return this.dims[0]; }
     get height() { return this.dims[1]; }
     get depth() { return this.dims[2]; }
+
+    static of(...args) {
+        return new Box(...args);
+    }
 
     draw(graphics_state) {
         this.scene.shapes.box.draw(
@@ -303,6 +313,10 @@ class Cone_Object extends Physics_Object {
                Mat4.quaternion_rotation(this.orientation.normalized())).times(
                Mat4.translation(Vec.of(0, 0, -1).times(this.h/4))).times(
                Mat4.scale(Vec.of(this.r, this.r, this.h)));
+    }
+
+    static of(...args) {
+        return new Cone_Object(...args);
     }
 
     draw(graphics_state) {
@@ -777,12 +791,20 @@ class Collision_Detection {
         if (a.pos.minus(b.pos).norm() > a.bounding_radius + b.bounding_radius + epsilon)
             return;
 
+//         if (!a.convex) {
+//             for (var i in a.convex_decomposition) {
+//                 var a_i = a.convex_decomposition[i].shape,
+//                     d = a.convex_decomposition[i].d;
+//                 Collision_Detection.collide(a_i, b)
+//             }
+//         }
+
         var GJK_args = {a: a, b: b, simplex: null, simplex_a: null, simplex_b: null};
         if (Collision_Detection.GJK(GJK_args)) {
 
             var manifold = Collision_Detection.EPA(GJK_args, .1);
 
-            console.log(manifold);
+//             console.log(manifold);
 
             if (!manifold) {
                 a.chill();
@@ -794,7 +816,7 @@ class Collision_Detection {
             var a_contact = manifold.contact_a,
                 b_contact = manifold.contact_b;
 
-            console.log(a_contact.minus(b_contact).norm());
+//             console.log(a_contact.minus(b_contact).norm());
 
             var a_r = a_contact.minus(a.com),
                 b_r = b_contact.minus(b.com);

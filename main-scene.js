@@ -109,6 +109,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 diffusivity: .4,
                 specularity: .5,
                 smoothness: 20
+            })),
+            rubber: Material.of(6, 3, .0, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: .3,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
             }))
         }
         
@@ -206,12 +212,19 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
 
             this.apply_forces();
-            var n = 1;
-            for (var i = 0; i < n; ++i) {
-                this.collide(this.entities[0], this.entities[1], dt/n);
-                this.update_entities(dt/n);
+            for (var i in this.entities)
+                for (var j = 0; j < i; ++j) {
+                    var a = this.entities[i],
+                        b = this.entities[j];
+                    this.collide(a, b);
+                }
+            this.update_entities(dt)
+//             var n = 1;
+//             for (var i = 0; i < n; ++i) {
+//                 this.collide(this.entities[0], this.entities[1], dt/n);
+//                 this.update_entities(dt/n);
 
-            }
+//             }
 //             this.do_collisions(dt, 1);
 // //             this.apply_impulses(dt);
 //             }
@@ -248,14 +261,23 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
-//         this.entities.push(new Ball(this, Vec.of(-45, 5, 0), Vec.of(40, 0, 0), Vec.of(0, 0, 30), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(40, 0, 0), Vec.of(0, 0, 30), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
             
-        this.entities.push( new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 15, 0), 
-            20, 10, 30, Material.of(1, .9, .01, this.plastic)));
+//         this.entities.push(new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 15, 0), 
+//             20, 10, 30, Material.of(1, .9, .01, this.plastic)));
+//         for (var i in [...Array(3).keys()])
+//             for (var j in [...Array(3).keys()]) {
+//                 this.entities.push(new Cone_Object(this, Vec.of(-30 + 30*i, 40, -30 + 30*j), Vec.of(0, 0, 0), Vec.of(Math.random(), 15, Math.random()), 
+//                     20, 10, 30, Material.of(1, .9, .01, this.plastic)));
+//                 this.entities[this.entities.length-1].orientation = Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized();
+//             }
+
+//         this.entities.push(new Ball(this, Vec.of(-60, 15, 60), Vec.of(20, 0, -20), Vec.of(0, 0, 0),
+//             50, 10, this.materials.rubber.override({shader_mat: this.shader_mats.soccer})));
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-//         this.entities.push(new Spikey_Object(this, Vec.of(-50, 50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0)));
+        this.entities.push(new Spikey_Object(this, Vec.of(-50, 50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0)));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
