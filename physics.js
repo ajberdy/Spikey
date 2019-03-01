@@ -334,27 +334,15 @@ class Cone_Object extends Physics_Object {
             vert_axis = this.transform.times(this.base_tip.minus(origin)).to3().normalized(),
             tip = this.tip.to3(),
             rim_point = this.pos.plus(d.minus(vert_axis.times(vert_axis.dot(d))).normalized().times(this.r));
-//             rim_vec = this.pos.plus(d.minus(vert_axis.times(d.dot(vert_axis)))).normalized().times(this.r),
-//             rim_point = rim_vec.normalized().times(this.r);
-        
-        this.scene.shapes.ball.draw(
-                this.scene.globals.graphics_state,
-                Mat4.translation(rim_point),//.times(Mat4.scale(20, 20, 20)),
-                this.scene.shader_mats.floor);
-
+ 
+//         this.scene.shapes.ball.draw(
+//                 this.scene.globals.graphics_state,
+//                 Mat4.translation(rim_point),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.floor);
 
         if (d.dot(vert_axis) > d.dot(rim_point))
             return tip;
         return rim_point;
-//         if (vert_axis.dot(d) > this.perp_onto_vert_len)
-//             return this.tip.to3();
-
-//         var val = this.pos.plus(d.minus(vert_axis.times(d.dot(vert_axis))).normalized().times(this.r)).to4(1);
-//             this.scene.shapes.ball.draw(
-//                 this.scene.globals.graphics_state,
-//                 Mat4.translation(val),//.times(Mat4.scale(20, 20, 20)),
-//                 this.scene.shader_mats.soccer);
-//         return val.to3();
     }
 }
 
@@ -848,6 +836,9 @@ class Collision_Detection {
             a.shift(correction_a);
             b.shift(correction_b);
 
+            if (a.scene.friction_off)
+                return;
+
             rel_vel = b.vel.plus(b.w.cross(b_r)).minus(a.vel.plus(a.w.cross(a_r)));
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
                 return;
@@ -874,12 +865,12 @@ class Collision_Detection {
             a.impulse(friction_impulse.times(1), a_r);
             b.impulse(friction_impulse.times(-1), b_r);
 
-            b.scene.shapes.vector.draw(
-                b.scene.globals.graphics_state,
-                Mat4.y_to_vec(friction_impulse.times(-1000), b_contact).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//             b.scene.shapes.vector.draw(
+//                 b.scene.globals.graphics_state,
+//                 Mat4.y_to_vec(friction_impulse.times(-1000), b_contact).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
 
         }
     }

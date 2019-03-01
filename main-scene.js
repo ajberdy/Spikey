@@ -37,7 +37,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'simplebox': new SimpleCube(),
             'box': new Cube(),
             'cylinder': new Cylinder(15),
-            'cone': new Cone(20),
+            'cone': new Closed_Cone(20),
             'ball': new Subdivision_Sphere(4),
 
             'spikey': new Spikey_Shape(spikey_consts)
@@ -119,6 +119,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
 //         this.gravity_off = true;
 
+        this.friction_off = false;
+
         this.entities = [];
         this.initialize_entities();
 
@@ -136,6 +138,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.gravity_off = !this.gravity_off;
         });
 
+        this.key_triggered_button("Toggle Friction", ["m"], () => {
+            this.friction_off = !this.friction_off;
+        });
     }
 
 
@@ -245,8 +250,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
 //         this.entities.push(new Ball(this, Vec.of(-45, 5, 0), Vec.of(40, 0, 0), Vec.of(0, 0, 30), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
             
-        this.entities.push( new Cone_Object(this, Vec.of(0, 30, 0), Vec.of(0, 0, 0), Vec.of(0, 1.5, 0.1), 
-            30, 10, 30, Material.of(0, 0, .01, this.plastic)));
+        this.entities.push( new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 15, 0), 
+            20, 10, 30, Material.of(1, .9, .01, this.plastic)));
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
@@ -262,7 +267,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         
 //         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.shader_mats.floor));
 //         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-//         this.entities[1].orientation = Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized();
+        this.entities[1].orientation = Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized();
 //         this.entities[0].orientation = Quaternion.of(.5, 0, 0, 1).normalized();
     }
 
