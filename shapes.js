@@ -216,6 +216,16 @@ window.Cone = window.classes.Cone = class Cone extends Shape {
     }
 }
 
+
+window.Closed_Cone = window.classes.Closed_Cone = class Closed_Cone extends Shape {
+    constructor(sections) {
+        super("positions", "normals", "texture_coords");
+
+        Cone.insert_transformed_copy_into(this, [sections], Mat4.identity());
+        Circle.insert_transformed_copy_into(this, [sections], Mat4.identity());
+    }
+}
+
 // This Shape defines a Sphere surface, with nice (mostly) uniform triangles.  A subdivision surface
 // (see) Wikipedia article on those) is initially simple, then builds itself into a more and more 
 // detailed shape of the same layout.  Each act of subdivision makes it a better approximation of 

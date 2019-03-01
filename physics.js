@@ -1,5 +1,5 @@
 class Physics_Object {
-    constructor(scene, pos, vel, w, mass, e=1, mat) {
+    constructor(scene, pos, vel, w, mass, mat, d=Vec.of(0, 0, 0)) {
         if (mass == Infinity && (vel.norm() != 0 || w.norm() != 0))
             throw new Error("Infinitely massive objects cannot move");
         // scene which the object exists in
@@ -8,7 +8,7 @@ class Physics_Object {
         // constant properties
         this.m = mass;
         this.m_inv = 1 / mass;  // for efficiency
-        this.restitution = e;
+        this.restitution = mat.e;
         this.mu_s = mat.mu_s;
         this.mu_d = mat.mu_d;
 
@@ -24,7 +24,8 @@ class Physics_Object {
         );   // for efficiency
 
         // direct properties
-        this.pos = pos;
+        this.d = d;
+        this.com = pos.minus(d);
         this.momentum;
 
         this.orientation = Quaternion.unit();
@@ -48,11 +49,15 @@ class Physics_Object {
         this.bounding_radius;
 
 
-        // hacky stuff
-        this.resting = false;
+//         // hacky stuff
+//         this.resting = false;
 
         // initialize
-        this.initialize();
+//         this.initialize();
+    }
+
+    get pos() {
+        return this.com.plus(this.R.times(this.d));
     }
 
     get transform() { 
@@ -83,15 +88,13 @@ class Physics_Object {
 
     get normals() { return this.base_points.map(x => this.transform.times(x.to4(1))); }
 
-    get com() { return this.pos; }
-
     get x() { return this.pos[0]; }
     get y() { return this.pos[1]; }
     get z() { return this.pos[2]; }
 
     initialize() {
         this.momentum = this.vel.norm() ? this.vel.times(this.m) : Vec.of(0, 0, 0);
-        this.L = this.w.norm() ? this.I.times(this.w) : Vec.of(0, 0, 0);
+        this.L = this.w.norm() ? this.R.times(this.I).times(this.R_inv).times(this.w) : Vec.of(0, 0, 0);
     }
 
     recalc() {
@@ -99,14 +102,20 @@ class Physics_Object {
 
         this.w = this.R.times(this.I_inv).times(this.R_inv).times(this.L);
 
-        this.orientation.normalize()
+        this.orientation.normalize();
         
         this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(0.5).times(this.orientation);
     }
 
     shift(vec) {
-        this.pos = this.pos.plus(vec);
+        this.com = this.com.plus(vec);
     }
+
+//     rotate(q) {
+//         this.orientation = this.orientation.times(q);
+//         this.L = this.R.times(this.L);
+//         this.d = this.R.times(this.d);
+//     }
 
     force(F, r) {
 
@@ -137,7 +146,8 @@ class Physics_Object {
 
         this.recalc();
 
-        this.pos = this.pos.plus(this.vel.times(dt));
+        this.com = this.com.plus(this.vel.times(dt));
+
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
     
         this.F = Vec.of(0, 0, 0);
@@ -175,8 +185,8 @@ class Physics_Object {
 
 
 class Ball extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, radius, e, material) {
-        super(scene, pos, vel, w, mass, e, material);
+    constructor(scene, pos, vel, w, mass, radius, material) {
+        super(scene, pos, vel, w, mass, material);
         this.r = radius;
         this.I = Mat3.identity().times(2/5*this.m*Math.pow(this.r, 2));
         this.I_inv = Mat3.identity().times(1/(2/5*this.m*Math.pow(this.r, 2)));
@@ -190,7 +200,7 @@ class Ball extends Physics_Object {
     }
 
     get transform() {
-        return Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
+        return Mat4.translation(this.pos).times(
                Mat4.quaternion_rotation(this.orientation.normalized())).times(
                Mat4.scale(Vec.of(this.r, this.r, this.r)));
     }
@@ -199,7 +209,7 @@ class Ball extends Physics_Object {
         this.scene.shapes.ball.draw(
             graphics_state,
             this.transform,
-            this.shader_mat ? this.shader_mat : this.scene.materials.soccer);
+            this.shader_mat ? this.shader_mat : this.scene.shader_mats.soccer);
     }
 
     support(d) {
@@ -209,8 +219,8 @@ class Ball extends Physics_Object {
 
 
 class Box extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, dims, e, material) {
-        super(scene, pos, vel, w, mass, e, material);
+    constructor(scene, pos, vel, w, mass, dims, material) {
+        super(scene, pos, vel, w, mass, material);
         this.dims = dims;
         this.I = Mat3.of(
             [dims[1]**2 + dims[2]**2, 0, 0],
@@ -232,7 +242,7 @@ class Box extends Physics_Object {
     }
 
     get transform() {
-        return Mat4.translation(Vec.of(this.x, this.y, this.z)).times(
+        return Mat4.translation(this.com).times(
                Mat4.quaternion_rotation(this.orientation)).times(
                Mat4.scale(this.dims.times(1/2)));
     }
@@ -249,13 +259,112 @@ class Box extends Physics_Object {
     }
 }
 
+
+class Cone_Object extends Physics_Object {
+    constructor(scene, pos, vel, w, mass, radius, height, material) {
+        super(scene, pos, vel, w, mass, material, Vec.of(0, 0, -height/4));
+        this.r = radius;
+        this.h = height;
+        this.I = Mat3.of(
+            [2*this.h**2 + 3*this.r**2, 0, 0],
+            [0, 2*this.h**2 + 3*this.r**2, 0],
+            [0, 0, 6*this.r**2]
+        ).times(mass/20);
+        this.I_inv = Mat3.of(
+            [1/(2*this.h**2 + 3*this.r**2), 0, 0],
+            [0, 1/(2*this.h**2 + 3*this.r**2), 0],
+            [0, 0, 1/(6*this.r**2)]
+        ).times(20/mass);
+
+        this.initialize();
+
+        this.base_points = scene.shapes.cone.positions;
+        this.base_normals = scene.shapes.cone.normals;
+        this.base_tip = Vec.of(0, 0, 1, 1);
+        this.base_com = Vec.of(0, 0, 1/4, 1);
+        this.perp_len = this.h*this.r / Vec.of(this.h, this.r).norm();
+        this.vert_perp_theta = Math.acos(this.perp_len/this.h);
+        this.perp_onto_vert_len = Math.sin(this.vert_perp_theta);
+
+        this.bounding_radius = Math.max(this.r, this.h);
+    }
+
+//     get com() {
+//         return this.transform.times(this.base_com).to3();
+//     }
+
+    get tip() {
+        return this.transform.times(this.base_tip);
+    }
+
+    get transform() {
+        return Mat4.translation(this.com).times(
+//                Mat4.translation(Vec.of(0, 0, 1).times(this.h/4))).times(
+               Mat4.quaternion_rotation(this.orientation.normalized())).times(
+               Mat4.translation(Vec.of(0, 0, -1).times(this.h/4))).times(
+               Mat4.scale(Vec.of(this.r, this.r, this.h)));
+    }
+
+    draw(graphics_state) {
+        this.scene.shapes.cone.draw(
+            graphics_state,
+            this.transform,
+            this.shader_mat);
+
+//         this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 Mat4.translation(this.pos),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.soccer);
+
+//         this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 Mat4.translation(this.com),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.plastic);
+
+//         this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 Mat4.translation(this.tip),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.soccer);
+    }
+
+    support(d) {
+        const epsilon = .1
+
+        var origin = Vec.of(0, 0, 0, 1),
+            vert_axis = this.transform.times(this.base_tip.minus(origin)).to3().normalized(),
+            tip = this.tip.to3(),
+            rim_point = this.pos.plus(d.minus(vert_axis.times(vert_axis.dot(d))).normalized().times(this.r));
+//             rim_vec = this.pos.plus(d.minus(vert_axis.times(d.dot(vert_axis)))).normalized().times(this.r),
+//             rim_point = rim_vec.normalized().times(this.r);
+        
+        this.scene.shapes.ball.draw(
+                this.scene.globals.graphics_state,
+                Mat4.translation(rim_point),//.times(Mat4.scale(20, 20, 20)),
+                this.scene.shader_mats.floor);
+
+
+        if (d.dot(vert_axis) > d.dot(rim_point))
+            return tip;
+        return rim_point;
+//         if (vert_axis.dot(d) > this.perp_onto_vert_len)
+//             return this.tip.to3();
+
+//         var val = this.pos.plus(d.minus(vert_axis.times(d.dot(vert_axis))).normalized().times(this.r)).to4(1);
+//             this.scene.shapes.ball.draw(
+//                 this.scene.globals.graphics_state,
+//                 Mat4.translation(val),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.soccer);
+//         return val.to3();
+    }
+}
+
+
 class Collision_Detection {
 
     static support(args) {
         args.support_a = args.a.support(args.dir);
         args.support_b = args.b.support(args.dir.times(-1));
         args.support = args.support_a.minus(args.support_b);
-
         return;
     }
 
@@ -392,6 +501,7 @@ class Collision_Detection {
         args.simplex_b = [support_args.support_b];
 
         support_args.dir = support_args.support.times(-1);
+//         console.log(support_args.support);
         var simplex_args = {
                 simplex: args.simplex,
                 simplex_a: args.simplex_a, 
@@ -598,9 +708,7 @@ class Collision_Detection {
                     edges_b = edges_b.filter(x => x != undefined);
                 }
             }
-//             delete triangles[min_ix];
-//             delete triangles_a[min_ix];
-//             delete triangles_b[min_ix];
+
             triangles = triangles.filter(x => x != undefined);
             triangles_a = triangles_a.filter(x => x != undefined);
             triangles_b = triangles_b.filter(x => x != undefined);
@@ -676,16 +784,17 @@ class Collision_Detection {
         return manifold;  
     }
 
-    static collide(a, b, dt) {
-        if (a.is_chill() && b.is_chill())
+    static collide(a, b) {
+        const epsilon = 1;
+        if (a.pos.minus(b.pos).norm() > a.bounding_radius + b.bounding_radius + epsilon)
             return;
-        a.unchill();
-        b.unchill();
 
         var GJK_args = {a: a, b: b, simplex: null, simplex_a: null, simplex_b: null};
         if (Collision_Detection.GJK(GJK_args)) {
 
             var manifold = Collision_Detection.EPA(GJK_args, .1);
+
+            console.log(manifold);
 
             if (!manifold) {
                 a.chill();
@@ -696,6 +805,8 @@ class Collision_Detection {
 
             var a_contact = manifold.contact_a,
                 b_contact = manifold.contact_b;
+
+            console.log(a_contact.minus(b_contact).norm());
 
             var a_r = a_contact.minus(a.com),
                 b_r = b_contact.minus(b.com);
@@ -709,7 +820,7 @@ class Collision_Detection {
             
             if (vel_along_normal < 0)
                 return;
-            if (vel_along_normal < .1)
+            if (vel_along_normal < 20)
                 rest = 0;
 
             const percent = .2;
@@ -763,12 +874,12 @@ class Collision_Detection {
             a.impulse(friction_impulse.times(1), a_r);
             b.impulse(friction_impulse.times(-1), b_r);
 
-//             b.scene.shapes.vector.draw(
-//                 b.scene.globals.graphics_state,
-//                 Mat4.y_to_vec(friction_impulse.times(-1000), b_contact).times(
-//                     Mat4.scale(Vec.of(1, .03, 1))),
-//                 b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-//                 "LINES");
+            b.scene.shapes.vector.draw(
+                b.scene.globals.graphics_state,
+                Mat4.y_to_vec(friction_impulse.times(-1000), b_contact).times(
+                    Mat4.scale(Vec.of(1, .03, 1))),
+                b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+                "LINES");
 
         }
     }

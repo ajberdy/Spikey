@@ -77,7 +77,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             });
 
         
-        this.materials = {
+        this.shader_mats = {
             floor: context.get_instance(Phong_Shader).material(Color.of(.75, .75, .75, 1), {
                 ambient: .4,
                 diffusivity: .4
@@ -96,6 +96,21 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 smoothness: 20
             })
         };
+
+        this.materials = {
+            wood: Material.of(.35, 0.4, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: 0,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
+            })),
+            slick_wood: Material.of(0, 0.01, .0, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: .3,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
+            }))
+        }
         
         this.lights = [new Light(Vec.of(0, 100, 0, .1), Color.of(1, 1, .7, 1), 100000),
                        new Light(Vec.of(0, 10, 100, .1), Color.of(1, 1, .7, 1), 1000)];
@@ -184,6 +199,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 // //                 console.log(this.entities[1].momentum.norm());
 // //             }
 
+
             this.apply_forces();
             var n = 1;
             for (var i = 0; i < n; ++i) {
@@ -212,22 +228,27 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Box(this, Vec.of(45, -2, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(45, -2, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.shader_mats.floor));
 //         this.entities.push(new Box(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.clay));
-//         this.entities.push(new Ball(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, 20, 1, this.materials.soccer));
+//         this.entities.push(new Ball(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, 20, 1, this.shader_mats.soccer));
 
-//         this.entities.push(new Box(this, Vec.of(45, 0, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 100, Vec.of(10, 10, 10).times(2), 1, .2, .03, this.materials.floor));
-//         this.entities.push(new Box(this, Vec.of(-46, 3, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 1, Vec.of(10, 10, 10), 1, .2, .03, this.plastic));
+//         this.entities.push(new Box(this, Vec.of(45, 0, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 10000, Vec.of(10, 10, 10).times(2), 1, Material.of(.2, .03, this.shader_mats.floor)));
+//         this.entities.push(new Box(this, Vec.of(-46, 3, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 1, Vec.of(10, 10, 10), 1, Material.of(.2, .03, this.plastic)));
 
 //         this.entities.push(new Ball(this, Vec.of(-45, 0, -3), Vec.of(20, 40, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(300, 100, 500), 1, Material.of(.5, .7, this.materials.floor.override({diffusivity: .7, specularity: .1}))));
-//         this.entities.push(new Box(this, Vec.of(0, 15, 0), Vec.of(0, 0, 0), Vec.of(0.2, 1, 0.1).times(0), 50, Vec.of(10, 10, 10), .5, .5, .1, this.plastic));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+//         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
-        this.entities.push(new Ball(this, Vec.of(-45, 5, 0), Vec.of(30, 0, 0), Vec.of(0, 0, 30), 50, 5, .9, Material.of(.5, .7, this.materials.soccer)));
+//         this.entities.push(new Ball(this, Vec.of(-45, 5, 0), Vec.of(40, 0, 0), Vec.of(0, 0, 30), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+            
+        this.entities.push( new Cone_Object(this, Vec.of(0, 30, 0), Vec.of(0, 0, 0), Vec.of(0, 1.5, 0.1), 
+            30, 10, 30, Material.of(0, 0, .01, this.plastic)));
+//         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
+
 
 //         this.entities.push(new Spikey_Object(this, Vec.of(-50, 50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0)));
 
@@ -239,9 +260,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         }
 
         
-//         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.shader_mats.floor));
 //         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-//         this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
+//         this.entities[1].orientation = Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized();
 //         this.entities[0].orientation = Quaternion.of(.5, 0, 0, 1).normalized();
     }
 
