@@ -63,6 +63,10 @@ class Physics_Object {
     }
 
     get transform() { 
+        return Mat4.translation(this.com).times(
+               Mat4.quaternion_rotation(this.orientation.normalized())).times(
+               Mat4.translation(this.d));
+               
         // TODO: take into account com/pos discrepancy
         return Mat4.translation(this.pos).times(
                Mat4.quaternion_rotation(this.orientation.normalized()));

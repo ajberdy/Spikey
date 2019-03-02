@@ -123,6 +123,15 @@ class Quaternion extends Vec {
         return Quaternion.of(w, v[0], v[1], v[2]);
     }
 
+    static from_rot(R) {
+        var trace = R[0][0] + R[1][1] + R[2][2],
+            mag_theta = Math.acos((trace - 1)/2),
+            u = Vec.of(R[2][1] - R[1][2], R[0][2] - R[2][0], R[1][0] - R[0][1]),
+            theta = Math.asin(u.norm()/2);
+
+        return Quaternion.from(Math.cos(theta/2), u.times(Math.sin(theta/2)));
+    }
+
     static unit() {
         return Quaternion.of(1, 0, 0, 0);
     }
