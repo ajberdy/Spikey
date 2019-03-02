@@ -251,6 +251,23 @@ class Mat3 extends Mat {
                m01 * (m10 * m22 - m12 * m20) +
                m02 * (m10 * m21 - m11 * m20);
     }
+
+    static sym_product(ra, rb) {
+        let xa = ra[0], ya = ra[1], za = ra[2],
+            xb = rb[0], yb = rb[1], zb = rb[2];
+        const m00 =        ya*yb + za*zb,
+              m01 = 1/2 * (za*yb + ya*xb),
+              m02 = 1/2 * (xa*zb + za*xb),
+              m11 =        xa*xb + za*zb,
+              m12 = 1/2 * (ya*zb + za*yb),
+              m22 =        xa*xb + ya*yb;
+
+        return Mat3.of(
+            [m00, m01, m02],
+            [m01, m11, m12],
+            [m02, m12, m22]
+        );
+    }
 }
 
 

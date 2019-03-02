@@ -66,7 +66,7 @@ class Physics_Object {
         return Mat4.translation(this.com).times(
                Mat4.quaternion_rotation(this.orientation.normalized())).times(
                Mat4.translation(this.d));
-               
+
         // TODO: take into account com/pos discrepancy
         return Mat4.translation(this.pos).times(
                Mat4.quaternion_rotation(this.orientation.normalized()));
@@ -98,8 +98,13 @@ class Physics_Object {
     get y() { return this.pos[1]; }
     get z() { return this.pos[2]; }
 
-    get concave() { return !this.convex
-    alert();; }
+    get concave() { return !this.convex; }
+
+    I_of(d) {
+        return this.I.plus(
+            Mat3.sym_product(d, d).times(this.m)).minus(
+            Mat3.sym_product(d, this.d.times(1)).times(2*this.m));
+    }
 
     initialize() {
         this.momentum = this.vel.norm() ? this.vel.times(this.m) : Vec.of(0, 0, 0);
@@ -279,7 +284,7 @@ class Box extends Physics_Object {
 
 class Cone_Object extends Physics_Object {
     constructor(scene, pos, vel, w, orientation, mass, radius, height, material) {
-        super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height/4));
+        super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height/3));
         this.r = radius;
         this.h = height;
         this.I = Mat3.of(
@@ -292,16 +297,55 @@ class Cone_Object extends Physics_Object {
             [0, 1/(2*this.h**2 + 3*this.r**2), 0],
             [0, 0, 1/(6*this.r**2)]
         ).times(20/mass);
+//         this.I = Mat3.of(
+//             [1/4*this.h**2 + this.r**2, 0, 0],
+//             [0, 1/4*this.h**2 + this.r**2, 0],
+//             [0, 0, 2*this.r**2]
+//         ).times(3*mass/20);
+//         this.I_inv = Mat3.of(
+//             [1/(1/4*this.h**2 + this.r**2), 0, 0],
+//             [0, 1/(1/4*this.h**2 + this.r**2), 0],
+//             [0, 0, 1/(2*this.r**2)]
+//         ).times(20/mass/3);
+//         this.I = Mat3.of(
+//             [this.h**2 + 1/2*this.r**2, 0, 0],
+//             [0, this.h**2 + 1/2*this.r**2, 0],
+//             [0, 0, this.r**2]
+//         ).times(mass/2);
+//         this.I = Mat3.of(
+//             [1/(this.h**2 + 1/2*this.r**2), 0, 0],
+//             [0, 1/(this.h**2 + 1/2*this.r**2), 0],
+//             [0, 0, 1/(this.r**2)]
+//         ).times(2/mass);
+
+// //         this.I = this.I_of(Vec.of(0, 0, this.h/4));
+//         var I_4 = Mat4.of(
+//                 [this.I[0][0], this.I[0][1], this.I[0][2], 0],
+//                 [this.I[1][0], this.I[1][1], this.I[1][2], 0],
+//                 [this.I[2][0], this.I[2][1], this.I[2][2], 0],
+//                 [0, 0, 0, 1]
+//             ),
+//             I_4_inv = Mat4.inverse(I_4);
+//         this.I_inv = Mat3.of(
+//             [I_4_inv[0][0], I_4_inv[0][1], I_4_inv[0][2]],
+//             [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
+//             [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
+//         );
+
+//         this.I = this.I_of(Vec.of(0, 0, this.h/3));
 
         this.initialize();
 
         this.base_points = scene.shapes.cone.positions;
         this.base_normals = scene.shapes.cone.normals;
         this.base_tip = Vec.of(0, 0, 1, 1);
-        this.base_com = Vec.of(0, 0, 1/4, 1);
+        this.base_com = Vec.of(0, 0, 1/3, 1);
         this.perp_len = this.h*this.r / Vec.of(this.h, this.r).norm();
         this.vert_perp_theta = Math.acos(this.perp_len/this.h);
         this.perp_onto_vert_len = Math.sin(this.vert_perp_theta);
+
+//         console.log(this.I_of(Vec.of(0, 0, this.h/3)));
+//         console.log(this.I);
 
         this.bounding_radius = Math.max(this.r, this.h);
     }
@@ -316,9 +360,8 @@ class Cone_Object extends Physics_Object {
 
     get transform() {
         return Mat4.translation(this.com).times(
-//                Mat4.translation(Vec.of(0, 0, 1).times(this.h/4))).times(
                Mat4.quaternion_rotation(this.orientation.normalized())).times(
-               Mat4.translation(Vec.of(0, 0, -1).times(this.h/4))).times(
+               Mat4.translation(Vec.of(0, 0, -1).times(this.h/3))).times(
                Mat4.scale(Vec.of(this.r, this.r, this.h)));
     }
 

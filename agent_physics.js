@@ -30,20 +30,22 @@ class Spikey_Object extends Physics_Object {
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
 
+        
+        this.sr = spikey_consts.sphere_radius;
+        this.I = Mat3.identity().times(2/5*this.m*Math.pow(this.sr, 2));
+        this.I_inv = Mat3.identity().times(1/(2/5*this.m*Math.pow(this.sr, 2)));
+
         this.spikey_material = spikey_material;
 
         this.shape = new Spikey_Shape(spikey_consts);
 
         this.base_points = this.shape.tips;
 
-        this.initialize();
         this._convex_decomposition = this.init_convex_decomposition();
         this.convex = false;
 
-        this.sr = spikey_consts.sphere_radius;
+        this.initialize();
 
-        this.I = Mat3.identity().times(2/5*this.m*Math.pow(this.sr, 2));
-        this.I_inv = Mat3.identity().times(1/(2/5*this.m*Math.pow(this.sr, 2)));
     }
 
     static of(...args) {
@@ -149,19 +151,25 @@ class Spikey_Object extends Physics_Object {
 
         subshape.orientation = this.orientation.times(q).normalized();
 
+        console.log(d.norm(), this.R.times(d).norm());
+
+        console.log(subshape.d.norm(), subshape.R.times(subshape.d).dot(subshape.d));
+
         subshape.com = this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)));
-//         console.log(subshape.com);
+
+        subshape.recalc();
+
+        if (subshape.d.norm())
+            this.scene.shapes.ball.draw(
+                this.scene.globals.graphics_state,
+                Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
+                this.scene.shader_mats.floor);
 
 //         if (subshape.d.norm())
 //             this.scene.shapes.cone.draw(
 //                     this.scene.globals.graphics_state,
 //                     subshape.transform,//.times(Mat4.scale(20, 20, 20)),
 //                     this.scene.shader_mats.floor);
-
-
-//         console.log(subshape.orientation, this.orientation);
-
-        subshape.recalc();
 
     }
 }
