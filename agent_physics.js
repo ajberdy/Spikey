@@ -23,12 +23,12 @@ const spikey_consts = {
         };
 
 class Spikey_Object extends Physics_Object {
-    constructor(scene, pos, vel, w) {
+    constructor(scene, pos, vel, w, q) {
         
 
         var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
 
-        super(scene, pos, vel, w, spikey_consts.spikey_restitution, spikey_material);
+        super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
 
         this.spikey_material = spikey_material;
 
@@ -37,7 +37,8 @@ class Spikey_Object extends Physics_Object {
         this.base_points = this.shape.tips;
 
         this.initialize();
-        this.convex_decomposition = this.convex_decompose();
+//         this.convex_decomposition = this.convex_decompose();
+        this.convex = false;
     }
 
     static of(...args) {
@@ -58,9 +59,11 @@ class Spikey_Object extends Physics_Object {
 //                 this.scene.shader_mats.soccer);
     }
 
-    convex_decompose() {
-        var spikey_body = Ball.of(this.scene, this.pos, this.vel, this.w, spikey_consts.spikey_mass,
+    get convex_decomposition() {
+        var spikey_body = Ball.of(this.scene, this.pos, this.vel, this.w, this.orientation, spikey_consts.spikey_mass,
                                   spikey_consts.sphere_radius, this.spikey_material);
         var convex_decomposition = [{shape: spikey_body, d: Vec.of(0, 0, 0)}];
+
+        return convex_decomposition;
     }
 }

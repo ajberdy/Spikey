@@ -1,5 +1,5 @@
 class Physics_Object {
-    constructor(scene, pos, vel, w, mass, mat, d=Vec.of(0, 0, 0)) {
+    constructor(scene, pos, vel, w, orientation, mass, mat, d=Vec.of(0, 0, 0)) {
         if (mass == Infinity && (vel.norm() != 0 || w.norm() != 0))
             throw new Error("Infinitely massive objects cannot move");
         // scene which the object exists in
@@ -28,7 +28,7 @@ class Physics_Object {
         this.com = pos.minus(d);
         this.momentum;
 
-        this.orientation = Quaternion.unit();
+        this.orientation = orientation.normalized();
         this.L;
 
         // first time derivatives
@@ -93,6 +93,9 @@ class Physics_Object {
     get x() { return this.pos[0]; }
     get y() { return this.pos[1]; }
     get z() { return this.pos[2]; }
+
+    get concave() { return !this.convex
+    alert();; }
 
     initialize() {
         this.momentum = this.vel.norm() ? this.vel.times(this.m) : Vec.of(0, 0, 0);
@@ -187,8 +190,8 @@ class Physics_Object {
 
 
 class Ball extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, radius, material) {
-        super(scene, pos, vel, w, mass, material);
+    constructor(scene, pos, vel, w, orientation, mass, radius, material) {
+        super(scene, pos, vel, w, orientation, mass, material);
         this.r = radius;
         this.I = Mat3.identity().times(2/5*this.m*Math.pow(this.r, 2));
         this.I_inv = Mat3.identity().times(1/(2/5*this.m*Math.pow(this.r, 2)));
@@ -225,8 +228,8 @@ class Ball extends Physics_Object {
 
 
 class Box extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, dims, material) {
-        super(scene, pos, vel, w, mass, material);
+    constructor(scene, pos, vel, w, orientation, mass, dims, material) {
+        super(scene, pos, vel, w, orientation, mass, material);
         this.dims = dims;
         this.I = Mat3.of(
             [dims[1]**2 + dims[2]**2, 0, 0],
@@ -271,8 +274,8 @@ class Box extends Physics_Object {
 
 
 class Cone_Object extends Physics_Object {
-    constructor(scene, pos, vel, w, mass, radius, height, material) {
-        super(scene, pos, vel, w, mass, material, Vec.of(0, 0, -height/4));
+    constructor(scene, pos, vel, w, orientation, mass, radius, height, material) {
+        super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height/4));
         this.r = radius;
         this.h = height;
         this.I = Mat3.of(
@@ -787,36 +790,80 @@ class Collision_Detection {
     }
 
     static collide(a, b) {
-        const epsilon = 1;
-        if (a.pos.minus(b.pos).norm() > a.bounding_radius + b.bounding_radius + epsilon)
+
+        if (b.concave) {
+            b = [a, a = b][0];
+        }
+
+        if (a.concave) {
+            if (b.concave)
+                alert("concave - concave collisions not implemented yet");
+            var convex_decomposition_a = a.convex_decomposition;
+//                 impulses_a = [],
+//                 impulses_b = [],
+//                 correction_a = Vec.of(0, 0, 0),
+//                 correction_b = Vec.of(0, 0, 0);
+
+            for (var i in convex_decomposition_a) {
+                var a_i = convex_decomposition_a[i].shape,
+                    d_i = convex_decomposition_a[i].d;
+
+                var collision_info = Collision_Detection.get_collision_info(a_i, b);
+
+                if (!collision_info)
+                    continue;
+
+//                 impulses_a.push({impulse: collision_info.impulse_a, r: d_i.plus(collision_info.a_r)});
+//                 impulses_b.push({impulse: collision_info.impulse_b, r: collision_info.b_r});
+
+                a.impulse(collision_info.impulse_a, d_i.plus(collision_info.a_r));
+                b.impulse(collision_info.impulse_b, collision_info.b_r);
+
+                a.shift(collision_info.correction_a);
+                b.shift(collision_info.correction_b);
+
+                a.impulse(collision_info.friction_impulse_a, d_i.plus(collision_info.a_r));
+                b.impulse(collision_info.friction_impulse_b, collision_info.b_r);
+
+//                 impulses_a.push({impulse: collision_info.friction_impulse_a, r: d_i.plus(collision_info.a_r)});
+//                 impulses_b.push({impulse: collision_info.friction_impulse_b, r: collision_info.b_r});
+                
+            }
+
+            return;
+        }
+
+        var collision_info = Collision_Detection.get_collision_info(a, b);
+
+        if (!collision_info)
             return;
 
-//         if (!a.convex) {
-//             for (var i in a.convex_decomposition) {
-//                 var a_i = a.convex_decomposition[i].shape,
-//                     d = a.convex_decomposition[i].d;
-//                 Collision_Detection.collide(a_i, b)
-//             }
-//         }
+        a.impulse(collision_info.impulse_a, collision_info.a_r);
+        b.impulse(collision_info.impulse_b, collision_info.b_r);
+
+        a.shift(collision_info.correction_a);
+        b.shift(collision_info.correction_b);
+
+        a.impulse(collision_info.friction_impulse_a, collision_info.a_r);
+        b.impulse(collision_info.friction_impulse_b, collision_info.b_r);
+
+        return;
+
+    }
+    
+    static get_collision_info(a, b) {
+        /* convex shapes only */
+        const epsilon = 1;
+        if (a.pos.minus(b.pos).norm() > a.bounding_radius + b.bounding_radius + epsilon)
+            return null;
 
         var GJK_args = {a: a, b: b, simplex: null, simplex_a: null, simplex_b: null};
         if (Collision_Detection.GJK(GJK_args)) {
 
             var manifold = Collision_Detection.EPA(GJK_args, .1);
 
-//             console.log(manifold);
-
-            if (!manifold) {
-                a.chill();
-                b.chill();
-                console.log("resting...");
-                return;
-            }
-
             var a_contact = manifold.contact_a,
                 b_contact = manifold.contact_b;
-
-//             console.log(a_contact.minus(b_contact).norm());
 
             var a_r = a_contact.minus(a.com),
                 b_r = b_contact.minus(b.com);
@@ -829,7 +876,7 @@ class Collision_Detection {
             var vel_along_normal = rel_vel.dot(normal);
             
             if (vel_along_normal < 0)
-                return;
+                return null;
             if (vel_along_normal < 20)
                 rest = 0;
 
@@ -845,21 +892,21 @@ class Collision_Detection {
                 
             var impulse_a = normal.times(j),
                 impulse_b = normal.times(-j);
-
-//             if (correction.norm())
-//                 console.log(correction);
-
-            a.impulse(impulse_a, a_r);
-            b.impulse(impulse_b, b_r);
             
             var correction_a = correction.times(-a.m_inv),
                 correction_b = correction.times(b.m_inv);
 
-            a.shift(correction_a);
-            b.shift(correction_b);
-
             if (a.scene.friction_off)
-                return;
+                return {
+                impulse_a: impulse_a,
+                impulse_b: impulse_b,
+                a_r: a_r,
+                b_r: b_r,
+                friction_impulse_a: Vec.of(0, 0, 0),
+                friction_impulse_b: Vec.of(0, 0, 0),
+                correction_a: correction_a,
+                correction_b: correction_b
+            };
 
             rel_vel = b.vel.plus(b.w.cross(b_r)).minus(a.vel.plus(a.w.cross(a_r)));
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
@@ -882,447 +929,22 @@ class Collision_Detection {
                 friction_impulse = tangent.times(-j * mu_d);
             }
 
-//             console.log(rel_vel.dot(tangent));
+            var friction_impulse_a = friction_impulse,
+                friction_impulse_b = friction_impulse.times(-1);
 
-            a.impulse(friction_impulse.times(1), a_r);
-            b.impulse(friction_impulse.times(-1), b_r);
-
-//             b.scene.shapes.vector.draw(
-//                 b.scene.globals.graphics_state,
-//                 Mat4.y_to_vec(friction_impulse.times(-1000), b_contact).times(
-//                     Mat4.scale(Vec.of(1, .03, 1))),
-//                 b.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-//                 "LINES");
+            return {
+                impulse_a: impulse_a,
+                impulse_b: impulse_b,
+                a_r: a_r,
+                b_r: b_r,
+                friction_impulse_a: friction_impulse_a,
+                friction_impulse_b: friction_impulse_b,
+                correction_a: correction_a,
+                correction_b: correction_b
+            }       
 
         }
+        return null;
     }
-    
-    static get_impacts(e, i) {
-        var impacts = {
-            i_to_e: [],
-
-            e_to_i: []
-        }
-
-        var GJK_args = {a: e, b: i, simplex: null, simplex_a: null, simplex_b: null};
-        if (Collision_Detection.GJK(GJK_args)) {
-//             console.log(GJK_args.simplex);
-
-            var manifold = Collision_Detection.EPA(GJK_args);
-
-//             if (manifold.normal.dot(Vec.of(0, 1, 0)) < 0) {
-//                 GJK_args.a.resting = true;
-//             }
-
-
-
-//             var normals = i.normals.concat(e.normals),
-//                 collision_dir,
-//                 smol_ones = [null, null, null],
-//                 smallest_mink_norm = Infinity;
-//             for (var dir of normals) {//Collision_Detection.icosohedron_normals()) {
-//                 var mink = e.support(dir.times(1)).minus(i.support(dir.times(-1)));
-// //                 for (var ix in smallest_mink_norms) {
-// //                     if (mink.norm() < smallest_mink_norms[ix] && smallest_mink_norms[ix] == Math.max.apply(null, smallest_mink_norms)) {
-// //                         smallest_mink_norms[ix] = mink.norm();
-// //                         smol_ones[ix] = dir;
-// //                         break;
-// //                     }
-// //                 }
-//                 if (mink.norm() < smallest_mink_norm) {
-//                     smallest_mink_norm = mink.norm();
-//                     collision_dir = dir;
-//                 }
-//             }
-
-// //             collision_dir = smol_ones[0].plus(smol_ones[1]).plus(smol_ones[2]).times(1/3);
-            
-//             var i_contact = i.support(collision_dir.times(-1)),
-//                 e_contact = e.support(collision_dir.times(1));
-
-//             var e_r = e_contact.minus(e.com),
-//                 i_r = i_contact.minus(i.com);
-
-
-            var i_contact = manifold.contact_b,
-                e_contact = manifold.contact_a;
-
-            var e_r = e_contact.minus(e.com),
-                i_r = e_contact.minus(i.com);
-
-
-            var rest = Math.min(e.restitution, i.restitution),
-                normal = manifold.normal;   //collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
-            
-            if (Math.max(e.vel.norm(), i.vel.norm()) < 100)
-                rest = 0;
-            
-//             console.log(Math.sign(normal.dot(Vec.of(0, 1, 0))));
-//             if (normal.dot(Vec.of(0, 1, 0)) > 0)
-//                 normal = normal.times(-1);
-
-            var vel_along_normal = (e.vel.plus(e.w.cross(e_r).times(1)).minus(i.vel.plus(i.w.cross(i_r).times(1)))).dot(normal);
-
-
-//             console.log(normal);
-            if (e.momentum.norm() > 1000)
-                console.log(i_r, e_r);
-
-            const percent = .2;
-            var penetration_depth = manifold.penetration_depth, //i_contact.minus(e_contact).norm(),
-                slop = .01,
-                correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
-
-            if (vel_along_normal < 0){
-                impulse_ie = Vec.of(0, 0, 0);
-                correction = Vec.of(0, 0, 0);
-            }
-//                 return impacts;
-            else {
-                if (vel_along_normal > 100)
-                    console.log(e.vel, e.w, e_r);
-                var impulse_ie = vel_along_normal*(-(1 + rest));
-                impulse_ie /= i.m_inv + e.m_inv + 
-                    e.R.times(e.I_inv).times(e.R_inv).times(e_r.cross(normal)).cross(e_r).dot(normal) + 
-                    i.R.times(i.I_inv).times(i.R_inv).times(i_r.cross(normal)).cross(i_r).dot(normal);
-                impulse_ie = normal.times(impulse_ie);
-            }
-
-            
-
-//             console.log(e.R.times(e.I_inv));
-
-
-            var i_pos_correct = correction.times(i.m_inv),
-                e_pos_correct = correction.times(-e.m_inv);
-            
-//             console.log(normal);
-//             console.log(i_pos_correct);
-
-            impacts.i_to_e.push({
-                impulse: impulse_ie,
-                contact: e_r,
-                pos_correction: e_pos_correct
-            });
-
-            impacts.e_to_i.push({
-                impulse: impulse_ie.times(-1),
-                contact: i_r,
-                pos_correction: i_pos_correct
-            });
-            
-        }
-
-        return impacts;
-    }
-
 
 }
-
-
-class Collision_Detection_ {
-
-    static icosohedron_normals() {
-        return Vec.cast(
-            [0.1876, -0.7947, 0.5774],
-            [0.6071, -0.7947, 0.0000],
-            [-0.4911, -0.7947, 0.3568],
-            [-0.4911, -0.7947, -0.3568],
-            [0.1876, -0.7947, -0.5774],
-            [0.9822, -0.1876, 0.0000],
-            [0.3035, -0.1876, 0.9342],
-            [-0.7946, -0.1876, 0.5774],
-            [-0.7946, -0.1876, -0.5774],
-            [0.3035, -0.1876, -0.9342],
-            [0.7946, 0.1876, 0.5774],
-            [-0.3035, 0.1876, 0.9342],
-            [-0.9822, 0.1876, 0.0000],
-            [-0.3035, 0.1876, -0.9342],
-            [0.7946, 0.1876, -0.5774],
-            [0.4911, 0.7947, 0.3568],
-            [-0.1876, 0.7947, 0.5774],
-            [-0.6071, 0.7947, 0.0000],
-            [-0.1876, 0.7947, -0.5774],
-            [0.4911, 0.7947, -0.3568]
-        )
-    }
-
-    static support(args) {
-        args.support_a = args.a.support(args.dir);
-        args.support_b = args.b.support(args.dir.times(-1));
-        args.support = args.support_b.minus(args.support_a);
-
-        return;
-    }
-
-    static do_simplex(args){
-        var simplex = args.simplex,
-            dir = args.dir;
-        var a = simplex[0], b = simplex[1],
-            ab = b.minus(a), a0 = a.times(-1);
-
-        switch (simplex.length) {
-            case 2:
-                if (ab.dot(a0) > 0) {
-                    args.simplex = [a, b];
-                    args.dir = ab.cross(a0).cross(ab);
-                }
-                else {
-                    args.simplex = [a];
-                    args.dir = a0;
-                }
-                break;
-
-            case 3:
-                var c = simplex[2],
-                    ac = c.minus(a),
-                    abc = ab.cross(ac);
-                
-                if (abc.cross(ac).dot(a0) > 0)
-                    if (ac.dot(a0)) {
-                        args.simplex = [a, c];
-                        args.dir = ac.cross(a0).cross(ac);
-                    }
-                    else if (ab.dot(a0) > 0) {
-                        args.simplex = [a, b]
-                        args.dir = ab.cross(a0).cross(ab);
-                    }
-                    else {
-                        args.simplex = [a];
-                        args.dir = a0;
-                    }
-                else if (ab.cross(abc).dot(a0) > 0)
-                    if (ab.dot(a0) > 0) {
-                        args.simplex = [a, b];
-                        args.dir = ab.cross(a0).cross(ab);
-                    }
-                    else {
-                        args.simplex = [a];
-                        args.dir = a0;
-                    }
-                else if (abc.dot(a0) > 0) {
-                    args.simplex = [a, b, c];
-                    args.dir = abc;
-                }
-                else {
-                    args.simplex = [a, c, b];
-                    args.dir = abc.times(-1);
-                }
-                break;
-
-            case 4:
-                var c = simplex[2],
-                    d = simplex[3],
-                    ac = c.minus(a),
-                    ad = d.minus(a),
-                    abc = ab.cross(ac),
-                    acd = ac.cross(ad),
-                    adb = ad.cross(ab);
-
-                if (abc.dot(a0) > 0) {
-                    args.simplex = [a, b, c];
-                    return Collision_Detection.do_simplex(args);
-                }
-                else if (acd.dot(a0) > 0) {
-                    args.simplex = [a, c, d];
-                    return Collision_Detection.do_simplex(args);
-                }
-                else if (adb.dot(a0) > 0) {
-                    args.simplex = [a, d, b];
-                    return Collision_Detection.do_simplex(args);
-                }
-                else 
-                    return true;
-                
-        }
-
-        return false;
-    }
-
-
-    static GJK(s1, s2) {
-        /* GJK for shapes */
-        var d = Vec.of(1, 0, 0),
-            s = s1.support(d).minus(s2.support(d.times(-1))),
-            simplex = [s];
-
-        d = s.times(-1);
-        var args = {simplex: simplex, dir: d},
-            result;
-
-        while (simplex.length < 4) {
-            d = d.normalized();
-            var A = s1.support(d).minus(s2.support(d.times(-1)));
-
-//             console.log(A, d);
-            if (A.dot(d) < 0)
-                return false;
-//             if (d.norm() == 0)
-//                 return true;
-
-            simplex.unshift(A);
-
-            args.simplex = simplex;
-            args.dir = d;
-
-            result = Collision_Detection.do_simplex(args);
-
-            simplex = args.simplex;
-            d = args.dir;
-        }
-
-        return result;
-    }
-    
-    static get_impacts(e, i) {
-        var impacts = {
-            i_to_e: [],
-
-            e_to_i: []
-        }
-
-        if (Collision_Detection.GJK(e, i)) {
-            var normals = i.normals.concat(e.normals),
-                collision_dir,
-                smol_ones = [null, null, null],
-                smallest_mink_norm = Infinity;
-            for (var dir of normals) {//Collision_Detection.icosohedron_normals()) {
-                var mink = e.support(dir.times(1)).minus(i.support(dir.times(-1)));
-//                 for (var ix in smallest_mink_norms) {
-//                     if (mink.norm() < smallest_mink_norms[ix] && smallest_mink_norms[ix] == Math.max.apply(null, smallest_mink_norms)) {
-//                         smallest_mink_norms[ix] = mink.norm();
-//                         smol_ones[ix] = dir;
-//                         break;
-//                     }
-//                 }
-                if (mink.norm() < smallest_mink_norm) {
-                    smallest_mink_norm = mink.norm();
-                    collision_dir = dir;
-                }
-            }
-
-//             collision_dir = smol_ones[0].plus(smol_ones[1]).plus(smol_ones[2]).times(1/3);
-            
-            var i_contact = i.support(collision_dir.times(-1)),
-                e_contact = e.support(collision_dir.times(1));
-
-            var e_r = e_contact.minus(e.com),
-                i_r = i_contact.minus(i.com);
-
-
-            var rest = Math.min(e.restitution, i.restitution),
-                normal = collision_dir,//Vec.of(1, 0, 0),//i_r.normalized(),
-                vel_along_normal = (e.vel.plus(e.w.cross(e_r)).minus(i.vel.plus(i.w.cross(i_r)))).dot(normal);
-
-            const percent = 0.00;
-            var penetration_depth = i_contact.minus(e_contact).norm(),
-                slop = 0.1,
-                correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
-
-            if (vel_along_normal < 0)
-                return impacts;
-
-            var impulse_ie = vel_along_normal*(-(1 + rest));
-                impulse_ie /= i.m_inv + e.m_inv + 
-                    e.R.times(e.I_inv).times(e.R_inv).times(e_r.cross(normal)).cross(e_r).dot(normal) + 
-                    i.R.times(i.I_inv).times(i.R_inv).times(i_r.cross(normal)).cross(i_r).dot(normal);
-                impulse_ie = normal.times(impulse_ie);
-
-            console.log(e.R.times(e.I_inv));
-
-
-            var i_pos_correct = correction.times(i.m_inv),
-                e_pos_correct = correction.times(-e.m_inv);
-
-            impacts.i_to_e.push({
-                impulse: impulse_ie,
-                contact: e_r,
-                pos_correction: e_pos_correct
-            });
-
-            impacts.e_to_i.push({
-                impulse: impulse_ie.times(-1),
-                contact: i_r,
-                pos_correction: i_pos_correct
-            });
-            
-        }
-
-        return impacts;
-
-
-//         // both are spheres, no friction/spinning
-//         if (e instanceof Ball && i instanceof Ball) {
-//             if (e.pos.minus(i.pos).norm() <= e.r + i.r) {
-//                 var contact = i.pos.times(i.r).plus(e.pos.times(e.r)).times(1/(e.r + i.r)),
-//                     i_contact = i.pos.minus(contact),
-//                     e_contact = e.pos.minus(contact);
-
-
-//                 var rest = Math.min(e.restitution, i.restitution),
-//                     normal = i_contact.normalized(),
-//                     vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
-
-                
-//                 const percent = 0.1;
-//                 var penetration_depth = i_contact.minus(e_contact).norm() - (e.r + i.r),
-//                     slop = 0.01,
-//                     correction = normal.times(Math.max(penetration_depth - slop, 0) / (e.m_inv + i.m_inv) * percent);
-//             }
-
-//             else
-//                 return impacts;
-//         }
-        
-//         else if (e instanceof Box && i instanceof Ball) {
-//             e = [i, i = e][0];
-//         }
-
-//         if (e instanceof Ball && i instanceof Box) {
-//             if (e.pos.minus(i.pos).norm() <= e.r + i.width/2) {
-//                 var contact = i.pos.times(i.width/2).plus(e.pos.times(e.r)).times(1/(e.r + i.width/2));
-//                     contact[1] = e.pos[1];
-//                     contact[2] = e.pos[2];
-// //                     contact = contact.times(-1);
-//                 var i_contact = i.pos.minus(contact),
-//                     e_contact = e.pos.minus(contact);
-
-//                 var rest = Math.min(e.restitution, i.restitution),
-//                     normal = i_contact.normalized(),
-//                     vel_along_normal = (e.vel.dot(normal) - i.vel.dot(normal));
-
-//                 var correction = Vec.of(0, 0, 0);
-                
-//             }
-            
-//             else
-//                 return impacts;
-//         }
-
-//         if (vel_along_normal < 0)
-//             return impacts;
-
-//         var impulse_ie = vel_along_normal*(-(1 + rest));
-//             impulse_ie /= i.m_inv + e.m_inv;
-//             impulse_ie = normal.times(impulse_ie);
-
-        
-//         var i_pos_correct = correction.times(i.m_inv),
-//             e_pos_correct = correction.times(-e.m_inv);
-
-//         impacts.i_to_e.push({
-//             impulse: impulse_ie,
-//             contact: i_contact,
-//             pos_correction: e_pos_correct
-//         });
-
-//         impacts.e_to_i.push({
-//             impulse: impulse_ie.times(-1),
-//             contact: e_contact,
-//             pos_correction: i_pos_correct
-//         });
-
-//         return impacts;
-    }
-}
-

@@ -123,6 +123,10 @@ class Quaternion extends Vec {
         return Quaternion.of(w, v[0], v[1], v[2]);
     }
 
+    static unit() {
+        return Quaternion.of(1, 0, 0, 0);
+    }
+
     inverse() {
         return Quaternion.of(this[0], -this[1], -this[2], -this[3]);
     }
