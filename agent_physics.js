@@ -26,7 +26,7 @@ class Spikey_Object extends Physics_Object {
     constructor(scene, pos, vel, w, q) {
         
 
-        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
+        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.glass);
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
 
@@ -111,6 +111,7 @@ class Spikey_Object extends Physics_Object {
 
         var convex_decomposition = [{
             shape: spikey_body, 
+            submass: spikey_consts.spikey_body_mass,
             d: Vec.of(0, 0, 0), 
             q: Quaternion.unit()
         }];
@@ -168,6 +169,7 @@ class Spikey_Object extends Physics_Object {
 
             convex_decomposition.push({
                 shape: cone,
+                submass: spikey_consts.spikey_spike_mass,
                 d: translate_vec,
                 q: q
             });
@@ -202,11 +204,10 @@ class Spikey_Object extends Physics_Object {
 
         subshape.recalc();
 
-//         if (subshape.d.norm())
-//             this.scene.shapes.ball.draw(
-//                 this.scene.globals.graphics_state,
-//                 Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
-//                 this.scene.shader_mats.floor);
+        this.scene.shapes.ball.draw(
+            this.scene.globals.graphics_state,
+            Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
+            this.scene.shader_mats.floor);
 
 //         if (subshape.d.norm())
 //             this.scene.shapes.cone.draw(
@@ -218,11 +219,22 @@ class Spikey_Object extends Physics_Object {
 
     update(dt) {
         super.update(dt);
+        this.scene.shapes.ball.draw(
+            this.scene.globals.graphics_state,
+            Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
+            this.scene.plastic);
+
         if (!this.scene.pulsate)
             return;
-        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr/2).plus(
-                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
+        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 5).plus(
+                         Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
         this.set_spike_lengths(spike_lens);
+
+        this.com = this.convex_decomposition.reduce(
+            (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
+        console.log(this.com);
+
+        
     }
 
     set_spike_lengths(spike_vector) {

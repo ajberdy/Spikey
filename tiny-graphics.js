@@ -99,6 +99,9 @@ class Vec extends Float32Array {
 }
 
 
+const arrSum = arr => arr.reduce((a,b) => a + b, 0);
+
+
 class Quaternion extends Vec {
 
     get w() { return this[0]; }
