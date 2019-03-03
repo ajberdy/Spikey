@@ -6,7 +6,7 @@ const spikey_body_mass = 10,
       spikey_mass = spikey_body_mass + num_spikes*spikey_spike_mass,
       sphere_radius = 10,
       min_spike_protrusion = 5,
-      max_spike_protrusion = 15,
+      max_spike_protrusion = 50,
       spike_base_radius = 3,
       spikey_restitution = .01;
 
@@ -26,7 +26,7 @@ class Spikey_Object extends Physics_Object {
     constructor(scene, pos, vel, w, q) {
         
 
-        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.glass);
+        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
 
@@ -48,28 +48,29 @@ class Spikey_Object extends Physics_Object {
 
         this._convex_decomposition = this.init_convex_decomposition();
 
-//         console.log(this.I);
-//         for (var i in this._convex_decomposition) {
-//             var subshape = this._convex_decomposition[i].shape,
-//                 d = this._convex_decomposition[i].d,
-//                 q = this._convex_decomposition[i].q;
+        console.log(this.I);
+        for (var i in this._convex_decomposition) {
+            var subshape = this._convex_decomposition[i].shape,
+                submass = this._convex_decomposition[i].submass,
+                d = this._convex_decomposition[i].d,
+                q = this._convex_decomposition[i].q;
 
-//             this.I = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)));
+            this.I = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m));
 
-//         }
-//         console.log(this.I);
-//         var I_4 = Mat4.of(
-//                 [this.I[0][0], this.I[0][1], this.I[0][2], 0],
-//                 [this.I[1][0], this.I[1][1], this.I[1][2], 0],
-//                 [this.I[2][0], this.I[2][1], this.I[2][2], 0],
-//                 [0, 0, 0, 1]
-//             ),
-//             I_4_inv = Mat4.inverse(I_4);
-//         this.I_inv = Mat3.of(
-//             [I_4_inv[0][0], I_4_inv[0][1], I_4_inv[0][2]],
-//             [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
-//             [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
-//         );
+        }
+        console.log(this.I);
+        var I_4 = Mat4.of(
+                [this.I[0][0], this.I[0][1], this.I[0][2], 0],
+                [this.I[1][0], this.I[1][1], this.I[1][2], 0],
+                [this.I[2][0], this.I[2][1], this.I[2][2], 0],
+                [0, 0, 0, 1]
+            ),
+            I_4_inv = Mat4.inverse(I_4);
+        this.I_inv = Mat3.of(
+            [I_4_inv[0][0], I_4_inv[0][1], I_4_inv[0][2]],
+            [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
+            [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
+        );
         this.convex = false;
 
         this.initialize();
@@ -204,10 +205,10 @@ class Spikey_Object extends Physics_Object {
 
         subshape.recalc();
 
-        this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
-            this.scene.shader_mats.floor);
+//         this.scene.shapes.ball.draw(
+//             this.scene.globals.graphics_state,
+//             Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
+//             this.scene.shader_mats.floor);
 
 //         if (subshape.d.norm())
 //             this.scene.shapes.cone.draw(
@@ -219,31 +220,53 @@ class Spikey_Object extends Physics_Object {
 
     update(dt) {
         super.update(dt);
-        this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
-            this.scene.plastic);
+//         this.scene.shapes.ball.draw(
+//             this.scene.globals.graphics_state,
+//             Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
+//             this.scene.plastic);
+
+        console.log(this.w.norm());
 
         if (!this.scene.pulsate)
             return;
-        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 5).plus(
-                         Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
+        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 15).plus(
+                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(.1/100*this.scene.globals.graphics_state.animation_time)*30));
+
+//                          Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
         this.set_spike_lengths(spike_lens);
 
         this.com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
-        console.log(this.com);
-
         
     }
 
     set_spike_lengths(spike_vector) {
         var dspikes = spike_vector.minus(this.spike_vector);
         for (var i in this.spikes) {
+            var subshape = this.spikes[i].shape,
+                submass = this.spikes[i].submass,
+                d = this.spikes[i].d,
+                I_0 = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m));
             this.spikes[i].shape.move_spike(dspikes[i]);
             this.spike_vector[i] = this.spikes[i].shape.h;
+            var I_1 = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m)),
+                dI = I_1.minus(I_0);
+            this.I = this.I.plus(dI);
             this.update_subshape(this.spikes[i].shape, this.spikes[i].d, this.spikes[i].q);
+            
         }
+        var I_4 = Mat4.of(
+                [this.I[0][0], this.I[0][1], this.I[0][2], 0],
+                [this.I[1][0], this.I[1][1], this.I[1][2], 0],
+                [this.I[2][0], this.I[2][1], this.I[2][2], 0],
+                [0, 0, 0, 1]
+            ),
+            I_4_inv = Mat4.inverse(I_4);
+        this.I_inv = Mat3.of(
+            [I_4_inv[0][0], I_4_inv[0][1], I_4_inv[0][2]],
+            [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
+            [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
+        );
 
     }
 }
