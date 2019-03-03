@@ -24,7 +24,7 @@ class Physics_Object {
         );   // for efficiency
 
         // direct properties
-        this.d = d;
+        this._d = d;
         this.com = pos.minus(d);
         this.momentum;
 
@@ -58,6 +58,10 @@ class Physics_Object {
 //         this.initialize();
     }
 
+    get d() {
+        return this._d;
+    }
+
     get pos() {
         return this.com.plus(this.R.times(this.d));
     }
@@ -67,7 +71,6 @@ class Physics_Object {
                Mat4.quaternion_rotation(this.orientation.normalized())).times(
                Mat4.translation(this.d));
 
-        // TODO: take into account com/pos discrepancy
         return Mat4.translation(this.pos).times(
                Mat4.quaternion_rotation(this.orientation.normalized()));
     }
@@ -151,9 +154,6 @@ class Physics_Object {
     }
 
     update(dt) {
-
-        if (this.resting)
-            return;
 
         this.momentum = this.momentum.plus(this.F.times(dt));
         this.L = this.L.plus(this.T.times(dt));
@@ -411,10 +411,12 @@ class Cone_Object extends Physics_Object {
 }
 
 class Spike_Object extends Physics_Object {
-    constructor(scene, pos, vel, w, orientation, mass, radius, height, material, d) {
-        super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height/3).plus(d));
+    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, material, d) {
+        super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height_range[1]/3));
         this.r = radius;
-        this.h = height;
+        this.min_h = height_range[0];
+        this.max_h = height_range[1];
+        this.h = this.max_h;
         this.I = Mat3.of(
             [2*this.h**2 + 3*this.r**2, 0, 0],
             [0, 2*this.h**2 + 3*this.r**2, 0],
@@ -443,6 +445,10 @@ class Spike_Object extends Physics_Object {
         return new Spike_Object(...args);
     }
 
+    get d() {
+        return Vec.of(0, 0, -this.h/3);
+    }
+
     get tip() {
         return this.transform.times(this.base_tip);
     }
@@ -455,7 +461,7 @@ class Spike_Object extends Physics_Object {
     }
 
     static of(...args) {
-        return new Cone_Object(...args);
+        return new Spike_Object(...args);
     }
 
     draw(graphics_state) {
@@ -496,6 +502,18 @@ class Spike_Object extends Physics_Object {
         if (d.dot(vert_axis) > d.dot(rim_point))
             return tip;
         return rim_point;
+    }
+
+    move_spike(dh) {
+        var next_h = this.h + dh;
+//         if (next_h >= this.max_h)
+//             this.h = this.max_h;
+//         else if (next_h <= this.min_h)
+//             this.h = this.min_h;
+//         else
+//             this.h = next_h;
+        if (next_h >= this.min_h && next_h <= this.max_h)
+            this.h = next_h;
     }
 
 }
@@ -1081,11 +1099,11 @@ class Collision_Detection {
             var friction_impulse_a = friction_impulse,
                 friction_impulse_b = friction_impulse.times(-1);
 
-//             a.scene.shapes.vector.draw(
-//                     a.scene.globals.graphics_state,
-//                     Mat4.y_to_vec(friction_impulse_a.times(1000), a_r.plus(0, 1, 0)),
-//                     a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-//                     "LINES");
+            a.scene.shapes.vector.draw(
+                    a.scene.globals.graphics_state,
+                    Mat4.y_to_vec(friction_impulse_a.times(1000), a.com.plus(a_r)),
+                    a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+                    "LINES");
 
             return {
                 impulse_a: impulse_a,

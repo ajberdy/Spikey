@@ -42,7 +42,12 @@ class Spikey_Object extends Physics_Object {
 
         this.base_points = this.shape.tips;
 
+        this.spike_vector = Vec.of(1, 1, 1, 1,
+                                   1, 1, 1, 1,
+                                   1, 1, 1, 1).times(spikey_consts.max_spike_protrusion);
+
         this._convex_decomposition = this.init_convex_decomposition();
+
 //         console.log(this.I);
 //         for (var i in this._convex_decomposition) {
 //             var subshape = this._convex_decomposition[i].shape,
@@ -69,6 +74,10 @@ class Spikey_Object extends Physics_Object {
 
         this.initialize();
 
+    }
+
+    get spikes() {
+        return this._convex_decomposition.slice(1);
     }
 
     static of(...args) {
@@ -150,8 +159,10 @@ class Spikey_Object extends Physics_Object {
                 qv = Quaternion.from(Math.cos(phi/2), Vec.of(-1, 0, 0).times(Math.sin(phi/2))),
                 q = qh.times(qv);
 
-            var cone = Spike_Object.of(this.scene, this.pos, this.vel, this.w, this.orientation.times(q).normalized(), spikey_consts.spikey_mass,
-                    spikey_consts.spike_base_radius, spikey_consts.max_spike_protrusion, this.spikey_material, translate_vec.times(-1));
+            var cone = Spike_Object.of(this.scene, this.pos, this.vel, this.w, this.orientation.times(q).normalized(), 
+                            spikey_consts.spikey_mass,  spikey_consts.spike_base_radius, 
+                            Vec.of(spikey_consts.min_spike_protrusion, spikey_consts.max_spike_protrusion), 
+                            this.spikey_material, translate_vec.times(-1));
 
             cone.com = this.pos.plus(this.R.times(translate_vec).minus(cone.R.times(cone.d)));
 
@@ -205,7 +216,20 @@ class Spikey_Object extends Physics_Object {
 
     }
 
+    update(dt) {
+        super.update(dt);
+        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr/2).plus(
+                         Vec.of(1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
+        this.set_spike_lengths(spike_lens);
+    }
+
     set_spike_lengths(spike_vector) {
+        var dspikes = spike_vector.minus(this.spike_vector);
+        for (var i in this.spikes) {
+            this.spikes[i].shape.move_spike(dspikes[i]);
+            this.spike_vector[i] = this.spikes[i].shape.h;
+            this.update_subshape(this.spikes[i].shape, this.spikes[i].d, this.spikes[i].q);
+        }
 
     }
 }

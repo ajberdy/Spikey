@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 1*9.8,
+      G = 9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 
@@ -160,56 +160,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
         let dt = t - old_t;
-//         console.log(dt);
-
-        const g = this.gravity_off ? 0 : G;
-
-        // Draw some demo textured shapes
-//         let spacing = 6;
-//         let m = Mat4.translation(Vec.of(-1 * (spacing / 2) * (this.shape_count - 1), 0, 0));
-//         for (let k in this.shapes) {
-//             this.shapes[k].draw(
-//                 graphics_state,
-//                 m.times(Mat4.rotation(t, Vec.of(0, 1, 0))),
-//                 this.shape_materials[k] || this.plastic);
-//             m = m.times(Mat4.translation(Vec.of(spacing, 0, 0)));
-//         }
-
-//         this.shapes.cone.draw(
-//             graphics_state,
-//             Mat4.identity(),
-//             this.plastic);
-
 
         if (dt) {
-
-//             var e = this.entities[0];
-
-//             var spin = Quaternion.of(0, e.w[0], e.w[1], e.w[2]).times(0.5).times(e.orientation);
-
-//             e.orientation = e.orientation.plus(spin.times(dt));
-//             e.orientation.normalize();
-//             e.vel = e.vel.plus(Vec.of(0, -G, 0).times(dt));
-//             e.pos = e.pos.plus(e.vel.times(dt));
-
-//             return;
-//             var n = 1;
-//             var resting = [];
-            
-// //             this.apply_forces(resting);
-//             for (var i = 0; i < n; i++) {
-//                 if (this.paused)
-//                     break;
-// //                 this.apply_forces();
-//                 this.apply_impulses(dt/n);
-//                 this.do_collisions(dt/n);
-
-
-//                 this.update_entities(dt/n);
-
-// //                 console.log(this.entities[1].momentum.norm());
-// //             }
-
 
             this.apply_forces();
             for (var i in this.entities)
@@ -218,25 +170,29 @@ class Assignment_Two_Skeleton extends Scene_Component {
                         b = this.entities[j];
                     this.collide(a, b);
                 }
-            this.update_entities(dt)
-//             var n = 1;
-//             for (var i = 0; i < n; ++i) {
-//                 this.collide(this.entities[0], this.entities[1], dt/n);
-//                 this.update_entities(dt/n);
-
-//             }
-//             this.do_collisions(dt, 1);
-// //             this.apply_impulses(dt);
-//             }
-
-//             this.update_entities(dt);
-//             }
+            this.update_entities(dt);
         }
 
 
         this.draw_entities(graphics_state);
 
     }
+
+    dont_display(dt) {
+
+        const g = this.gravity_off ? 0 : G;
+
+        this.apply_forces();
+        for (var i in this.entities)
+            for (var j = 0; j < i; ++j) {
+                var a = this.entities[i],
+                    b = this.entities[j];
+                this.collide(a, b);
+            }
+        this.update_entities(dt)
+
+    }
+
 
     collide(a, b, dt) {
         Collision_Detection.collide(a, b, dt);
@@ -277,7 +233,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-        this.entities.push(new Spikey_Object(this, Vec.of(-50, 30, 0), Vec.of(10, 0, 0), Vec.of(0, 1, 0), Quaternion.unit()));
+        this.entities.push(new Spikey_Object(this, Vec.of(-50, 50, 0), Vec.of(10, 0, 0), Vec.of(0, 1, 0), Quaternion.unit()));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
