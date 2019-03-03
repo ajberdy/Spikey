@@ -218,8 +218,10 @@ class Spikey_Object extends Physics_Object {
 
     update(dt) {
         super.update(dt);
+        if (!this.scene.pulsate)
+            return;
         var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr/2).plus(
-                         Vec.of(1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
+                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
         this.set_spike_lengths(spike_lens);
     }
 

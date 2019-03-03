@@ -91,6 +91,11 @@ class Vec extends Float32Array {
     inverse() {
         return this.map(x => 1/x);
     }
+
+    project_onto(v) {
+        var v_norm2 = v.dot(v);
+        return v_norm2 ? v.times(this.dot(v)/v_norm2) : this.times(0);
+    }
 }
 
 

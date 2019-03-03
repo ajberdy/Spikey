@@ -126,6 +126,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.gravity_off = true;
 
         this.friction_off = false;
+        this.pulsate = false;
 
         this.entities = [];
         this.initialize_entities();
@@ -146,6 +147,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.key_triggered_button("Toggle Friction", ["m"], () => {
             this.friction_off = !this.friction_off;
+        });
+
+        this.key_triggered_button("Toggle Pulsate", ["x"], () => {
+            this.pulsate = !this.pulsate;
         });
     }
 
@@ -233,7 +238,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-        this.entities.push(new Spikey_Object(this, Vec.of(-50, 50, 0), Vec.of(10, 0, 0), Vec.of(0, 1, 0), Quaternion.unit()));
+        this.entities.push(new Spikey_Object(this, Vec.of(-50, 30, 0), Vec.of(10, 0, 0), Vec.of(0, 1, 0), Quaternion.unit()));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {

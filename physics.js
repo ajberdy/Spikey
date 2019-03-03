@@ -103,6 +103,10 @@ class Physics_Object {
 
     get concave() { return !this.convex; }
 
+    point_vel(x_r) {
+        return this.vel.plus(this.w.cross(x_r))
+    }
+
     I_of(d) {
         return this.I.plus(
             Mat3.sym_product(d, d).times(this.m)).minus(
@@ -417,6 +421,7 @@ class Spike_Object extends Physics_Object {
         this.min_h = height_range[0];
         this.max_h = height_range[1];
         this.h = this.max_h;
+        this.dh = 0;
         this.I = Mat3.of(
             [2*this.h**2 + 3*this.r**2, 0, 0],
             [0, 2*this.h**2 + 3*this.r**2, 0],
@@ -453,11 +458,20 @@ class Spike_Object extends Physics_Object {
         return this.transform.times(this.base_tip);
     }
 
+    get h_axis() {
+        return this.tip.to3().minus(this.pos);
+    }
+
     get transform() {
         return Mat4.translation(this.com).times(
                Mat4.quaternion_rotation(this.orientation.normalized())).times(
                Mat4.translation(Vec.of(0, 0, -1).times(this.h/3))).times(
                Mat4.scale(Vec.of(this.r, this.r, this.h)));
+    }
+
+    point_vel(x_r) {
+        var dh = this.scene.pulsate ? this.dh : 0;
+        return super.point_vel(x_r).plus(x_r.project_onto(this.h_axis).times(dh));
     }
 
     static of(...args) {
@@ -514,6 +528,7 @@ class Spike_Object extends Physics_Object {
 //             this.h = next_h;
         if (next_h >= this.min_h && next_h <= this.max_h)
             this.h = next_h;
+        this.dh = dh;
     }
 
 }
@@ -1033,7 +1048,7 @@ class Collision_Detection {
             var rest = Math.min(a.restitution, b.restitution),
                 normal = manifold.normal;
 
-            var rel_vel = a.vel.plus(a.w.cross(a_r)).minus(b.vel.plus(b.w.cross(b_r)));
+            var rel_vel = a.point_vel(a_r).minus(b.point_vel(b_r));
             var vel_along_normal = rel_vel.dot(normal);
             
             if (vel_along_normal < 0)
@@ -1075,7 +1090,7 @@ class Collision_Detection {
                 correction_b: correction_b
             };
 
-            rel_vel = b.vel.plus(b.w.cross(b_r)).minus(a.vel.plus(a.w.cross(a_r)));
+            rel_vel = b.point_vel(b_r).minus(a.point_vel(a_r));
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
                 return;
 
