@@ -336,9 +336,9 @@ window.Spikey_Shape = window.classes.Spikey_Shape = class Spikey_Shape extends S
                 spike_rotate_v).times(
                 spike_scale);
 
-//             Cone.insert_transformed_copy_into(this, [20], transform);
+            Cone.insert_transformed_copy_into(this, [20], transform);
 
-//             var tip_transform = spike_translate;
+            var tip_transform = spike_translate;
             this.tips.push(transform.times(Vec.of(0, 0, 1, 1)));
         }
     }

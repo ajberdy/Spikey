@@ -410,6 +410,96 @@ class Cone_Object extends Physics_Object {
     }
 }
 
+class Spike_Object extends Physics_Object {
+    constructor(scene, pos, vel, w, orientation, mass, radius, height, material, d) {
+        super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height/3).plus(d));
+        this.r = radius;
+        this.h = height;
+        this.I = Mat3.of(
+            [2*this.h**2 + 3*this.r**2, 0, 0],
+            [0, 2*this.h**2 + 3*this.r**2, 0],
+            [0, 0, 6*this.r**2]
+        ).times(mass/20);
+        this.I_inv = Mat3.of(
+            [1/(2*this.h**2 + 3*this.r**2), 0, 0],
+            [0, 1/(2*this.h**2 + 3*this.r**2), 0],
+            [0, 0, 1/(6*this.r**2)]
+        ).times(20/mass);
+
+        this.initialize();
+
+        this.base_points = scene.shapes.cone.positions;
+        this.base_normals = scene.shapes.cone.normals;
+        this.base_tip = Vec.of(0, 0, 1, 1);
+        this.base_com = Vec.of(0, 0, 1/3, 1);
+        this.perp_len = this.h*this.r / Vec.of(this.h, this.r).norm();
+        this.vert_perp_theta = Math.acos(this.perp_len/this.h);
+        this.perp_onto_vert_len = Math.sin(this.vert_perp_theta);
+
+        this.bounding_radius = Math.max(this.r, this.h);
+    }
+
+    static of(...args) {
+        return new Spike_Object(...args);
+    }
+
+    get tip() {
+        return this.transform.times(this.base_tip);
+    }
+
+    get transform() {
+        return Mat4.translation(this.com).times(
+               Mat4.quaternion_rotation(this.orientation.normalized())).times(
+               Mat4.translation(Vec.of(0, 0, -1).times(this.h/3))).times(
+               Mat4.scale(Vec.of(this.r, this.r, this.h)));
+    }
+
+    static of(...args) {
+        return new Cone_Object(...args);
+    }
+
+    draw(graphics_state) {
+        this.scene.shapes.cone.draw(
+            graphics_state,
+            this.transform,
+            this.shader_mat);
+
+//         this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 Mat4.translation(this.pos),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.soccer);
+
+//         this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 Mat4.translation(this.com),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.plastic);
+
+//         this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 Mat4.translation(this.tip),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.soccer);
+    }
+
+    support(d) {
+        const epsilon = .1
+
+        var origin = Vec.of(0, 0, 0, 1),
+            vert_axis = this.transform.times(this.base_tip.minus(origin)).to3().normalized(),
+            tip = this.tip.to3(),
+            rim_point = this.pos.plus(d.minus(vert_axis.times(vert_axis.dot(d))).normalized().times(this.r));
+ 
+//         this.scene.shapes.ball.draw(
+//                 this.scene.globals.graphics_state,
+//                 Mat4.translation(rim_point),//.times(Mat4.scale(20, 20, 20)),
+//                 this.scene.shader_mats.floor);
+
+        if (d.dot(vert_axis) > d.dot(rim_point))
+            return tip;
+        return rim_point;
+    }
+
+}
+
 
 class Collision_Detection {
 
@@ -863,13 +953,19 @@ class Collision_Detection {
 //                 impulses_a.push({impulse: collision_info.impulse_a, r: d_i.plus(collision_info.a_r)});
 //                 impulses_b.push({impulse: collision_info.impulse_b, r: collision_info.b_r});
 
-                a.impulse(collision_info.impulse_a, d_i.plus(collision_info.a_r));
+                a.impulse(collision_info.impulse_a, collision_info.a_r);
                 b.impulse(collision_info.impulse_b, collision_info.b_r);
+
+//                 a.scene.shapes.vector.draw(
+//                     a.scene.globals.graphics_state,
+//                     Mat4.y_to_vec(collision_info.impulse_a.times(1000), collision_info.a_r),
+//                     a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                     "LINES");
 
                 a.shift(collision_info.correction_a);
                 b.shift(collision_info.correction_b);
 
-                a.impulse(collision_info.friction_impulse_a, d_i.plus(collision_info.a_r));
+                a.impulse(collision_info.friction_impulse_a, collision_info.a_r);
                 b.impulse(collision_info.friction_impulse_b, collision_info.b_r);
 
 //                 impulses_a.push({impulse: collision_info.friction_impulse_a, r: d_i.plus(collision_info.a_r)});
@@ -943,6 +1039,12 @@ class Collision_Detection {
             var correction_a = correction.times(-a.m_inv),
                 correction_b = correction.times(b.m_inv);
 
+            a.scene.shapes.vector.draw(
+                    a.scene.globals.graphics_state,
+                    Mat4.y_to_vec(impulse_a.times(1000), a.com.plus(a_r)),
+                    a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+                    "LINES");
+
             if (a.scene.friction_off)
                 return {
                 impulse_a: impulse_a,
@@ -978,6 +1080,12 @@ class Collision_Detection {
 
             var friction_impulse_a = friction_impulse,
                 friction_impulse_b = friction_impulse.times(-1);
+
+//             a.scene.shapes.vector.draw(
+//                     a.scene.globals.graphics_state,
+//                     Mat4.y_to_vec(friction_impulse_a.times(1000), a_r.plus(0, 1, 0)),
+//                     a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                     "LINES");
 
             return {
                 impulse_a: impulse_a,

@@ -382,6 +382,11 @@ class Mat4 extends Mat {
             phi = Math.atan(v[1]/Math.sqrt(v[0]**2 + v[2]**2)),
             theta = Math.atan(v[0]/v[2]) + Math.PI*(v[2] < 0);
 
+            if (isNaN(phi))
+                phi = PI;
+            if (isNaN(theta))
+                theta = PI;
+
         return Mat4.translation(at).times(
             Mat4.rotation(theta, Vec.of(0, 1, 0))).times(
             Mat4.rotation(Math.PI/2 - phi, Vec.of(1, 0, 0))).times(
