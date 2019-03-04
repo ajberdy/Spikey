@@ -6,7 +6,7 @@ const spikey_body_mass = 10,
       spikey_mass = spikey_body_mass + num_spikes*spikey_spike_mass,
       sphere_radius = 10,
       min_spike_protrusion = 5,
-      max_spike_protrusion = 50,
+      max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01;
 
@@ -103,6 +103,11 @@ class Spikey_Object extends Physics_Object {
             var subshape = this._convex_decomposition[i].shape;
 
              subshape.draw(graphics_state);
+
+         this.scene.shapes.ball.draw(
+            this.scene.globals.graphics_state,
+            Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
+            this.scene.shader_mats.floor);
         }
     }
 
@@ -205,11 +210,6 @@ class Spikey_Object extends Physics_Object {
 
         subshape.recalc();
 
-//         this.scene.shapes.ball.draw(
-//             this.scene.globals.graphics_state,
-//             Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
-//             this.scene.shader_mats.floor);
-
 //         if (subshape.d.norm())
 //             this.scene.shapes.cone.draw(
 //                     this.scene.globals.graphics_state,
@@ -229,8 +229,8 @@ class Spikey_Object extends Physics_Object {
 
         if (!this.scene.pulsate)
             return;
-        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 15).plus(
-                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(.1/100*this.scene.globals.graphics_state.animation_time)*30));
+        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 8).plus(
+                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*8));
 
 //                          Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
         this.set_spike_lengths(spike_lens);
