@@ -107,7 +107,7 @@ class Physics_Object {
         return this.vel.plus(this.w.cross(x_r))
     }
 
-    actuation_impulse() {
+    get actuation_impulse() {
         return Vec.of(0, 0, 0);
     }
 
@@ -419,14 +419,16 @@ class Cone_Object extends Physics_Object {
 }
 
 class Spike_Object extends Physics_Object {
-    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, material, d, submass) {
+    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, material, d, submass, strength) {
         super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height_range[1]/3));
         this.submass = submass;
+        this.strength = strength;
         this.r = radius;
         this.min_h = height_range[0];
         this.max_h = height_range[1];
         this.h = this.max_h;
-        this.dh = 0;
+        this._dh = 0;
+        this.max_dh = .5;
         this.I = Mat3.of(
             [2*this.h**2 + 3*this.r**2, 0, 0],
             [0, 2*this.h**2 + 3*this.r**2, 0],
@@ -449,6 +451,8 @@ class Spike_Object extends Physics_Object {
         this.perp_onto_vert_len = Math.sin(this.vert_perp_theta);
 
         this.bounding_radius = Math.max(this.r, this.h);
+
+        this._actuation_impulse = Vec.of(0, 0, 0);
     }
 
     static of(...args) {
@@ -474,16 +478,53 @@ class Spike_Object extends Physics_Object {
                Mat4.scale(Vec.of(this.r, this.r, this.h)));
     }
 
+    get dh() {
+        return this._dh;
+    }
+
+    set dh(x) {
+        if (x == 0)
+            console.log();
+        if (x > 0)
+            this._dh = Math.min(this.max_dh, x);
+        else
+            this._dh = Math.max(-this.max_dh, x);
+    }
+
+    get actuation_impulse() {
+        return this._actuation_impulse;
+    }
+
+    set actuation_impulse(ja) {
+        this.dh = ja * 3 / this.submass / this.strength;         
+//         var j = this.submass/3 * this.dh * this.strength;
+//         console.log(ja, j);
+        this._actuation_impulse = this.h_axis.normalized().times(ja);
+    }
+
+    actuate(ja) {
+        this.actuation_impulse = ja;
+        this.move_spike();
+    }
+
+//     update(dt) {
+//         super.update(dt);
+//         this.move_spike();
+// //         this.h = this.h + this.dh;
+//     }
+
     point_vel(x_r, count_actuation) {
         var actuation = count_actuation ? this.dh : 0;
         return super.point_vel(x_r).plus(x_r.project_onto(this.h_axis).times(actuation));
     }
 
-    actuation_impulse() {
-        var dh = this.scene.pulsate ? this.dh : 0,
-            strength = 15;
-        return this.h_axis.normalized().times(this.submass/3 * dh * strength);
-    }
+//     get actuation_impulse() {
+//         var dh = this.scene.pulsate ? this.dh : 0,
+//             strength = 15;
+//         console.log(dh);
+//         return this.h_axis.normalized().times(this.submass/3 * dh * strength);
+// //         return this._actuation_impulse();
+//     }
 
     static of(...args) {
         return new Spike_Object(...args);
@@ -530,6 +571,8 @@ class Spike_Object extends Physics_Object {
     }
 
     move_spike(dh) {
+        if (dh == undefined)
+            dh = this.dh;
         var next_h = this.h + dh;
         if (next_h >= this.min_h && next_h <= this.max_h) {
             this.h = next_h;
@@ -1049,12 +1092,19 @@ class Collision_Detection {
             var rest = Math.min(a.restitution, b.restitution),
                 normal = manifold.normal;
 
-            var actuation_impulse_a = a.actuation_impulse(),
-                actuation_impulse_b = b.actuation_impulse();
+            var actuation_impulse_a = a.actuation_impulse,
+                actuation_impulse_b = b.actuation_impulse;
             
             var ja = actuation_impulse_a.minus(actuation_impulse_b);
             actuation_impulse_a = ja.times(-1);
             actuation_impulse_b = ja;
+
+            if (a.scene.debug)
+                a.scene.shapes.vector.draw(
+                        a.scene.globals.graphics_state,
+                        Mat4.y_to_vec(actuation_impulse_a.times(1000), a.com.plus(a_r)),
+                        a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+                        "LINES");
 
             var rel_vel = a.point_vel(a_r).minus(b.point_vel(b_r)),
                 vel_along_normal = rel_vel.dot(normal);
@@ -1094,7 +1144,8 @@ class Collision_Detection {
             var impulse_a = normal.times(j),
                 impulse_b = normal.times(-j);
 
-            a.scene.shapes.vector.draw(
+            if (a.scene.debug)
+                a.scene.shapes.vector.draw(
                     a.scene.globals.graphics_state,
                     Mat4.y_to_vec(impulse_a.times(1000), a.com.plus(a_r)),
                     a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
@@ -1113,8 +1164,10 @@ class Collision_Detection {
                     actuation_impulse_a: actuation_impulse_a,
                     actuation_impulse_b: actuation_impulse_b
                 };
-
-            rel_vel = b.point_vel(b_r).minus(a.point_vel(a_r));
+            
+            rel_vel = b.point_vel(b_r, true).minus(a.point_vel(a_r, true));
+//             console.log(rel_vel, normal);
+//             console.log(rel_vel.minus(normal.times(rel_vel.dot(normal))));
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
                 return {
                     impulse_a: impulse_a,
@@ -1139,19 +1192,29 @@ class Collision_Detection {
             var mu_s = Math.sqrt(a.mu_s**2 + b.mu_s**2);
 
             var friction_impulse;
-            if (Math.abs(jt) < j*mu_s)
+            var jn = -(j + normal.dot(ja));
+            console.log(jn, j, normal.dot(ja));
+
+            if (Math.abs(jt) < (jn * mu_s)) {
                 friction_impulse = tangent.times(jt);
+                console.log("static");
+            }
             else {
                 var mu_d = Math.sqrt(a.mu_d**2 + b.mu_d**2);
-                friction_impulse = tangent.times(-j * mu_d);
+                friction_impulse = tangent.times(-jn * mu_d);
+                console.log("dynamic");
             }
 
-            var friction_impulse_a = friction_impulse,
-                friction_impulse_b = friction_impulse.times(-1);
+            console.log(friction_impulse.dot(tangent));
+            console.log("Actuation: ", actuation_impulse_a);
 
-            a.scene.shapes.vector.draw(
+            var friction_impulse_a = friction_impulse.times(-1),
+                friction_impulse_b = friction_impulse.times(1);
+
+            if (a.scene.debug)
+                a.scene.shapes.vector.draw(
                     a.scene.globals.graphics_state,
-                    Mat4.y_to_vec(friction_impulse_a.times(1000), a.com.plus(a_r)),
+                    Mat4.y_to_vec(friction_impulse_a.times(10), a.com.plus(a_r).plus(Vec.of(0, 3, 0))),
                     a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
                     "LINES");
 
@@ -1221,7 +1284,8 @@ class Collision_Detection {
         var impulse_a = normal.times(j),
             impulse_b = normal.times(-j);
 
-        a.scene.shapes.vector.draw(
+        if (a.scene.debug)
+            a.scene.shapes.vector.draw(
                 a.scene.globals.graphics_state,
                 Mat4.y_to_vec(impulse_a.times(1000), a.com.plus(a_r)),
                 a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
@@ -1276,7 +1340,8 @@ class Collision_Detection {
         var friction_impulse_a = friction_impulse,
             friction_impulse_b = friction_impulse.times(-1);
 
-        a.scene.shapes.vector.draw(
+        if (a.scene.debug)
+            a.scene.shapes.vector.draw(
                 a.scene.globals.graphics_state,
                 Mat4.y_to_vec(friction_impulse_a.times(1000), a.com.plus(a_r)),
                 a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
