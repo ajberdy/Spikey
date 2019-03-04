@@ -388,16 +388,19 @@ class Mat4 extends Mat {
     static y_to_vec(v, at) {
         let scale = v.norm(),
             phi = Math.atan(v[1]/Math.sqrt(v[0]**2 + v[2]**2)),
-            theta = Math.atan(v[0]/v[2]) + Math.PI*(v[2] < 0);
+            theta = Math.atan(v[0]/v[2]) + PI*(v[2] < 0);
 
-            if (isNaN(phi))
-                phi = PI;
-            if (isNaN(theta))
-                theta = PI;
+        if (!scale)
+            return Mat4.scale(Vec.of(0, 0, 0));
+
+        if (isNaN(phi))
+            phi = PI;
+        if (isNaN(theta))
+            theta = PI;
 
         return Mat4.translation(at).times(
             Mat4.rotation(theta, Vec.of(0, 1, 0))).times(
-            Mat4.rotation(Math.PI/2 - phi, Vec.of(1, 0, 0))).times(
+            Mat4.rotation(PI/2 - phi, Vec.of(1, 0, 0))).times(
             Mat4.scale(Vec.of(1, scale, 1)));
     }
 }

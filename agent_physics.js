@@ -1,5 +1,5 @@
-const spikey_body_mass = 10,
-      spikey_spike_mass = 1,
+const spikey_body_mass = 20,
+      spikey_spike_mass = 5,
       spikey_mu_s = .1,
       spikey_mu_d = .05,
       num_spikes = 12,
@@ -48,7 +48,6 @@ class Spikey_Object extends Physics_Object {
 
         this._convex_decomposition = this.init_convex_decomposition();
 
-        console.log(this.I);
         for (var i in this._convex_decomposition) {
             var subshape = this._convex_decomposition[i].shape,
                 submass = this._convex_decomposition[i].submass,
@@ -56,9 +55,7 @@ class Spikey_Object extends Physics_Object {
                 q = this._convex_decomposition[i].q;
 
             this.I = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m));
-
         }
-        console.log(this.I);
         var I_4 = Mat4.of(
                 [this.I[0][0], this.I[0][1], this.I[0][2], 0],
                 [this.I[1][0], this.I[1][1], this.I[1][2], 0],
@@ -98,17 +95,37 @@ class Spikey_Object extends Physics_Object {
 //                 this.transform.times(Mat4.translation(tip)).times(Mat4.scale(2, 2, 2)),
 //                 this.scene.shader_mats.soccer);
 
-        
+        this.scene.shapes.ball.draw(
+            this.scene.globals.graphics_state,
+            Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
+            this.scene.plastic);
+
+        this.scene.shapes.ball.draw(
+            this.scene.globals.graphics_state,
+            Mat4.translation(this.pos).times(Mat4.scale(2, 2, 2)),
+            this.scene.shader_mats.floor);
+
+        this.scene.shapes.vector.draw(
+            this.scene.globals.graphics_state,
+            Mat4.y_to_vec(this.d, this.com).times(10000000),
+            this.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+            "LINES");
+
+//         console.log(this.d);
+
         for (var i in this.convex_decomposition) {
             var subshape = this._convex_decomposition[i].shape;
+//             if (this._convex_decomposition[i].d.norm()) {
+//                 this.scene.shapes.ball.draw(
+//                     this.scene.globals.graphics_state,
+//                     Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
+//                     this.scene.shader_mats.floor);
+//             } 
+            subshape.draw(graphics_state);
 
-             subshape.draw(graphics_state);
-
-         this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
-            this.scene.shader_mats.floor);
         }
+
+        
     }
 
     init_convex_decomposition() {
@@ -169,7 +186,7 @@ class Spikey_Object extends Physics_Object {
             var cone = Spike_Object.of(this.scene, this.pos, this.vel, this.w, this.orientation.times(q).normalized(), 
                             spikey_consts.spikey_mass,  spikey_consts.spike_base_radius, 
                             Vec.of(spikey_consts.min_spike_protrusion, spikey_consts.max_spike_protrusion), 
-                            this.spikey_material, translate_vec.times(-1));
+                            this.spikey_material, translate_vec.times(-1), spikey_consts.spikey_spike_mass);
 
             cone.com = this.pos.plus(this.R.times(translate_vec).minus(cone.R.times(cone.d)));
 
@@ -202,41 +219,27 @@ class Spikey_Object extends Physics_Object {
 
         subshape.orientation = this.orientation.times(q).normalized();
 
-//         console.log(d.norm(), this.R.times(d).norm());
-
-//         console.log(subshape.d.norm(), subshape.R.times(subshape.d).dot(subshape.d));
-
         subshape.com = this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)));
 
         subshape.recalc();
-
-//         if (subshape.d.norm())
-//             this.scene.shapes.cone.draw(
-//                     this.scene.globals.graphics_state,
-//                     subshape.transform,//.times(Mat4.scale(20, 20, 20)),
-//                     this.scene.shader_mats.floor);
 
     }
 
     update(dt) {
         super.update(dt);
-//         this.scene.shapes.ball.draw(
-//             this.scene.globals.graphics_state,
-//             Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
-//             this.scene.plastic);
-
-        console.log(this.w.norm());
+        this.convex_decomposition;        
 
         if (!this.scene.pulsate)
             return;
         var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 8).plus(
-                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*8));
+                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(.4/100*this.scene.globals.graphics_state.animation_time)*8));
 
-//                          Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1).times(Math.cos(1/100*this.scene.globals.graphics_state.animation_time)*5));
         this.set_spike_lengths(spike_lens);
 
-        this.com = this.convex_decomposition.reduce(
+        var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
+        this._d = this.R_inv.times(this.pos.minus(new_com));
+//         console.log(this.d);
         
     }
 
@@ -246,13 +249,14 @@ class Spikey_Object extends Physics_Object {
             var subshape = this.spikes[i].shape,
                 submass = this.spikes[i].submass,
                 d = this.spikes[i].d,
-                I_0 = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m));
-            this.spikes[i].shape.move_spike(dspikes[i]);
-            this.spike_vector[i] = this.spikes[i].shape.h;
-            var I_1 = this.I.plus(subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m)),
-                dI = I_1.minus(I_0);
-            this.I = this.I.plus(dI);
-            this.update_subshape(this.spikes[i].shape, this.spikes[i].d, this.spikes[i].q);
+                I_0 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m);
+            if (this.spikes[i].shape.move_spike(dspikes[i])) {
+                this.spike_vector[i] = this.spikes[i].shape.h;
+                var I_1 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m),
+                    dI = I_1.minus(I_0);
+                this.I = this.I.plus(dI);
+                this.update_subshape(this.spikes[i].shape, this.spikes[i].d, this.spikes[i].q);
+            }
             
         }
         var I_4 = Mat4.of(
@@ -267,6 +271,7 @@ class Spikey_Object extends Physics_Object {
             [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
             [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
         );
+//         console.log(this.I);
 
     }
 }

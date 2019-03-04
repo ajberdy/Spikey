@@ -103,8 +103,12 @@ class Physics_Object {
 
     get concave() { return !this.convex; }
 
-    point_vel(x_r) {
+    point_vel(x_r, count_actuation) {
         return this.vel.plus(this.w.cross(x_r))
+    }
+
+    actuation_impulse() {
+        return Vec.of(0, 0, 0);
     }
 
     I_of(d) {
@@ -415,8 +419,9 @@ class Cone_Object extends Physics_Object {
 }
 
 class Spike_Object extends Physics_Object {
-    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, material, d) {
+    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, material, d, submass) {
         super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height_range[1]/3));
+        this.submass = submass;
         this.r = radius;
         this.min_h = height_range[0];
         this.max_h = height_range[1];
@@ -469,9 +474,15 @@ class Spike_Object extends Physics_Object {
                Mat4.scale(Vec.of(this.r, this.r, this.h)));
     }
 
-    point_vel(x_r) {
-        var dh = this.scene.pulsate ? this.dh : 0;
-        return super.point_vel(x_r).plus(x_r.project_onto(this.h_axis).times(dh));
+    point_vel(x_r, count_actuation) {
+        var actuation = count_actuation ? this.dh : 0;
+        return super.point_vel(x_r).plus(x_r.project_onto(this.h_axis).times(actuation));
+    }
+
+    actuation_impulse() {
+        var dh = this.scene.pulsate ? this.dh : 0,
+            strength = 15;
+        return this.h_axis.normalized().times(this.submass/3 * dh * strength);
     }
 
     static of(...args) {
@@ -520,15 +531,14 @@ class Spike_Object extends Physics_Object {
 
     move_spike(dh) {
         var next_h = this.h + dh;
-//         if (next_h >= this.max_h)
-//             this.h = this.max_h;
-//         else if (next_h <= this.min_h)
-//             this.h = this.min_h;
-//         else
-//             this.h = next_h;
-        if (next_h >= this.min_h && next_h <= this.max_h)
+        if (next_h >= this.min_h && next_h <= this.max_h) {
             this.h = next_h;
-        this.dh = dh;
+            this.dh = dh;
+            return dh;
+        }
+        this.dh = 0;
+        return false;
+            
     }
 
 }
@@ -718,8 +728,6 @@ class Collision_Detection {
     static EPA(args, epsilon=0.01) {
         /* expanding polytope algorithm */
         if (args.simplex.length != 4) {
-//             const epsilon = 0.1,
-//                   epsilonSq = epsilon ** 2;
             switch(args.simplex.length) {
                 case 2:
                     var b, c, v = args.simplex[1].minus(args.simplex[0]);
@@ -1001,6 +1009,11 @@ class Collision_Detection {
                 a.impulse(collision_info.friction_impulse_a, collision_info.a_r);
                 b.impulse(collision_info.friction_impulse_b, collision_info.b_r);
 
+                a.impulse(collision_info.actuation_impulse_a, collision_info.a_r);
+                b.impulse(collision_info.actuation_impulse_b, collision_info.b_r);
+
+                console.log(collision_info.impulse_a, collision_info.actuation_impulse_a);
+
 //                 impulses_a.push({impulse: collision_info.friction_impulse_a, r: d_i.plus(collision_info.a_r)});
 //                 impulses_b.push({impulse: collision_info.friction_impulse_b, r: collision_info.b_r});
                 
@@ -1022,6 +1035,9 @@ class Collision_Detection {
 
         a.impulse(collision_info.friction_impulse_a, collision_info.a_r);
         b.impulse(collision_info.friction_impulse_b, collision_info.b_r);
+
+        a.impulse(collision_info.actuation_impulse_a, collision_info.a_r);
+        b.impulse(collision_info.actuation_impulse_b, collision_info.b_r);
 
         return;
 
@@ -1048,18 +1064,42 @@ class Collision_Detection {
             var rest = Math.min(a.restitution, b.restitution),
                 normal = manifold.normal;
 
-            var rel_vel = a.point_vel(a_r).minus(b.point_vel(b_r));
-            var vel_along_normal = rel_vel.dot(normal);
+            var actuation_impulse_a = a.actuation_impulse(),
+                actuation_impulse_b = b.actuation_impulse();
             
-            if (vel_along_normal < 0)
-                return null;
-            if (vel_along_normal < 20)
-                rest = 0;
+            var ja = actuation_impulse_a.minus(actuation_impulse_b);
+            actuation_impulse_a = ja.times(-1);
+            actuation_impulse_b = ja;
+
+            var rel_vel = a.point_vel(a_r).minus(b.point_vel(b_r)),
+                vel_along_normal = rel_vel.dot(normal);
+            
+            var actuated_rel_vel = a.point_vel(a_r, true).minus(b.point_vel(b_r, true)),
+                actuated_vel_along_normal = actuated_rel_vel.dot(normal);
 
             const percent = .2;
             var penetration_depth = manifold.penetration_depth,
                 slop = .01,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);
+
+            var correction_a = correction.times(-a.m_inv),
+                correction_b = correction.times(b.m_inv);
+
+            if (vel_along_normal < 0)
+                return {
+                    impulse_a: Vec.of(0, 0, 0),
+                    impulse_b: Vec.of(0, 0, 0),
+                    a_r: a_r,
+                    b_r: b_r,
+                    friction_impulse_a: Vec.of(0, 0, 0),
+                    friction_impulse_b: Vec.of(0, 0, 0),
+                    correction_a: correction_a,
+                    correction_b: correction_b,
+                    actuation_impulse_a: actuation_impulse_a,
+                    actuation_impulse_b: actuation_impulse_b
+                };
+            if (vel_along_normal < 20)
+                rest = 0;
 
             var j = vel_along_normal*(-(1 + rest));
                 j /= a.m_inv + b.m_inv + 
@@ -1068,9 +1108,6 @@ class Collision_Detection {
                 
             var impulse_a = normal.times(j),
                 impulse_b = normal.times(-j);
-            
-            var correction_a = correction.times(-a.m_inv),
-                correction_b = correction.times(b.m_inv);
 
             a.scene.shapes.vector.draw(
                     a.scene.globals.graphics_state,
@@ -1080,19 +1117,32 @@ class Collision_Detection {
 
             if (a.scene.friction_off)
                 return {
-                impulse_a: impulse_a,
-                impulse_b: impulse_b,
-                a_r: a_r,
-                b_r: b_r,
-                friction_impulse_a: Vec.of(0, 0, 0),
-                friction_impulse_b: Vec.of(0, 0, 0),
-                correction_a: correction_a,
-                correction_b: correction_b
-            };
+                    impulse_a: impulse_a,
+                    impulse_b: impulse_b,
+                    a_r: a_r,
+                    b_r: b_r,
+                    friction_impulse_a: Vec.of(0, 0, 0),
+                    friction_impulse_b: Vec.of(0, 0, 0),
+                    correction_a: correction_a,
+                    correction_b: correction_b,
+                    actuation_impulse_a: actuation_impulse_a,
+                    actuation_impulse_b: actuation_impulse_b
+                };
 
             rel_vel = b.point_vel(b_r).minus(a.point_vel(a_r));
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
-                return;
+                return {
+                    impulse_a: impulse_a,
+                    impulse_b: impulse_b,
+                    a_r: a_r,
+                    b_r: b_r,
+                    friction_impulse_a: Vec.of(0, 0, 0),
+                    friction_impulse_b: Vec.of(0, 0, 0),
+                    correction_a: correction_a,
+                    correction_b: correction_b,
+                    actuation_impulse_a: actuation_impulse_a,
+                    actuation_impulse_b: actuation_impulse_b
+                };
 
             var tangent = rel_vel.minus(normal.times(rel_vel.dot(normal))).normalized();
 
@@ -1128,7 +1178,9 @@ class Collision_Detection {
                 friction_impulse_a: friction_impulse_a,
                 friction_impulse_b: friction_impulse_b,
                 correction_a: correction_a,
-                correction_b: correction_b
+                correction_b: correction_b,
+                actuation_impulse_a: actuation_impulse_a,
+                actuation_impulse_b: actuation_impulse_b
             }       
 
         }
