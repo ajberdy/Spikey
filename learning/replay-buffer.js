@@ -11,8 +11,10 @@ class ReplayBuffer {
     }
 
     _insert(state, action, new_state, reward){
-        if()
-        this.buffer.append({
+        if(this.count == this.max_size){
+            this.buffer.shift();
+        }
+        this.buffer.push({
            state: state,
            action: action,
            new_state: new_state,
