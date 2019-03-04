@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 1*9.8,
+      G = 5*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 
@@ -98,7 +98,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         };
 
         this.materials = {
-            wood: Material.of(.35, 1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+            wood: Material.of(.35, .1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
                 ambient: 0,
                 diffusivity: .4,
                 specularity: .5,
@@ -123,13 +123,18 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.t = 0;
 
-        this.gravity_off = true;
+//         this.gravity_off = true;
+        this.use_octree = false;
+        this.debug = false;
 
         this.friction_off = false;
         this.pulsate = false;
 
         this.entities = [];
         this.initialize_entities();
+
+//         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
+//         this.octree.initialize(this.entities);
 
         this.physics_shader = context.get_instance(Physics_Shader);
     }
@@ -152,6 +157,14 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.key_triggered_button("Toggle Pulsate", ["x"], () => {
             this.pulsate = !this.pulsate;
         });
+
+        this.key_triggered_button("Toggle Octree", ["c"], () => {
+            this.use_octree = !this.use_octree;
+        });
+
+        this.key_triggered_button("Toggle Debug Mode", ["q"], () => {
+            this.debug = !this.debug;
+        });
     }
 
 
@@ -169,12 +182,20 @@ class Assignment_Two_Skeleton extends Scene_Component {
         if (dt) {
 
             this.apply_forces();
-            for (var i in this.entities)
-                for (var j = 0; j < i; ++j) {
-                    var a = this.entities[i],
-                        b = this.entities[j];
-                    this.collide(a, b);
-                }
+
+            if (this.use_octree) {
+                this.octree.collide_entities(this.entities, this.collide);
+            }
+
+            else {
+                for (var i in this.entities)
+                    for (var j = 0; j < i; ++j) {
+                        var a = this.entities[i],
+                            b = this.entities[j];
+                        this.collide(a, b);
+                    }
+            }
+            
             this.update_entities(dt);
         }
 
@@ -199,8 +220,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
 
-    collide(a, b, dt) {
-        Collision_Detection.collide(a, b, dt);
+    collide(a, b) {
+        Collision_Detection.collide(a, b);
     }
 
     initialize_entities() {
@@ -219,11 +240,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
-        this.entities.push(Ball.of(this, Vec.of(45, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
-        this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Ball.of(this, Vec.of(45, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Box.of(this, Vec.of(-45, 5, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, Vec.of(10, 10, 10), Material.of(.5, .7, .9, this.shader_mats.soccer)));
+
 
 //         this.entities.push(new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 30, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
 //             20, 10, 30, Material.of(1, .9, .01, this.plastic)));
@@ -239,7 +262,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-//         this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 1, 0).times(0), Quaternion.unit()));
+        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(1, 0, 0).times(1), Quaternion.unit()));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
