@@ -1,5 +1,9 @@
 const PI = Math.PI,
-      G = 1*9.8;
+      G = 5*9.8,
+      PHI = (1 + Math.sqrt(5)) / 2;
+
+const NULL_AGENT = 0,
+      CHAOS_AGENT = 1;
 
 
 
@@ -36,8 +40,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'simplebox': new SimpleCube(),
             'box': new Cube(),
             'cylinder': new Cylinder(15),
-            'cone': new Cone(20),
-            'ball': new Subdivision_Sphere(4)
+            'cone': new Closed_Cone(20),
+            'ball': new Subdivision_Sphere(4),
+
+            'spikey': new Spikey_Shape(spikey_consts)
         }
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
@@ -74,7 +80,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             });
 
         
-        this.materials = {
+        this.shader_mats = {
             floor: context.get_instance(Phong_Shader).material(Color.of(.75, .75, .75, 1), {
                 ambient: .4,
                 diffusivity: .4
@@ -85,8 +91,35 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }),
             soccer: this.texture_base.override({
                 texture: context.get_instance(shape_textures.ball)
+            }),
+            spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
+                ambient: .2,
+                diffusivity: .9,
+                specularity: .2,
+                smoothness: 20
             })
         };
+
+        this.materials = {
+            wood: Material.of(.35, .1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: 0,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
+            })),
+            slick_wood: Material.of(0, 0.01, .0, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: .3,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
+            })),
+            rubber: Material.of(6, 3, .0, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: .3,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
+            }))
+        }
         
         this.lights = [new Light(Vec.of(0, 100, 0, .1), Color.of(1, 1, .7, 1), 100000),
                        new Light(Vec.of(0, 10, 100, .1), Color.of(1, 1, .7, 1), 1000)];
@@ -94,9 +127,17 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.t = 0;
 
 //         this.gravity_off = true;
+        this.use_octree = false;
+        this.debug = true;
+
+        this.friction_off = false;
+        this.pulsate = false;
 
         this.entities = [];
         this.initialize_entities();
+
+//         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
+//         this.octree.initialize(this.entities);
 
         this.physics_shader = context.get_instance(Physics_Shader);
     }
@@ -112,6 +153,21 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.gravity_off = !this.gravity_off;
         });
 
+        this.key_triggered_button("Toggle Friction", ["m"], () => {
+            this.friction_off = !this.friction_off;
+        });
+
+//         this.key_triggered_button("Toggle Pulsate", ["x"], () => {
+//             this.pulsate = !this.pulsate;
+//         });
+
+//         this.key_triggered_button("Toggle Octree", ["c"], () => {
+//             this.use_octree = !this.use_octree;
+//         });
+
+        this.key_triggered_button("Toggle Debug Mode", ["q"], () => {
+            this.debug = !this.debug;
+        });
     }
 
 
@@ -125,70 +181,47 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
         let dt = t - old_t;
-//         console.log(dt);
-
-        const g = this.gravity_off ? 0 : G;
-
-        // Draw some demo textured shapes
-//         let spacing = 6;
-//         let m = Mat4.translation(Vec.of(-1 * (spacing / 2) * (this.shape_count - 1), 0, 0));
-//         for (let k in this.shapes) {
-//             this.shapes[k].draw(
-//                 graphics_state,
-//                 m.times(Mat4.rotation(t, Vec.of(0, 1, 0))),
-//                 this.shape_materials[k] || this.plastic);
-//             m = m.times(Mat4.translation(Vec.of(spacing, 0, 0)));
-//         }
-
 
         if (dt) {
 
-//             var e = this.entities[0];
-
-//             var spin = Quaternion.of(0, e.w[0], e.w[1], e.w[2]).times(0.5).times(e.orientation);
-
-//             e.orientation = e.orientation.plus(spin.times(dt));
-//             e.orientation.normalize();
-//             e.vel = e.vel.plus(Vec.of(0, -G, 0).times(dt));
-//             e.pos = e.pos.plus(e.vel.times(dt));
-
-//             return;
-//             var n = 1;
-//             var resting = [];
-            
-// //             this.apply_forces(resting);
-//             for (var i = 0; i < n; i++) {
-//                 if (this.paused)
-//                     break;
-// //                 this.apply_forces();
-//                 this.apply_impulses(dt/n);
-//                 this.do_collisions(dt/n);
-
-
-//                 this.update_entities(dt/n);
-
-// //                 console.log(this.entities[1].momentum.norm());
-// //             }
-
             this.apply_forces();
-            var n = 1;
-            for (var i = 0; i < n; ++i) {
-                this.collide(this.entities[0], this.entities[1]);
-                this.update_entities(dt/n);
 
+            if (this.use_octree) {
+                this.octree.collide_entities(this.entities, this.collide);
             }
-//             this.do_collisions(dt, 1);
-// //             this.apply_impulses(dt);
-//             }
 
-//             this.update_entities(dt);
-//             }
+            else {
+                for (var i in this.entities)
+                    for (var j = 0; j < i; ++j) {
+                        var a = this.entities[i],
+                            b = this.entities[j];
+                        this.collide(a, b);
+                    }
+            }
+            
+            this.update_entities(dt);
         }
 
 
         this.draw_entities(graphics_state);
 
     }
+
+    dont_display(dt) {
+
+        const g = this.gravity_off ? 0 : G;
+
+        this.apply_forces();
+        for (var i in this.entities)
+            for (var j = 0; j < i; ++j) {
+                var a = this.entities[i],
+                    b = this.entities[j];
+                this.collide(a, b);
+            }
+        this.update_entities(dt)
+
+    }
+
 
     collide(a, b) {
         Collision_Detection.collide(a, b);
@@ -198,20 +231,42 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-//         this.entities.push(new Box(this, Vec.of(45, -2, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(45, -2, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.shader_mats.floor));
 //         this.entities.push(new Box(this, Vec.of(-45, -5, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()), 10, Vec.of(10, 10, 10), 1, this.clay));
-//         this.entities.push(new Ball(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, 20, 1, this.materials.soccer));
+//         this.entities.push(new Ball(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, 20, 1, this.shader_mats.soccer));
 
-//         this.entities.push(new Box(this, Vec.of(45, 0, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 100, Vec.of(10, 10, 10).times(2), 1, this.materials.floor));
-//         this.entities.push(new Box(this, Vec.of(-46, 3, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 100, Vec.of(10, 10, 10), 1, this.plastic));
+//         this.entities.push(new Box(this, Vec.of(45, 0, 0), Vec.of(-20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 10000, Vec.of(10, 10, 10).times(2), 1, Material.of(.2, .03, this.shader_mats.floor)));
+//         this.entities.push(new Box(this, Vec.of(-46, 3, 0), Vec.of(20, 0, 0), Vec.of(Math.random(), Math.random(), Math.random()).times(1), 1, Vec.of(10, 10, 10), 1, Material.of(.2, .03, this.plastic)));
 
 //         this.entities.push(new Ball(this, Vec.of(-45, 0, -3), Vec.of(20, 40, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Infinity, Vec.of(100, 100, 100), 1, this.materials.floor));
-        this.entities.push(new Box(this, Vec.of(0, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 50, Vec.of(10, 10, 10), .01, this.plastic));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+//         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
+
+//         this.entities.push(Ball.of(this, Vec.of(45, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Box.of(this, Vec.of(-45, 5, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, Vec.of(10, 10, 10), Material.of(.5, .7, .9, this.shader_mats.soccer)));
+
+
+//         this.entities.push(new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 30, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
+//             20, 10, 30, Material.of(1, .9, .01, this.plastic)));
+//         for (var i in [...Array(3).keys()])
+//             for (var j in [...Array(3).keys()]) {
+//                 this.entities.push(new Cone_Object(this, Vec.of(-30 + 30*i, 40, -30 + 30*j), Vec.of(0, 0, 0), Vec.of(Math.random(), 15, Math.random()), 
+//                     20, 10, 30, Material.of(1, .9, .01, this.plastic)));
+//                 this.entities[this.entities.length-1].orientation = Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized();
+//             }
+
+//         this.entities.push(new Ball(this, Vec.of(-60, 15, 60), Vec.of(20, 0, -20), Vec.of(0, 0, 0),
+//             50, 10, this.materials.rubber.override({shader_mat: this.shader_mats.soccer})));
+//         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
+
+
+        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(1, 0, 0).times(1), Quaternion.unit(),
+                                             CHAOS_AGENT));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
@@ -221,24 +276,18 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         }
 
         
-//         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.materials.floor));
+//         this.entities.push(new Box(this, Vec.of(11, 0, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.shader_mats.floor));
 //         this.entities.push(new Box(this, Vec.of(-11, 0, -3), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, Vec.of(10, 10, 10), 1, this.clay));
-        this.entities[1].orientation = Quaternion.of(1, Math.random(), Math.random(), Math.random()).normalized();
+//         this.entities[1].orientation = Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized();
+//         this.entities[0].orientation = Quaternion.of(.5, 0, 0, 1).normalized();
     }
 
     apply_forces() {
         for (let e in this.entities) {
             let entity = this.entities[e];
-//             if (resting.includes(parseInt(e))) {
-//                 entity.F = Vec.of(0, 0, 0);
-//                 entity.momentum = Vec.of(0, 0 ,0);
-//                 entity.T = Vec.of(0, 0, 0);
-//                 entity.L = Vec.of(0, 0, 0);
-//             }
             if (!this.gravity_off) {
                 entity.force(Vec.of(0, -entity.m*G, 0), Vec.of(0, 0, 0));
             }
-//             entity.force(Vec.of(0, G, 0), Mat4.quaternion_rotation(entity.orientation).times(Vec.of(0, 0, 0)));
         }
     }
 
@@ -248,125 +297,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             if (!this.gravity_off) {
                 entity.impulse(Vec.of(0, -entity.m*G, 0).times(dt), Vec.of(0, 0, 0));
             }
-//             entity.force(Vec.of(0, G, 0), Mat4.quaternion_rotation(entity.orientation).times(Vec.of(0, 0, 0)));
         }
-    }
-
-    do_collisions(dt, iters) {
-        var touching = [];
-        for (var e = 0; e < this.entities.length; ++e) {
-            for (var i = 0; i < e; ++i){
-//                 for (var iter = 0; iter < 1; ++iters) {
-
-                    var impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
-                    var corrected = false;
-
-//                     if (impacts.i_to_e.length)
-//                         this.paused = 1;
-
-                    for (var J in impacts.i_to_e) {
-                        if (impacts.i_to_e[J].pos_correction.norm()){
-                            this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-                            corrected = true;
-                            continue;
-
-                        }
-
-                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-
-                        this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
-                        this.entities[e].force(Vec.of(0, this.entities[e].m*G, 0), impacts.i_to_e[J].contact);
-                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-                        var e_pos_correct = impacts.i_to_e[J].pos_correction;
-                        if (e_pos_correct.dot(e_pos_correct)) {
-                            var correct_norm = e_pos_correct.normalized();
-//                             this.entities[e].momentum = correct_norm.cross(this.entities[e].momentum).cross(correct_norm);
-//                                 mom_dif = correct_norm.cross(this.entities[e].momentum).cross(correct_norm).minus(this.entities[e].momentum);
-//                             this.entities[e].impulse(mom_dif, impacts.i_to_e[J].contact);
-                        }
-                            this.entities[e].momentum = this.entities[e].momentum.minus(e_pos_correct.times(this.entities[e].m/dt).times(
-                            this.entities[e].vel.dot(e_pos_correct)));
-                    }
-
-                    for (var J in impacts.e_to_i) {
-                        if (impacts.e_to_i[J].pos_correction.norm()){
-                            this.entities[i].shift(impacts.e_to_i[J].pos_correction);
-                            corrected = true;
-                            continue;
-
-                        }
-                        this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
-                        this.entities[i].force(Vec.of(0, this.entities[i].m*G, 0), impacts.e_to_i[J].contact);
-                        this.entities[i].shift(impacts.e_to_i[J].pos_correction);
-                        var i_pos_correct = impacts.e_to_i[J].pos_correction;
-                        if (i_pos_correct.dot(i_pos_correct))
-                            this.entities[i].momentum = this.entities[i].momentum.minus(i_pos_correct.times(this.entities[i].m/dt).times(
-                            this.entities[i].vel.dot(i_pos_correct)));
-                    
-                    }
-
-//                     var epsilon = .3;
-//                     if (impacts.i_to_e.length) {
-//                         if (this.entities[e].vel.norm() < epsilon && this.entities[e].w.norm() < epsilon)
-//                             touching.push(e);
-//                         if (this.entities[e].vel.norm() < epsilon && this.entities[e].w.norm() < epsilon)
-//                             touching.push(i);
-//                     }
-
-//                     this.entities[e].update(dt);
-//                     this.entities[i].update(dt);
-//                 }
-
-                if (corrected) {
-                    impacts = Collision_Detection.get_impacts(this.entities[e], this.entities[i]);
-                    
-                    for (var J in impacts.i_to_e) {
-//                         if (impacts.i_to_e[J].pos_correction.norm()){
-//                             this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-//                             corrected = true;
-//                             continue;
-
-//                         }
-
-                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-
-                        this.entities[e].impulse(impacts.i_to_e[J].impulse, impacts.i_to_e[J].contact);
-                        this.entities[e].force(Vec.of(0, this.entities[e].m*G, 0), impacts.i_to_e[J].contact);
-                        this.entities[e].shift(impacts.i_to_e[J].pos_correction);
-                        var e_pos_correct = impacts.i_to_e[J].pos_correction;
-                        if (e_pos_correct.dot(e_pos_correct)) {
-                            var correct_norm = e_pos_correct.normalized();
-//                             this.entities[e].momentum = correct_norm.cross(this.entities[e].momentum).cross(correct_norm);
-//                                 mom_dif = correct_norm.cross(this.entities[e].momentum).cross(correct_norm).minus(this.entities[e].momentum);
-//                             this.entities[e].impulse(mom_dif, impacts.i_to_e[J].contact);
-                        }
-                            this.entities[e].momentum = this.entities[e].momentum.minus(e_pos_correct.times(this.entities[e].m/dt).times(
-                            this.entities[e].vel.dot(e_pos_correct)));
-                    }
-
-                    for (var J in impacts.e_to_i) {
-//                         if (impacts.e_to_i[J].pos_correction.norm()){
-//                             this.entities[i].shift(impacts.e_to_i[J].pos_correction);
-//                             corrected = true;
-//                             continue;
-
-//                         }
-                        this.entities[i].impulse(impacts.e_to_i[J].impulse, impacts.e_to_i[J].contact);
-                        this.entities[i].force(Vec.of(0, this.entities[i].m*G, 0), impacts.e_to_i[J].contact);
-                        this.entities[i].shift(impacts.e_to_i[J].pos_correction);
-                        var i_pos_correct = impacts.e_to_i[J].pos_correction;
-                        if (i_pos_correct.dot(i_pos_correct))
-                            this.entities[i].momentum = this.entities[i].momentum.minus(i_pos_correct.times(this.entities[i].m/dt).times(
-                            this.entities[i].vel.dot(i_pos_correct)));
-                    
-                    }
-
-                }
-            }
-        }
-        if (touching.length)
-            var c  = 1;
-        return touching;
     }
 
     update_entities(dt) {
@@ -379,41 +310,28 @@ class Assignment_Two_Skeleton extends Scene_Component {
         for (let e in this.entities) {
             this.entities[e].draw(graphics_state);
 
-            this.shapes.vector.draw(
-                graphics_state,
-                    Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                this.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//             this.shapes.vector.draw(
+//                 graphics_state,
+//                     Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 this.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
 
-            this.shapes.vector.draw(
-                graphics_state,
-                    Mat4.y_to_vec(this.entities[e].L.times(.05), this.entities[e].com).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                this.physics_shader.material(Color.of(1, 1, 0, 1)),
-                "LINES");
+//             this.shapes.vector.draw(
+//                 graphics_state,
+//                     Mat4.y_to_vec(this.entities[e].L.times(.05), this.entities[e].com).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 this.physics_shader.material(Color.of(1, 1, 0, 1)),
+//                 "LINES");
 
-            this.shapes.vector.draw(
-                graphics_state,
-                    Mat4.y_to_vec(this.entities[e].w.times(1000), this.entities[e].com).times(
-                    Mat4.scale(Vec.of(1, .03, 1))),
-                this.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//             this.shapes.vector.draw(
+//                 graphics_state,
+//                     Mat4.y_to_vec(this.entities[e].w.times(1000), this.entities[e].com).times(
+//                     Mat4.scale(Vec.of(1, .03, 1))),
+//                 this.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
         }
     }
 }
-
-// class Wall extends Physics_Object {
-//     constructor(scene, pos, dims) {
-//         super(scene, pos, Vec.of(0, 0, 0), Infinity);
-//         this.dims = dims;
-//     }
-
-//     draw(graphics_state) {
-//         this.scene.shapes.square.draw(
-//             graphics_state,
-//             Mat4.)
-//     }
-// }
 
 window.Assignment_Two_Skeleton = window.classes.Assignment_Two_Skeleton = Assignment_Two_Skeleton;
