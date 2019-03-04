@@ -41,6 +41,7 @@ class Chaos_Agent extends Spikey_Agent {
     }
 }
 
+
 class RL_Agent extends Spikey_Agent {
 
     get_actuation(state) {
