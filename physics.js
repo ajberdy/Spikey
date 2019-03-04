@@ -1001,10 +1001,6 @@ class Collision_Detection {
             if (b.concave)
                 alert("concave - concave collisions not implemented yet");
             var convex_decomposition_a = a.convex_decomposition;
-//                 impulses_a = [],
-//                 impulses_b = [],
-//                 correction_a = Vec.of(0, 0, 0),
-//                 correction_b = Vec.of(0, 0, 0);
 
             for (var i in convex_decomposition_a) {
                 var a_i = convex_decomposition_a[i].shape,
@@ -1015,17 +1011,8 @@ class Collision_Detection {
                 if (!collision_info)
                     continue;
 
-//                 impulses_a.push({impulse: collision_info.impulse_a, r: d_i.plus(collision_info.a_r)});
-//                 impulses_b.push({impulse: collision_info.impulse_b, r: collision_info.b_r});
-
                 a.impulse(collision_info.impulse_a, collision_info.a_r);
                 b.impulse(collision_info.impulse_b, collision_info.b_r);
-
-//                 a.scene.shapes.vector.draw(
-//                     a.scene.globals.graphics_state,
-//                     Mat4.y_to_vec(collision_info.impulse_a.times(1000), collision_info.a_r),
-//                     a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-//                     "LINES");
 
                 a.shift(collision_info.correction_a);
                 b.shift(collision_info.correction_b);
@@ -1036,11 +1023,6 @@ class Collision_Detection {
                 a.impulse(collision_info.actuation_impulse_a, collision_info.a_r);
                 b.impulse(collision_info.actuation_impulse_b, collision_info.b_r);
 
-//                 console.log(collision_info.impulse_a, collision_info.actuation_impulse_a);
-
-//                 impulses_a.push({impulse: collision_info.friction_impulse_a, r: d_i.plus(collision_info.a_r)});
-//                 impulses_b.push({impulse: collision_info.friction_impulse_b, r: collision_info.b_r});
-                
             }
 
             return;
@@ -1166,8 +1148,6 @@ class Collision_Detection {
                 };
             
             rel_vel = b.point_vel(b_r, true).minus(a.point_vel(a_r, true));
-//             console.log(rel_vel, normal);
-//             console.log(rel_vel.minus(normal.times(rel_vel.dot(normal))));
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
                 return {
                     impulse_a: impulse_a,
@@ -1193,20 +1173,17 @@ class Collision_Detection {
 
             var friction_impulse;
             var jn = -(j + normal.dot(ja));
-            console.log(jn, j, normal.dot(ja));
+//             console.log(jn, j, normal.dot(ja));
+            var friction_color = Color.of(1, 0, 0, 1);
 
             if (Math.abs(jt) < (jn * mu_s)) {
                 friction_impulse = tangent.times(jt);
-                console.log("static");
             }
             else {
                 var mu_d = Math.sqrt(a.mu_d**2 + b.mu_d**2);
                 friction_impulse = tangent.times(-jn * mu_d);
-                console.log("dynamic");
+                friction_color = Color.of(0, 0, 1, 1);
             }
-
-            console.log(friction_impulse.dot(tangent));
-            console.log("Actuation: ", actuation_impulse_a);
 
             var friction_impulse_a = friction_impulse.times(-1),
                 friction_impulse_b = friction_impulse.times(1);
@@ -1215,7 +1192,7 @@ class Collision_Detection {
                 a.scene.shapes.vector.draw(
                     a.scene.globals.graphics_state,
                     Mat4.y_to_vec(friction_impulse_a.times(10), a.com.plus(a_r).plus(Vec.of(0, 3, 0))),
-                    a.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+                    a.scene.physics_shader.material(friction_color),
                     "LINES");
 
             return {

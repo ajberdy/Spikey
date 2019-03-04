@@ -231,20 +231,16 @@ class Spikey_Object extends Physics_Object {
 
     update(dt) {
         super.update(dt);
-        this.convex_decomposition;        
-
-//         if (!this.scene.pulsate)
-//             return;
-        var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 8).plus(
-                         Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(.4/100*this.scene.globals.graphics_state.animation_time)*8));
+        this.convex_decomposition;
         
-//         this.set_spike_lengths(spike_lens);
-        this.actuate();
+        var actuation = [];
+        for (var i in this.spikes)
+            actuation.push(this.scene.pulsate ? Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20 : 0)
+        this.actuate(actuation);
 
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
-//         console.log(this.d);
         
     }
 
@@ -287,10 +283,10 @@ class Spikey_Object extends Physics_Object {
                 d = this.spikes[i].d,
                 I_0 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m);
             
-            var actuation = 0;
-            if (this.scene.pulsate)
-                actuation = Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20;
-            this.spikes[i].shape.actuate(actuation);
+//             var actuation = 0;
+//             if (this.scene.pulsate)
+//                 actuation = Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20;
+            this.spikes[i].shape.actuate(spike_impulse_vector[i]);
 
             if (true) {
                 this.spike_vector[i] = this.spikes[i].shape.h;
