@@ -14,6 +14,7 @@ myOctree.prototype.collide_entities = function(entities, collision_function) {
     for (var x = 1; x < entities.length; ++x) {
 
         this.temp_collision = this.point_search(entities[x].pos, 80, true).points;
+        console.log(this.temp_collision);
         for (var k = 0; k < this.temp_collision.length; ++k) {
 
             this.check = this.temp_collision[k].dot(this.temp_collision[k]) + 

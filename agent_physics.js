@@ -25,13 +25,12 @@ const spikey_consts = {
         };
 
 class Spikey_Object extends Physics_Object {
-    constructor(scene, pos, vel, w, q) {
-        
-
+    constructor(scene, pos, vel, w, q, agent_type) {
         var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
 
+        this.brain = Spikey_Agent.new_agent(agent_type);
         
         this.sr = spikey_consts.sphere_radius;
         this.spr = spikey_consts.max_spike_protrusion;
@@ -233,15 +232,23 @@ class Spikey_Object extends Physics_Object {
         super.update(dt);
         this.convex_decomposition;
         
-        var actuation = [];
-        for (var i in this.spikes)
-            actuation.push(this.scene.pulsate ? Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20 : 0)
-        this.actuate(actuation);
+        this.actuate(this.get_actuation());
 
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
         
+    }
+
+    get_actuation() {
+        var state = {
+            t: this.scene.globals.graphics_state.animation_time
+        };
+        return this.brain.get_actuation(state);
+//         var actuation = [];
+//         for (var i in this.spikes)
+//             actuation.push(this.scene.pulsate ? Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20 : 0);
+//         return actuation;
     }
 
     set_spike_lengths(spike_vector) {

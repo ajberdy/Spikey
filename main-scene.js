@@ -2,6 +2,9 @@ const PI = Math.PI,
       G = 5*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
+const NULL_AGENT = 0,
+      CHAOS_AGENT = 1;
+
 
 
 class Assignment_Two_Skeleton extends Scene_Component {
@@ -125,7 +128,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
 //         this.gravity_off = true;
         this.use_octree = false;
-        this.debug = false;
+        this.debug = true;
 
         this.friction_off = false;
         this.pulsate = false;
@@ -154,13 +157,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.friction_off = !this.friction_off;
         });
 
-        this.key_triggered_button("Toggle Pulsate", ["x"], () => {
-            this.pulsate = !this.pulsate;
-        });
+//         this.key_triggered_button("Toggle Pulsate", ["x"], () => {
+//             this.pulsate = !this.pulsate;
+//         });
 
-        this.key_triggered_button("Toggle Octree", ["c"], () => {
-            this.use_octree = !this.use_octree;
-        });
+//         this.key_triggered_button("Toggle Octree", ["c"], () => {
+//             this.use_octree = !this.use_octree;
+//         });
 
         this.key_triggered_button("Toggle Debug Mode", ["q"], () => {
             this.debug = !this.debug;
@@ -262,7 +265,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(1, 0, 0).times(1), Quaternion.unit()));
+        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(1, 0, 0).times(1), Quaternion.unit(),
+                                             CHAOS_AGENT));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
