@@ -40,3 +40,19 @@ class Chaos_Agent extends Spikey_Agent {
         return actuation;
     }
 }
+
+class RL_Agent extends Spikey_Agent {
+
+    get_actuation(state) {
+        /*
+        state:
+            
+        */
+        var t = state.t;
+
+        var actuation = Array.apply(null, Array(num_spikes));
+        for (var i in actuation)
+            actuation[i] = Math.cos(.4/100*t + i*2)*20;
+        return actuation;
+    }
+}
