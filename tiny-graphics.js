@@ -91,7 +91,15 @@ class Vec extends Float32Array {
     inverse() {
         return this.map(x => 1/x);
     }
+
+    project_onto(v) {
+        var v_norm2 = v.dot(v);
+        return v_norm2 ? v.times(this.dot(v)/v_norm2) : this.times(0);
+    }
 }
+
+
+const arrSum = arr => arr.reduce((a,b) => a + b, 0);
 
 
 class Quaternion extends Vec {
@@ -121,6 +129,19 @@ class Quaternion extends Vec {
             v = Vec.of(0, 0, 0);
         
         return Quaternion.of(w, v[0], v[1], v[2]);
+    }
+
+    static from_rot(R) {
+        var trace = R[0][0] + R[1][1] + R[2][2],
+            mag_theta = Math.acos((trace - 1)/2),
+            u = Vec.of(R[2][1] - R[1][2], R[0][2] - R[2][0], R[1][0] - R[0][1]),
+            theta = Math.asin(u.norm()/2);
+
+        return Quaternion.from(Math.cos(theta/2), u.times(Math.sin(theta/2)));
+    }
+
+    static unit() {
+        return Quaternion.of(1, 0, 0, 0);
     }
 
     inverse() {
@@ -238,6 +259,23 @@ class Mat3 extends Mat {
                m01 * (m10 * m22 - m12 * m20) +
                m02 * (m10 * m21 - m11 * m20);
     }
+
+    static sym_product(ra, rb) {
+        let xa = ra[0], ya = ra[1], za = ra[2],
+            xb = rb[0], yb = rb[1], zb = rb[2];
+        const m00 =        ya*yb + za*zb,
+              m01 = 1/2 * (za*yb + ya*xb),
+              m02 = 1/2 * (xa*zb + za*xb),
+              m11 =        xa*xb + za*zb,
+              m12 = 1/2 * (ya*zb + za*yb),
+              m22 =        xa*xb + ya*yb;
+
+        return Mat3.of(
+            [m00, m01, m02],
+            [m01, m11, m12],
+            [m02, m12, m22]
+        );
+    }
 }
 
 
@@ -352,6 +390,11 @@ class Mat4 extends Mat {
             phi = Math.atan(v[1]/Math.sqrt(v[0]**2 + v[2]**2)),
             theta = Math.atan(v[0]/v[2]) + Math.PI*(v[2] < 0);
 
+            if (isNaN(phi))
+                phi = PI;
+            if (isNaN(theta))
+                theta = PI;
+
         return Mat4.translation(at).times(
             Mat4.rotation(theta, Vec.of(0, 1, 0))).times(
             Mat4.rotation(Math.PI/2 - phi, Vec.of(1, 0, 0))).times(
@@ -363,16 +406,16 @@ class Mat4 extends Mat {
 class Triangle extends Array {
     constructor(a, b, c) {
       super(a, b, c);
-      this.a = a;
-      this.b = b;
-      this.c = c;
 
       this.normal = b.minus(a).cross(c.minus(a)).normalized();
 
-//       if (this.normal.dot(this.a) < 0)
+//       if (this.normal.dot(a) < 0)
 //         this.normal = this.normal.times(-1);
     }
 
+    get a() { return this[0]; }
+    get b() { return this[1]; }
+    get c() { return this[2]; }
     static of(a, b, c) {
         return new Triangle(a, b, c);
     }

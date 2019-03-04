@@ -7,6 +7,8 @@
 <script src= "dependencies.js" ></script>
 <script src=      "shapes.js"  ></script>
 <script src=      "physics.js"  ></script>
+<script src=   "materials.js" ></script>
+<script src=   "agent_physics.js" ></script>
 <script src=   "debugging.js" ></script>
 <script src=   "main-scene.js" ></script>
 <style>
@@ -35,6 +37,7 @@
 </head><body>       <!-- Begin typing the next of your web page here. //-->
 
 <div id="main-canvas" class="canvas-widget"></div>
+<!-- <div id="alternate-canvas" class="canvas-widget"></div> -->
 <script>
 // ********************* THE ENTRY POINT OF YOUR WHOLE PROGRAM STARTS HERE ********************* 
 // Use this code to embed a widget into any web page.  The widget inclues a 3D WebGL area
@@ -50,6 +53,7 @@
   // Use the Canvas_Widget class to display the WebGL demo.  Pass in
   // the name of the HTML element we are to replace with the widget.
   new Canvas_Widget( "main-canvas", scenes );
+//   new Canvas_Widget( "alternate-canvas", scenes );
                                              
 </script>
 </body></html>
