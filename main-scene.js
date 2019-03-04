@@ -123,7 +123,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.t = 0;
 
-//         this.gravity_off = true;
+        this.gravity_off = true;
 
         this.friction_off = false;
         this.pulsate = false;
@@ -219,11 +219,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+//         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
-//         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(40, 0, 0), Vec.of(0, 0, 30), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
-            
+        this.entities.push(Ball.of(this, Vec.of(45, 7, 0), Vec.of(-40, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+        this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(40, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+
 //         this.entities.push(new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 30, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
 //             20, 10, 30, Material.of(1, .9, .01, this.plastic)));
 //         for (var i in [...Array(3).keys()])
@@ -238,7 +239,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 1, 0), Quaternion.unit()));
+//         this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 1, 0).times(0), Quaternion.unit()));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {

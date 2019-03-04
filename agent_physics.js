@@ -233,7 +233,7 @@ class Spikey_Object extends Physics_Object {
             return;
         var spike_lens = Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(this.spr - 8).plus(
                          Vec.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).times(Math.cos(.4/100*this.scene.globals.graphics_state.animation_time)*8));
-
+        
         this.set_spike_lengths(spike_lens);
 
         var new_com = this.convex_decomposition.reduce(
