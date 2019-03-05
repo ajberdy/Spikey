@@ -29,8 +29,6 @@ class Spikey_Object extends Physics_Object {
         var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
-
-        this.brain = Spikey_Agent.new_agent(agent_type);
         
         this.sr = spikey_consts.sphere_radius;
         this.spr = spikey_consts.max_spike_protrusion;
@@ -48,6 +46,8 @@ class Spikey_Object extends Physics_Object {
                                    1, 1, 1, 1).times(spikey_consts.max_spike_protrusion);
 
         this._convex_decomposition = this.init_convex_decomposition();
+
+        this.brain = Spikey_Agent.new_agent(agent_type, this.spikes);
 
         for (var i in this._convex_decomposition) {
             var subshape = this._convex_decomposition[i].shape,
@@ -73,6 +73,18 @@ class Spikey_Object extends Physics_Object {
 
         this.initialize();
 
+        this.state = {
+            t: 0,
+            spikes: Array.apply(null, Array(num_spikes)),
+            orientation: this.orientation,
+            scene: this.scene   // for debugging
+        }
+        for (var i in this.state.spikes)
+            this.state.spikes[i] = {
+                impulse: Vec.of(0, 0, 0),
+                h:       this.spr
+            };
+
     }
 
     get spikes() {
@@ -90,11 +102,11 @@ class Spikey_Object extends Physics_Object {
 //             this.shader_mat);
 
 
-//         for (var tip of this.base_points)
-//             this.scene.shapes.ball.draw(
-//                 graphics_state,
-//                 this.transform.times(Mat4.translation(tip)).times(Mat4.scale(2, 2, 2)),
-//                 this.scene.shader_mats.soccer);
+        for (var i in this.base_points)
+            this.scene.shapes.ball.draw(
+                graphics_state,
+                this.transform.times(Mat4.translation(this.base_points[i])).times(Mat4.scale(2, 2, 2)),
+                this.scene.shader_mats.soccer);
 
         this.scene.shapes.ball.draw(
             this.scene.globals.graphics_state,
@@ -126,8 +138,15 @@ class Spikey_Object extends Physics_Object {
             subshape.draw(graphics_state);
 
         }
-
         
+    }
+
+    update_state(i, h, impulse) {
+        if (impulse != undefined)
+            this.state.spikes[i].impulse = impulse;
+        
+        this.state.spikes[i].h = h;
+        this.state.orientation = this.orientation;
     }
 
     init_convex_decomposition() {
@@ -237,18 +256,12 @@ class Spikey_Object extends Physics_Object {
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
+        this.state.t = this.scene.globals.graphics_state.animation_time;
         
     }
 
-    get_actuation() {
-        var state = {
-            t: this.scene.globals.graphics_state.animation_time
-        };
-        return this.brain.get_actuation(state);
-//         var actuation = [];
-//         for (var i in this.spikes)
-//             actuation.push(this.scene.pulsate ? Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20 : 0);
-//         return actuation;
+    get_actuation(intent_vector) {
+        return this.brain.get_actuation(this.state, intent_vector);
     }
 
     set_spike_lengths(spike_vector) {

@@ -1,0 +1,4 @@
+Movement significantly faster than time step leads to clipping.
+
+High G constant leads to wonky friction.
+
