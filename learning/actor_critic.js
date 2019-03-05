@@ -1,12 +1,8 @@
 
 
-class SingleActor{
+class Actor{
   constructor(config){
-    this.stateSize = config.stateSize;
-    this.actionSize = config.actionSize;
     this.layerNorm = config.layerNorm;
-    this.firstLayerSize = config.actorFirstLayerSize;
-    this.secondLayerSize = config.actorSecondLayerSize;
 
     this.seed = config.seed;
     this.config = config;
@@ -16,14 +12,14 @@ class SingleActor{
   buildModel(observation){
     this.observation = observation;
     this.layer1 = tf.layers.dense({
-      units: this.firstLayerSize,
+      units: 21,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.layer2 = tf.layers.dense({
-      units: this.secondLayerSize,
+      units: 20,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
@@ -53,17 +49,35 @@ class SingleActor{
     this.model = tf.model({
       inputs: observation,
       outputs: output
+    });
+  }
+
+  predict(observation){
+    tf.tidy(() => {
+      // TODO: PROBABLY DOESN'T WORK
+      let out0 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([0, 1, 7, 11, 3, 8, 12]))));
+      let out1 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([1, 0, 8, 2, 6, 7, 12]))));
+      let out2 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([2, 1, 8, 4, 9, 6, 12]))));
+      let out3 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([3, 0, 11, 10, 4, 8, 12]))));
+      let out4 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([4, 2, 8, 3, 10, 9, 12]))));
+      let out5 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([5, 6, 9, 10, 11, 7, 12]))));
+      let out6 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([6, 1, 2, 9, 5, 7, 12]))));
+      let out7 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([7, 0, 1, 6, 5, 11, 12]))));
+      let out8 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([8, 0, 3, 4, 2, 1, 12]))));
+      let out9 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([9, 2, 4, 10, 5, 6, 12]))));
+      let out10 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([10, 3, 11, 5, 9, 4, 12]))));
+      let out11 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([11, 0, 7, 5, 10, 3, 12]))));
+      return tf.tensor([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
     })
   }
 }
+
+
 class Critic{
   constructor(config){
     this.stateSize = config.stateSize;
     this.actionSize = config.actionSize;
     this.layerNorm = config.layerNorm;
-
-    this.firstLayerStateSize = config.criticFirstLayerStateSize;
-    this.firstLayerActionSize = config.criticFirstLayerActionSize;
     this.secondLayerSize = config.criticSecondLayerSize;
 
     this.seed = config.seed;
@@ -79,14 +93,14 @@ class Critic{
     this.add = tf.layers.add();
 
     this.firstLayerState = tf.layers.dense({
-      units: this.firstLayerStateSize,
+      units: 39,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.firstLayerAction = tf.layers.dense({
-      units: this.firstLayerActionSize,
+      units: 12,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
@@ -120,7 +134,7 @@ class Critic{
         let l1 = this.add.apply([this.firstLayerAction.apply(action), this.firstLayerState.apply(observation)]);
         return this.outputLayer.apply(this.secondLayer.apply(l1));
       })
-    }
+    };
     const output = this.predict();
     this.model = tf.model({inputs: [observation, action], outputs: output});
   }

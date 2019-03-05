@@ -103,7 +103,7 @@ function setMetric(name, value){
  * @param model
  * @returns {*}
  */
-function copyTarget(instance, model){
+function copyModel(instance, model){
   return tf.tidy(() => {
     newModel = new model(instance.config);
 
@@ -114,4 +114,45 @@ function copyTarget(instance, model){
     }
     return newModel;
   })
+}
+
+
+
+function idxFilter(idxList){
+  return function(value, index, array){
+    return idxList.indexOf(index) != 1;
+  }
+}
+
+function flattenToTensor(observation){
+  let flattened = [];
+  for(let i=0; i<observation.length; i++){
+    flattened.push(observation[i].x);
+    flattened.push(observation[i].y);
+    flattened.push(observation[i].z);
+    if(i != observation.length-1){
+      flattened.push(observation[i].current);
+    }
+  }
+  return tf.tensor(flattened);
+}
+
+function targetUpdate(target, original, config){
+    return tf.tidy(() => {
+        const originalW = original.model.trainableWeights;
+        const targetW = target.model.trainableWeights;
+
+        const one = tf.scalar(1);
+        const tau = tf.scalar(config.tau);
+
+        for (let m=0; m < originalW.length; m++){
+            const lastValue = target.model.trainableWeights[m].val.clone();
+            let nValue = tau.mul(originalW[m].val).add(targetW[m].val.mul(one.sub(tau)));
+            target.model.trainableWeights[m].val.assign(nValue);
+            const diff = lastValue.sub(target.model.trainableWeights[m].val).mean().buffer().values;
+            if (diff[0] == 0){
+                console.warn("targetUpdate: Nothing have been changed!")
+            }
+        }
+    });
 }
