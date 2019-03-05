@@ -1,3 +1,5 @@
+
+
 class SingleActor{
   constructor(config){
     this.stateSize = config.stateSize;
@@ -37,17 +39,17 @@ class SingleActor{
       activation: 'tanh',
       useBias: true,
       biasInitializer: "zeros"
-    })
+    });
 
-    this.predict = (tfState) => {
+    this.singlePredict = (tfState) => {
       return tf.tidy(() => {
         if (tfState){
           observation = tfState;
         }
-        return this.outputLayer.apply(this.layer2.apply(this.layer1.apply(input)));
+        return this.outputLayer.apply(this.layer2.apply(this.layer1.apply(observation)));
       });
-    }
-    const output = this.predict();
+    };
+    const output = this.singlePredict();
     this.model = tf.model({
       inputs: observation,
       outputs: output

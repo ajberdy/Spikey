@@ -1,3 +1,4 @@
 initMetrics("statContainer", ["Reward", "ActorLoss", "CriticLoss", "EpisodeDuration", "NoiseDistance"]);
-train_button = document.getElementById("train");
-train_button.addEventListener("click", )
+// setInterval(function(){
+//   setMetric("Reward", Math.random() * 100);
+// }, 1000);

@@ -1,5 +1,4 @@
 METRICS = {};
-
 /**
  * Function to render a set of metrics graphs in the page
  * @param container
@@ -96,4 +95,23 @@ function setMetric(name, value){
   }
   chart.data.datasets[0].data.push({y: value, x: chart.data.datasets[0].data[size].x + 1});
   chart.update();
+}
+
+/**
+ * Utility function used to duplicate a model.
+ * @param instance
+ * @param model
+ * @returns {*}
+ */
+function copyTarget(instance, model){
+  return tf.tidy(() => {
+    newModel = new model(instance.config);
+
+    newModel.buildModel(instance.observation, instance.action);
+    const weights = instance.model.weights;
+    for (let i=0; i < weights.length; i++){
+      newModel.model.weights[i].val.assign(weights[i].val);
+    }
+    return newModel;
+  })
 }
