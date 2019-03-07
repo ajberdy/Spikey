@@ -93,39 +93,53 @@ class RL_Agent extends Spikey_Agent {
             [10, 4, 9, 11, 5, 6],
             [11, 3, 7, 5, 10, 9]
         );
+
+        this.actuation = [0, 0, 0, 0,
+                          0, 0, 0, 0,
+                          0, 0, 0, 0];
     }
 
-    get_actuation(state, intent) {
-        /*
-        state: {
-            t: time,
-            spikes: [{
-                        impulse: Vec(3),
-                        h: Float32
-                    }],
-            orientation: Quaternion
-        }
+//     get_actuation(state, intent) {
+//         /*
+//         state: {
+//             t: time,
+//             spikes: [{
+//                         impulse: Vec(3),
+//                         h: Float32
+//                     }],
+//             orientation: Quaternion
+//         }
         
-        intent: Vec(3)
-        */
-        var t = state.t;
+//         intent: Vec(3)
+//         */
+//         var t = state.t;
 
-        var symmetric_states = this.get_symmetric_states(state, intent);
-        var rl_tensors = this.get_rl_tensors(state, intent, symmetric_states);
+//         var symmetric_states = this.get_symmetric_states(state, intent);
+//         var rl_tensors = this.get_rl_tensors(state, intent, symmetric_states);
 
-        // symmetric_states is the input to the NN
+//         // symmetric_states is the input to the NN
 
-//         return this.get_rl_actuation(symmetric_states, intent);
+// //         return this.get_rl_actuation(symmetric_states, intent);
 
         
-        var actuation = Array.apply(null, Array(num_spikes));
-        for (var i in actuation)
-            actuation[i] = Math.cos(.4/100*t + i*2)*20;
-        return actuation;
+//         var actuation = Array.apply(null, Array(num_spikes));
+//         for (var i in actuation)
+//             actuation[i] = Math.cos(.4/100*t + i*2)*20;
+//         return actuation;
 
+//     }
+
+    get_actuation() {
+        return this.actuation;
     }
 
-    symmetrify_state(state, spike_ix, intent) {
+    update_actuation(new_actuation) {
+        this.actuation = new_actuation;
+    }
+
+    symmetrify_state(state, spike_ix) {
+
+        const intent = state.intent;
 //         console.log(state, intent, spike_ix);
         var spikey_orientation = state.orientation;
 
@@ -212,16 +226,19 @@ class RL_Agent extends Spikey_Agent {
 //                 );
     }
 
-    get_symmetric_states(state, intent) {
+    get_symmetric_states(state) {
         var symmetric_states = Array.apply(null, Array(num_spikes));
-        return symmetric_states.map((x, i) => this.symmetrify_state(state, i, intent));
+        return symmetric_states.map((x, i) => this.symmetrify_state(state, i));
     }
 
     get_rl_actuation(symmetric_states, intent) {
         return Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
 
-    get_rl_tensors(state, intent, symmetric_states) {
+    get_rl_tensors(state) {
+        var intent = state.intent,
+            symmetric_state = this.get_symmetric_states(state);
+
         var rl_tensors = {
             global_52: null,
             split_324: null
