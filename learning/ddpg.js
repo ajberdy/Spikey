@@ -132,14 +132,14 @@ class DDPG {
   }
 
   /**
-   * Takes in observations, list of lists
+   * Takes in observation in tensor format of size 162
    * @param observations
    * @returns {*}
    */
   noiseDistance(observations) {
     return tf.tidy(() => {
       const noisyPredictions = this.noisyActor.predict(observations);
-      const predictions = this.actor.model.predict(observations);
+      const predictions = this.actor.predict(observations);
       return tf.square(noisyPredictions.sub(predictions)).mean().sqrt();
     })
   }
@@ -167,4 +167,48 @@ class DDPG {
     }
     return distanceV;
   }
+
+  /**
+   * Returns a Q-value for a (state,action) pair
+   * @param state
+   * @param action
+   * @returns {*}
+   */
+  getQ(state, action){
+    const q = this.critic.model.predict([state, action]);
+    const v =q.buffer().values;
+    q.dispose();
+    return v[0];
+  }
+
+  batchToTensors(){
+    const batch = this.memory.sample_batch(this.config.batchSize);
+
+    const actions = tf.tensor2d(batch.actions);
+    const states = tf.tensor2d(batch.states);
+    const new_states = tf.tensor2d(batch.new_states);
+    const _rewards = tf.tensor1d(batch.rewards);
+
+    const rewards = _rewards.expandDims(1);
+
+    return {actions, states, new_states, rewards};
+  }
+
+  optimizeActorCritic(){
+    const {actions, states, new_states, rewards} = this.batchToTensors();
+
+    const criticLoss = this.trainCritic(states, actions, new_states, rewards);
+    const actorLoss = this.trainActor(states);
+
+    actions.dispose();
+    states.dispose();
+    new_states.dispose();
+    rewards.dispose();
+
+    return {criticLoss, actorLoss};
+
+  }
+
+
+
 }

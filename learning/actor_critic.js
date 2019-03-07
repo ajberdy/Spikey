@@ -62,19 +62,18 @@ class Actor{
    */
   predict(observation){
     tf.tidy(() => {
-      // TODO: PROBABLY DOESN'T WORK
-      let out0 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([0, 1, 7, 11, 3, 8, 12]))));
-      let out1 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([1, 0, 8, 2, 6, 7, 12]))));
-      let out2 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([2, 1, 8, 4, 9, 6, 12]))));
-      let out3 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([3, 0, 11, 10, 4, 8, 12]))));
-      let out4 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([4, 2, 8, 3, 10, 9, 12]))));
-      let out5 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([5, 6, 9, 10, 11, 7, 12]))));
-      let out6 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([6, 1, 2, 9, 5, 7, 12]))));
-      let out7 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([7, 0, 1, 6, 5, 11, 12]))));
-      let out8 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([8, 0, 3, 4, 2, 1, 12]))));
-      let out9 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([9, 2, 4, 10, 5, 6, 12]))));
-      let out10 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([10, 3, 11, 5, 9, 4, 12]))));
-      let out11 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([11, 0, 7, 5, 10, 3, 12]))));
+      let out0 = this.singlePredict(tf.slice(observation, 0, 27));
+      let out1 = this.singlePredict(tf.slice(observation, 27, 27));
+      let out2 = this.singlePredict(tf.slice(observation, 54, 27));
+      let out3 = this.singlePredict(tf.slice(observation, 81, 27));
+      let out4 = this.singlePredict(tf.slice(observation, 108, 27));
+      let out5 = this.singlePredict(tf.slice(observation, 135, 27));
+      let out6 = this.singlePredict(tf.slice(observation, 162, 27));
+      let out7 = this.singlePredict(tf.slice(observation, 189, 27));
+      let out8 = this.singlePredict(tf.slice(observation, 216, 27));
+      let out9 = this.singlePredict(tf.slice(observation, 243, 27));
+      let out10 = this.singlePredict(tf.slice(observation, 270, 27));
+      let out11 = this.singlePredict(tf.slice(observation, 297, 27));
       return tf.tensor1d([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
     })
   }

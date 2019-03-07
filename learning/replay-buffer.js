@@ -18,7 +18,7 @@ class ReplayBuffer {
      * @param reward
      * @private
      */
-    _insert(state, action, new_state, reward){
+    pushExperience(state, action, new_state, reward){
         if(this.count == this.max_size){
             this.buffer.shift();
             self.count -= 1;
