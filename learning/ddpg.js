@@ -8,22 +8,26 @@ class DDPG {
     this.config = config;
     this.gamma = tf.scalar(config.gamma);
 
-    this.observationInput = tf.input({batchShape: [null, this.config.stateSize]});
-    this.actionInput = tf.input({batchShape: [null, this.config.actionSize]});
+    this.modelObservationInput = tf.input({batchShape: [null, 51]});
+    this.singleObservationInput = tf.input({batchShape: [null, 27]});
+    this.actionInput = tf.input({batchShape: [null, 12]});
 
     // randomly initialize actor
-    this.actor.buildModel(this.observationInput);
+    this.actor.buildModel(this.singleObservationInput);
     // Randomly Initialize critic
-    this.critic.buildModel(this.observationInput, this.actionInput);
+    this.critic.buildModel(this.modelObservationInput, this.actionInput);
 
-    this.actorTarget = copyModel(this.actor, predict);
+    this.actorTarget = copyModel(this.actor, Actor);
     this.criticTarget = copyModel(this.critic, Critic);
 
-    this.perturbedActor = copyModel(this.actor, predict);
+    this.noisyActor = copyModel(this.actor, Actor);
 
     this.setLearningOp();
   }
 
+  /**
+   * Sets operations necessary to perform training steps
+   */
   setLearningOp(){
     this.criticWithActor = (observation) => {
       return tf.tidy(() => {
@@ -50,19 +54,92 @@ class DDPG {
     for (let w = 0; w < this.actor.model.trainableWeights.length; w++){
       this.actorWeights.push(this.actor.model.trainableWeights[w].val);
     }
-    assignAndStd(this.actor, this.perturbedActor, this.noise.currentStddev, this.config.seed);
+    addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
   }
 
+  trainActor(observations){
+
+  }
+  trainCritic(states, actions, new_states, rewards){
+    const criticLoss = this.criticOptimizer.minimize(() => {
+      const predQ = this.critic.model.predict([states, actions]);
+      const targetPredQ = this.criticTargetWithActorTarget(new_states);
+      
+      const Q = rewards.add(this.gamma.mul(targetPredQ));
+      const meanSquareLoss = tf.sub(Q, predQ).square();
+
+      return meanSquareLoss.mean();
+    }, true, this.criticWeights);
+
+    const loss = criticLoss.buffer().values[0];
+    criticLoss.dispose();
+
+    targetUpdate(this.criticTarget, this.critic, this.config);
+
+    return loss;
+
+  }
+
+  /**
+   * Runs a single prediction on an observation in object list form
+   * @param observation
+   * @returns {*|void}
+   */
   predict(observation){
     return this.actor.predict(observation);
   }
 
+  /**
+   * Runs a noisy predction on the noisy actor
+   * @param observation
+   * @returns {*|void}
+   */
   noisyPredict(observation){
-    return this.perturbedActor.predict(observation);
+    return this.noisyActor.predict(observation);
   }
 
+  /**
+   * Update the target networks with the current weights
+   */
   targetUpdate(){
     targetUpdate(this.criticTarget, this.critic, this.config);
     targetUpdate(this.actorTarget, this.actor, this.config);
+  }
+
+  /**
+   * Takes in observations, list of lists
+   * @param observations
+   * @returns {*}
+   */
+  noiseDistance(observations) {
+    return tf.tidy(() => {
+      const noisyPredictions = this.noisyActor.predict(observations);
+      const predictions = this.actor.model.predict(observations);
+      return tf.square(noisyPredictions.sub(predictions)).mean().sqrt();
+    })
+  }
+
+  /**
+   * Changes the given standard deviation to help match the ideal standard deviation
+   * @returns {*}
+   */
+  adaptNoise(){
+    const batch = this.memory.sample_batch(this.config.batchSize);
+    if(batch.states.length == 0){
+      addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
+      return [0]
+    }
+
+    let distanceV = null;
+    if (batch.states.length > 0){
+      const distance = this.noiseDistance(batch.states);
+      addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
+
+      distanceV = distance.buffer().values;
+      this.noise.adapt(distanceV[0]);
+
+      distance.dispose();
+    }
+    return distanceV;
   }
 }

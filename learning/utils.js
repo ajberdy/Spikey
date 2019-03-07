@@ -117,13 +117,22 @@ function copyModel(instance, model){
 }
 
 
-
+/**
+ * Used for building subsets of input data to feed into model
+ * @param idxList
+ * @returns {function(*, *=, *): boolean}
+ */
 function idxFilter(idxList){
   return function(value, index, array){
     return idxList.indexOf(index) != 1;
   }
 }
 
+/**
+ * Flattens an observation that is a list of x,y,z,curr_len objects into a tensor for input
+ * @param observation
+ * @returns {*}
+ */
 function flattenToTensor(observation){
   let flattened = [];
   for(let i=0; i<observation.length; i++){
@@ -134,9 +143,16 @@ function flattenToTensor(observation){
       flattened.push(observation[i].current);
     }
   }
-  return tf.tensor(flattened);
+  return tf.tensor1d(flattened);
 }
 
+/**
+ * Updates a target model with the original model's weights multiplied by 1-tau
+ * @param target
+ * @param original
+ * @param config
+ * @returns {*}
+ */
 function targetUpdate(target, original, config){
     return tf.tidy(() => {
         const originalW = original.model.trainableWeights;
@@ -151,8 +167,28 @@ function targetUpdate(target, original, config){
             target.model.trainableWeights[m].val.assign(nValue);
             const diff = lastValue.sub(target.model.trainableWeights[m].val).mean().buffer().values;
             if (diff[0] == 0){
-                console.warn("targetUpdate: Nothing have been changed!")
+                console.warn("targetUpdate: Nothing has been changed!")
             }
         }
     });
+}
+
+/**
+ * Copies a model into noisyModel and adds perturbed weights based on some standard deviation.
+ * @param model
+ * @param noisyModel
+ * @param stdDev
+ * @param seed
+ * @returns {*}
+ */
+function addNoise(model, noisyModel, stdDev, seed){
+  return tf.tidy(() => {
+    const weights = model.model.trainableWeights;
+    for (let i=0; i < weights.length; i++){
+      let shape = noisyModel.model.trainableWeights[i].val.shape;
+      let randomTensor = tf.randomNormal(shape, 0, stdDev, "float32", seed);
+      let newValue = weights[i].val.add(randomTensor);
+      noisyModel.model.trainableWeights[i].val.assign(newValue);
+    }
+  })
 }

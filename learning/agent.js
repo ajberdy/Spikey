@@ -71,7 +71,7 @@ class Agent {
         this.ddpg.actorTarget = copyModel(this.ddpg.actor, Actor);
         this.ddpg.criticTarget = copyModel(this.ddpg.critic, Critic);
         // Perturbed Actor (See parameter space noise Exploration paper)
-        this.ddpg.perturbedActor = copyModel(this.ddpg.actor, Actor);
+        this.ddpg.noisyActor = copyModel(this.ddpg.actor, Actor);
         //this.adaptivePerturbedActor = copyModel(this.actor, Actor);
         this.ddpg.setLearningOp();
     }

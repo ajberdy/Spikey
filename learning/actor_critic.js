@@ -9,17 +9,21 @@ class Actor{
     this.observation = null;
   }
 
+  /**
+   * Builds a single actor model
+   * @param observation
+   */
   buildModel(observation){
     this.observation = observation;
     this.layer1 = tf.layers.dense({
-      units: 21,
+      units: 27,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.layer2 = tf.layers.dense({
-      units: 20,
+      units: 25,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
@@ -52,6 +56,10 @@ class Actor{
     });
   }
 
+  /**
+   * Composition of the actor model's outputs into an action tensor
+   * @param observation
+   */
   predict(observation){
     tf.tidy(() => {
       // TODO: PROBABLY DOESN'T WORK
@@ -67,7 +75,7 @@ class Actor{
       let out9 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([9, 2, 4, 10, 5, 6, 12]))));
       let out10 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([10, 3, 11, 5, 9, 4, 12]))));
       let out11 = this.singlePredict(observation.filter(flattenToTensor(idxFilter([11, 0, 7, 5, 10, 3, 12]))));
-      return tf.tensor([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
+      return tf.tensor1d([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
     })
   }
 }
@@ -86,28 +94,31 @@ class Critic{
     this.action = null;
   }
 
+  /**
+   * Builds the critic model
+   * @param observation
+   * @param action
+   */
   buildModel(observation, action){
     this.observation = observation;
     this.action = action;
 
-    this.add = tf.layers.add();
-
     this.firstLayerState = tf.layers.dense({
-      units: 39,
+      units: 50,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.firstLayerAction = tf.layers.dense({
-      units: 12,
+      units: 50,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.secondLayer = tf.layers.dense({
-      units:this.secondLayerSize,
+      units:100,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
@@ -130,8 +141,8 @@ class Critic{
         if (tfState && tfActions){
           observation = tfState;
           action = tfActions;
-        }
-        let l1 = this.add.apply([this.firstLayerAction.apply(action), this.firstLayerState.apply(observation)]);
+        };
+        let l1 = tf.layers.add().apply([this.firstLayerAction.apply(action), this.firstLayerState.apply(observation)]);
         return this.outputLayer.apply(this.secondLayer.apply(l1));
       })
     };
