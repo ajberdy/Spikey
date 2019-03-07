@@ -108,7 +108,7 @@ class Spikey_Object extends Physics_Object {
 //                 this.transform.times(Mat4.translation(this.base_points[i])).times(Mat4.scale(2, 2, 2)),
 //                 this.scene.shader_mats.soccer);
 
-        return;
+//         return;
 
         this.scene.shapes.ball.draw(
             this.scene.globals.graphics_state,
