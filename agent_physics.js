@@ -9,7 +9,7 @@ const spikey_body_mass = 20,
       max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01,
-      spikey_strength = 5;
+      spikey_strength = 10;
 
 const spikey_consts = {
             spikey_body_mass: spikey_body_mass,
@@ -102,11 +102,13 @@ class Spikey_Object extends Physics_Object {
 //             this.shader_mat);
 
 
-        for (var i in this.base_points)
-            this.scene.shapes.ball.draw(
-                graphics_state,
-                this.transform.times(Mat4.translation(this.base_points[i])).times(Mat4.scale(2, 2, 2)),
-                this.scene.shader_mats.soccer);
+//         for (var i in this.base_points)
+//             this.scene.shapes.ball.draw(
+//                 graphics_state,
+//                 this.transform.times(Mat4.translation(this.base_points[i])).times(Mat4.scale(2, 2, 2)),
+//                 this.scene.shader_mats.soccer);
+
+//         return;
 
         this.scene.shapes.ball.draw(
             this.scene.globals.graphics_state,
@@ -181,7 +183,8 @@ class Spikey_Object extends Physics_Object {
                 z = spike[2];
 
             var phi = Math.atan(y/Math.sqrt(x**2 + z**2)),
-                theta = Math.atan(x/z) + (z < 0 ? PI : 0);
+                theta = Math.atan(x/z) + (z < 0 ? PI : 0),
+                axis_angle = PI/5;
 
             var translate_vec = spike.normalized().times(R);
 
@@ -192,17 +195,21 @@ class Spikey_Object extends Physics_Object {
                                                 spikey_consts.spike_base_radius, 
                                                 spikey_consts.max_spike_protrusion));
 
+            var spike_axis_rotate = Mat4.rotation(axis_angle, Vec.of(0, 0, 1));
+
             
             var transform = spike_translate.times(
                 spike_rotate_h).times(
                 spike_rotate_v).times(
+                spike_axis_rotate).times(
                 spike_scale);
 
             var Rm = spike_rotate_h.times(spike_rotate_v);
 
             var qh = Quaternion.from(Math.cos(theta/2), Vec.of(0, 1, 0).times(Math.sin(theta/2))),
                 qv = Quaternion.from(Math.cos(phi/2), Vec.of(-1, 0, 0).times(Math.sin(phi/2))),
-                q = qh.times(qv);
+                qa = Quaternion.from(Math.cos(axis_angle/2), Vec.of(0, 0, 1).times(Math.sin(axis_angle/2))),
+                q = qh.times(qv.times(qa));
 
             var cone = Spike_Object.of(this.scene, this.pos, this.vel, this.w, this.orientation.times(q).normalized(), 
                             spikey_consts.spikey_mass,  spikey_consts.spike_base_radius, 

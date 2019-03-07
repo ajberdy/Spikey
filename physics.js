@@ -496,7 +496,7 @@ class Spike_Object extends Physics_Object {
     }
 
     set actuation_impulse(ja) {
-        this.dh = ja * 3 / this.submass / this.strength;         
+        this.dh = ja * 3 / this.submass * this.strength;         
 //         var j = this.submass/3 * this.dh * this.strength;
 //         console.log(ja, j);
         this._actuation_impulse = this.h_axis.normalized().times(ja);
@@ -514,7 +514,7 @@ class Spike_Object extends Physics_Object {
 //     }
 
     point_vel(x_r, count_actuation) {
-        var actuation = count_actuation ? this.dh : 0;
+        var actuation = count_actuation ? this.dh*0 : 0;
         return super.point_vel(x_r).plus(x_r.project_onto(this.h_axis).times(actuation));
     }
 

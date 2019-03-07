@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 10*9.8,
+      G = 5*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 const NULL_AGENT = 0,
