@@ -10,6 +10,8 @@ class Spikey_Agent {
             return new Throb_Agent();
         else if (agent_type == RL_AGENT)
             return new RL_Agent(arg1);
+        else if (agent_type == CONSTANT_AGENT)
+            return new Constant_Agent();
 
         return new Null_Agent();
     }
@@ -30,6 +32,22 @@ class Null_Agent {
         return [0, 0, 0, 0,
                 0, 0, 0, 0,
                 0, 0, 0, 0];
+    }
+}
+
+class Constant_Agent {
+    constructor() {
+        this.actuation = [0, 0, 0, 0,
+                          0, 0, 0, 0,
+                          0, 0, 0, 0];
+    }
+
+    get_actuation() {
+        return this.actuation;
+    }
+
+    update_actuation(new_actuation) {
+        this.actuation = new_actuation;
     }
 }
 
@@ -221,7 +239,7 @@ class RL_Agent extends Spikey_Agent {
 //         rl_tensors.global_52.print();
 
         rl_tensors.split_324 = tf.tensor(split_12x7x4);
-//         rl_tensors.split_324.print();
+//         console.log(rl_tensors.split_324[0]);        
 
         return rl_tensors;
     }

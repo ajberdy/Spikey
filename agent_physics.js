@@ -73,12 +73,22 @@ class Spikey_Object extends Physics_Object {
 
         this.initialize();
 
+//         this.state = {
+//             t: 0,
+//             spikes: Array.apply(null, Array(num_spikes)),
+//             orientation: this.orientation,
+//             scene: this.scene   // for debugging
+//         }
+
+        this._intent = Vec.of(1, 0, 0);
+        this.last_intent = Vec.of(1, 0, 0);
+        
         this.state = {
-            t: 0,
             spikes: Array.apply(null, Array(num_spikes)),
             orientation: this.orientation,
-            scene: this.scene   // for debugging
+            intent: this.intent
         }
+
         for (var i in this.state.spikes)
             this.state.spikes[i] = {
                 impulse: Vec.of(0, 0, 0),
@@ -255,7 +265,12 @@ class Spikey_Object extends Physics_Object {
     }
 
     get intent() {
-        return Vec.of(0, 0, -1);
+        return this._intent;
+    }
+
+    set intent(intent) {
+        this.last_intent = this.intent;
+        this._intent = intent;
     }
 
     update(dt) {

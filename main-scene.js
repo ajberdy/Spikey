@@ -5,7 +5,8 @@ const PI = Math.PI,
 const NULL_AGENT = 0,
       CHAOS_AGENT = 1,
       THROB_AGENT = 2,
-      RL_AGENT = 3;
+      RL_AGENT = 3,
+      CONSTANT_AGENT = 4;
 
 
 
