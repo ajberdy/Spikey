@@ -57,14 +57,39 @@ class DDPG {
     addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
   }
 
+  /**
+   * Single step of actor training, loss function is to maximize predicted Q-value
+   * @param observations
+   * @returns {*}
+   */
   trainActor(observations){
+    const actorLoss = this.actorOptimizer.minimize(() => {
+      const predQ = this.criticWithActor(observations);
+      return tf.mean(predQ).mul(tf.scalar(-1.))
+    }, true, this.actorWeights);
 
+    targetUpdate(this.actorTarget, this.actor, this.config);
+
+    const loss = actorLoss.buffer().values[0];
+    actorLoss.dispose();
+
+    return loss;
   }
+
+  /**
+   * Does a single batch worth of training on the critic model, loss function being mean-square loss between target
+   * network and regular network
+   * @param states
+   * @param actions
+   * @param new_states
+   * @param rewards
+   * @returns {*}
+   */
   trainCritic(states, actions, new_states, rewards){
     const criticLoss = this.criticOptimizer.minimize(() => {
       const predQ = this.critic.model.predict([states, actions]);
       const targetPredQ = this.criticTargetWithActorTarget(new_states);
-      
+
       const Q = rewards.add(this.gamma.mul(targetPredQ));
       const meanSquareLoss = tf.sub(Q, predQ).square();
 
