@@ -8,8 +8,8 @@ class DDPG {
     this.config = config;
     this.gamma = tf.scalar(config.gamma);
 
-    this.modelObservationInput = tf.input({batchShape: [null, 51]});
-    this.singleObservationInput = tf.input({batchShape: [null, 27]});
+    this.modelObservationInput = tf.input({batchShape: [null, 13, 4]});
+    this.singleObservationInput = tf.input({batchShape: [null, 28]});
     this.actionInput = tf.input({batchShape: [null, 12]});
 
     // randomly initialize actor
@@ -142,21 +142,19 @@ class DDPG {
    */
   adaptNoise(){
     const batch = this.memory.sample_batch(this.config.batchSize);
-    if(batch.states.length == 0){
+    if(batch.states.length == 0 || batch.states.size == 0){
       addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
       return [0]
     }
 
     let distanceV = null;
-    if (batch.states.length > 0){
-      const distance = this.noiseDistance(batch.expanded_states);
-      addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
+    const distance = this.noiseDistance(batch.expanded_states);
+    addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
-      distanceV = distance.buffer().values;
-      this.noise.adapt(distanceV[0]);
+    distanceV = distance.buffer().values;
+    this.noise.adapt(distanceV[0]);
 
-      distance.dispose();
-    }
+    distance.dispose();
     return distanceV;
   }
 

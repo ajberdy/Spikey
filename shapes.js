@@ -315,7 +315,7 @@ window.Spikey_Shape = window.classes.Spikey_Shape = class Spikey_Shape extends S
         var r2 = Math.sqrt(r**2 + R**2);
 
         for (var spike of spike_vectors) {
-                       
+
             var x = spike[0],
                 y = spike[1],
                 z = spike[2];
@@ -326,11 +326,11 @@ window.Spikey_Shape = window.classes.Spikey_Shape = class Spikey_Shape extends S
             var spike_rotate_v = Mat4.rotation(phi, Vec.of(-1, 0, 0)),
                 spike_rotate_h = Mat4.rotation(theta, Vec.of(0, 1, 0)),
                 spike_translate = Mat4.translation(spike.normalized().times(R)),
-                spike_scale = Mat4.scale(Vec.of(spikey_consts.spike_base_radius, 
-                                                spikey_consts.spike_base_radius, 
+                spike_scale = Mat4.scale(Vec.of(spikey_consts.spike_base_radius,
+                                                spikey_consts.spike_base_radius,
                                                 spikey_consts.max_spike_protrusion));
 
-            
+
             var transform = spike_translate.times(
                 spike_rotate_h).times(
                 spike_rotate_v).times(

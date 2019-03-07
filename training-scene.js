@@ -1,11 +1,25 @@
 class Training_Scene {
     constructor() {
+      this.shapes = {
+        'square': new Square(),
+        'mysquare': new MySquare(Color.of(0, 0, 1, 1)),
+        "linesegement": new LineSegment,
+        "vector": new Vector,
+        'circle': new Circle(15),
+        'pyramid': new Tetrahedron(false),
+        'simplebox': new SimpleCube(),
+        'box': new Cube(),
+        'cylinder': new Cylinder(15),
+        'cone': new Closed_Cone(20),
+        'ball': new Subdivision_Sphere(4),
 
+        'spikey': new Spikey_Shape(spikey_consts)
+      };
         var floor_material = Material.of(.35, .1, .01);
-
-        this.Spikey = Spikey_Object(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), CONSTANT_AGENT);
+        this.shader_mats = {spikey: null};
+        this.Spikey = Spikey_Object.of(this, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), RL_AGENT);
         this.floor = Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), floor_material);
-
+        this.entities = [this.Spikey, this.floor];
     }
 
     run_simulation(num_steps, dt, actuation, intent) {
@@ -15,7 +29,7 @@ class Training_Scene {
         var original_pos = this.Spikey.pos;
 
         for (var i in Array.apply(null, Array(num_steps))) {
-            step(dt);
+            this.step(dt);
         }
 
         var final_pos = this.Spikey.pos;

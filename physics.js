@@ -169,7 +169,9 @@ class Physics_Object {
         this.recalc();
 
         this.com = this.com.plus(this.vel.times(dt));
-
+        if(isNaN(this.spin[0])){
+            console.log();
+        }
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
     
         this.F = Vec.of(0, 0, 0);

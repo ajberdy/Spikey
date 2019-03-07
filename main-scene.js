@@ -47,7 +47,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'ball': new Subdivision_Sphere(4),
 
             'spikey': new Spikey_Shape(spikey_consts)
-        }
+        };
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
 

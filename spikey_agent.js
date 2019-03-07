@@ -237,7 +237,7 @@ class RL_Agent extends Spikey_Agent {
 
     get_rl_tensors(state) {
         var intent = state.intent,
-            symmetric_state = this.get_symmetric_states(state);
+            symmetric_states = this.get_symmetric_states(state);
 
         var rl_tensors = {
             global_52: null,

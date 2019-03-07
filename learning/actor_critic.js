@@ -4,7 +4,6 @@ class Actor{
   constructor(config){
     this.seed = config.seed;
     this.observation = null;
-
     this.config = config;
   }
 
@@ -60,20 +59,24 @@ class Actor{
    * @param observation
    */
   predict(observation){
-    tf.tidy(() => {
-      let out0 = this.model.singlePredict(observation.slice([0, 0, 0], [0, 0, 28]));
-      let out1 = this.model.singlePredict(observation.slice([1, 0, 0], [0, 0, 28]));
-      let out2 = this.model.singlePredict(observation.slice([2, 0, 0], [0, 0, 28]));
-      let out3 = this.model.singlePredict(observation.slice([3, 0, 0], [0, 0, 28]));
-      let out4 = this.model.singlePredict(observation.slice([4, 0, 0], [0, 0, 28]));
-      let out5 = this.model.singlePredict(observation.slice([5, 0, 0], [0, 0, 28]));
-      let out6 = this.model.singlePredict(observation.slice([6, 0, 0], [0, 0, 28]));
-      let out7 = this.model.singlePredict(observation.slice([7, 0, 0], [0, 0, 28]));
-      let out8 = this.model.singlePredict(observation.slice([8, 0, 0], [0, 0, 28]));
-      let out9 = this.model.singlePredict(observation.slice([9, 0, 0], [0, 0, 28]));
-      let out10 = this.model.singlePredict(observation.slice([10, 0, 0], [0, 0, 28]));
-      let out11 = this.model.singlePredict(observation.slice([11, 0, 0], [0, 0, 28]));
-      return tf.tensor1d([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
+    // observation.print();
+    if(observation.rank == 3){
+      observation = observation.expandDims();
+    }
+    return tf.tidy(() => {
+      let out0 = this.singlePredict(observation.slice([0, 0, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out1 = this.singlePredict(observation.slice([0, 1, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out2 = this.singlePredict(observation.slice([0, 2, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out3 = this.singlePredict(observation.slice([0, 3, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out4 = this.singlePredict(observation.slice([0, 4, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out5 = this.singlePredict(observation.slice([0, 5, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out6 = this.singlePredict(observation.slice([0, 6, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out7 = this.singlePredict(observation.slice([0, 7, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out8 = this.singlePredict(observation.slice([0, 8, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out9 = this.singlePredict(observation.slice([0, 9, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out10 = this.singlePredict(observation.slice([0, 10, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      let out11 = this.singlePredict(observation.slice([0, 11, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
+      return tf.tensor([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
     })
   }
 }

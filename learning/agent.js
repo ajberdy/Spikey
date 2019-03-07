@@ -1,25 +1,25 @@
 class Agent {
 
-    constructor(config, scene) {
-        config = config || {};
+    constructor(scene) {
+        let config = {};
         this.config = {
             "seed": config.seed || 0,
-            "batchSize": config.batchSize || 128,
+            "batchSize": config.batchSize || 2,
             "memorySize": config.memorySize || 30000,
-            "actorLearningRate": config.LearningRate || 0.0001,
-            "criticLearningRate": config.LearningRate || 0.001,
+            "actorLearningRate": config.LearningRate || 0.01,
+            "criticLearningRate": config.LearningRate || 0.01,
             "gamma": config.gamma || 0.99,
             "noiseDecay": config.noiseDecay || 0.99,
             "rewardScale": config.rewardScale || 1,
             "epochs": config.epochs || 100,
-            "nbEpochsCycle": config.nbEpochsCycle || 10,
-            "TrainSteps": config.nbTrainSteps || 110,
+            "nbEpochsCycle": config.nbEpochsCycle || 1,
+            "trainSteps": config.nbTrainSteps || 110,
             "tau": config.tau || 0.008,
             "initialStddev": config.initialStddev || 0.1,
             "desiredActionStddev": config.desiredActionStddev || 0.1,
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
-            "maxStep": config.maxStep || 800,
-            "saveInterval": config.saveInterval || 5,
+            "maxStep": config.maxStep || 10,
+            "saveInterval": config.saveInterval || 1,
         };
 
         this.scene = scene;
@@ -77,26 +77,25 @@ class Agent {
      * @param prevStateArray
      * @returns {{newState: (Chart.Ticks.generators.linear|Chart.Ticks.formatters.linear|Chart.easingEffects.linear|linear|*|M.easing.linear), newStateTensor: *}}
      */
-    stepTrain(prevStateTensor, prevStateArray) {
+    stepTrain(prevStateTensor, expanded_prevStateTensor) {
         // Get actions
-        const actionTensor = this.ddpg.noisyPredict(prevStateTensor);
-        // Step in the environment with theses actions
-        let actionArray = actions.buffer().values;
+        // expanded_prevStateTensor.print();
+        const actionTensor = this.ddpg.noisyPredict(expanded_prevStateTensor);
+        // actionTensor.print();
 
         // TODO: this is where the training interacts with the environment
-        let reward = this.env.step([mActions[0], mActions[1]]);
+        let reward = this.scene.run_simulation(100, 0.01, actionTensor.buffer().values, this.scene.Spikey.intent);
+        let tensorDict = this.scene.Spikey.get_rl_tensors();
+        let newStateTensor = tensorDict.global_52;
+
         this.rewardsList.push(reward);
-        let newState = this.env.getState().linear;
-        let newStateTensor = tf.tensor2d([newState]);
-
-
         // Add the new tuple to the buffer
-        this.ddpg.memory.pushExperience(prevStateArray, expandedState, actionArray, reward, newState);
+        this.ddpg.memory.pushExperience(prevStateTensor, expanded_prevStateTensor, actionTensor, newStateTensor, reward);
         // Dispose tensors
-        prevStateTensor.dispose();
-        actionTensor.dispose();
+        // prevStateTensor.dispose();
+        // actionTensor.dispose();
 
-        return {newState, newStateTensor};
+        return newStateTensor;
     }
 
     /**
@@ -107,7 +106,7 @@ class Agent {
         let lossValuesCritic = [];
         let lossValuesActor = [];
         console.time("Training");
-        for (let t = 0; t < this.config.nbTrainSteps; t++) {
+        for (let t = 0; t < this.config.trainSteps; t++) {
             let {lossC, lossA} = this.ddpg.optimizeActorCritic();
             lossValuesCritic.push(lossC);
             lossValuesActor.push(lossA);
@@ -129,27 +128,27 @@ class Agent {
             document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.epochs + "<br>";
             for (let c = 0; c < this.config.nbEpochsCycle; c++) {
                 // if (c%10==0){ logTfMemory(); }
-
-                // TODO: INITIALIZE NEW INSTANCE;
                 this.scene.get_random_intent();
-                let prevStepTensor = this.scene.Spikey.brain.get_rl_tensors(this.scene.Spikey.intent);
-
+                let tensorDict = this.scene.Spikey.get_rl_tensors();
+                let prevStepTensor = tensorDict.global_52;
+                let expanded_prevStepTensor = tensorDict.split_324;
 
                 console.time("LoopTime");
                 for (let step = 0; step < this.config.maxStep; step++) {
-                    let rel = this.stepTrain(prevStepTensor);
-                    prevStepTensor = rel.tfState;
+                    prevStepTensor = this.stepTrain(prevStepTensor, expanded_prevStepTensor);
                     this.stepList.push(step);
-                    console.timeEnd("LoopTime");
                     let distance = this.ddpg.adaptNoise();
                     this.distanceList.push(distance[0]);
-                    tfPreviousStep.dispose();
+
+                    // prevStepTensor.dispose();
+                    // expanded_prevStepTensor.dispose();
 
                     console.log("e=" + this.epoch + ", c=" + c);
 
                     await tf.nextFrame();
                 }
-                if (this.epoch > 5) {
+                console.timeEnd("LoopTime");
+                if (this.epoch > 0) {
                     this._optimize();
                 }
                 if (this.config.saveDuringTraining && this.epoch % this.config.saveInterval == 0 && this.epoch != 0) {

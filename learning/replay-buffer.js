@@ -31,7 +31,7 @@ class ReplayBuffer {
            new_state: new_state,
            reward: reward,
         });
-        self.count += 1;
+        this.count += 1;
     }
 
     /**
@@ -49,8 +49,10 @@ class ReplayBuffer {
      * @returns {{new_states: Array, actions: Array, rewards: Array, states: Array}}
      */
     sample_batch(batch_size){
+        console.log(batch_size, this.count);
         const batch = {
             'states': [],
+            'expanded_states': [],
             'actions': [],
             'new_states': [],
             'rewards': []
@@ -70,11 +72,11 @@ class ReplayBuffer {
             sample_bucket.splice(idx, 1);
         }
         let ret_batch = {
-            states: tf.tensor([batch_size, 13, 4], batch['states']),
-            expanded_states: tf.tensor([batch_size, 12, 7, 4], batch['expanded_states']),
-            actions: tf.tensor([batch_size, 12], batch['actions']),
-            new_states: tf.tensor([batch_size, 13, 4], batch['new_states']),
-            rewards: tf.tensor([batch_size, 1], batch['rewards'])
+            states: tf.stack(batch['states']),
+            expanded_states: tf.stack(batch['expanded_states']),
+            actions: tf.stack(batch['actions']),
+            new_states: tf.stack(batch['new_states']),
+            rewards: tf.tensor(batch['rewards'])
         }
         return ret_batch;
     }
