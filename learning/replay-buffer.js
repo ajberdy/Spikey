@@ -13,18 +13,20 @@ class ReplayBuffer {
     /**
      * Function for inserting a new experience into the replay buffer
      * @param state
+     * @param expanded_state
      * @param action
      * @param new_state
      * @param reward
      * @private
      */
-    pushExperience(state, action, new_state, reward){
+    pushExperience(state, expanded_state, action, new_state, reward){
         if(this.count == this.max_size){
             this.buffer.shift();
             self.count -= 1;
         }
         this.buffer.push({
            state: state,
+           expanded_state: expanded_state,
            action: action,
            new_state: new_state,
            reward: reward,
@@ -61,12 +63,20 @@ class ReplayBuffer {
         for (let i = 0; i < batch_size; i++){
             let idx = Math.floor(Math.random() * sample_bucket.length);
             batch['states'].push(this.buffer[sample_bucket[idx]].state);
+            batch['expanded_states'].push(this.buffer[sample_bucket[idx]].expanded_state);
             batch['actions'].push(this.buffer[sample_bucket[idx]].action);
             batch['new_states'].push(this.buffer[sample_bucket[idx]].new_state);
             batch['rewards'].push(this.buffer[sample_bucket[idx]].reward);
             sample_bucket.splice(idx, 1);
         }
-        return batch;
+        let ret_batch = {
+            states: tf.tensor([batch_size, 13, 4], batch['states']),
+            expanded_states: tf.tensor([batch_size, 12, 7, 4], batch['expanded_states']),
+            actions: tf.tensor([batch_size, 12], batch['actions']),
+            new_states: tf.tensor([batch_size, 13, 4], batch['new_states']),
+            rewards: tf.tensor([batch_size, 1], batch['rewards'])
+        }
+        return ret_batch;
     }
 
     /**

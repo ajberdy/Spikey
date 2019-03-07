@@ -2,11 +2,10 @@
 
 class Actor{
   constructor(config){
-    this.layerNorm = config.layerNorm;
-
     this.seed = config.seed;
-    this.config = config;
     this.observation = null;
+
+    this.config = config;
   }
 
   /**
@@ -16,7 +15,7 @@ class Actor{
   buildModel(observation){
     this.observation = observation;
     this.layer1 = tf.layers.dense({
-      units: 27,
+      units: 28,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
@@ -62,18 +61,18 @@ class Actor{
    */
   predict(observation){
     tf.tidy(() => {
-      let out0 = this.singlePredict(tf.slice(observation, 0, 27));
-      let out1 = this.singlePredict(tf.slice(observation, 27, 27));
-      let out2 = this.singlePredict(tf.slice(observation, 54, 27));
-      let out3 = this.singlePredict(tf.slice(observation, 81, 27));
-      let out4 = this.singlePredict(tf.slice(observation, 108, 27));
-      let out5 = this.singlePredict(tf.slice(observation, 135, 27));
-      let out6 = this.singlePredict(tf.slice(observation, 162, 27));
-      let out7 = this.singlePredict(tf.slice(observation, 189, 27));
-      let out8 = this.singlePredict(tf.slice(observation, 216, 27));
-      let out9 = this.singlePredict(tf.slice(observation, 243, 27));
-      let out10 = this.singlePredict(tf.slice(observation, 270, 27));
-      let out11 = this.singlePredict(tf.slice(observation, 297, 27));
+      let out0 = this.model.singlePredict(observation.slice([0, 0, 0], [0, 0, 28]));
+      let out1 = this.model.singlePredict(observation.slice([1, 0, 0], [0, 0, 28]));
+      let out2 = this.model.singlePredict(observation.slice([2, 0, 0], [0, 0, 28]));
+      let out3 = this.model.singlePredict(observation.slice([3, 0, 0], [0, 0, 28]));
+      let out4 = this.model.singlePredict(observation.slice([4, 0, 0], [0, 0, 28]));
+      let out5 = this.model.singlePredict(observation.slice([5, 0, 0], [0, 0, 28]));
+      let out6 = this.model.singlePredict(observation.slice([6, 0, 0], [0, 0, 28]));
+      let out7 = this.model.singlePredict(observation.slice([7, 0, 0], [0, 0, 28]));
+      let out8 = this.model.singlePredict(observation.slice([8, 0, 0], [0, 0, 28]));
+      let out9 = this.model.singlePredict(observation.slice([9, 0, 0], [0, 0, 28]));
+      let out10 = this.model.singlePredict(observation.slice([10, 0, 0], [0, 0, 28]));
+      let out11 = this.model.singlePredict(observation.slice([11, 0, 0], [0, 0, 28]));
       return tf.tensor1d([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
     })
   }
@@ -82,11 +81,6 @@ class Actor{
 
 class Critic{
   constructor(config){
-    this.stateSize = config.stateSize;
-    this.actionSize = config.actionSize;
-    this.layerNorm = config.layerNorm;
-    this.secondLayerSize = config.criticSecondLayerSize;
-
     this.seed = config.seed;
     this.config = config;
     this.observation = null;

@@ -65,4 +65,10 @@ class Training_Scene {
 
         return reward;
     }
+
+    get_random_intent() {
+        const scale = 5;
+        var random_intent = Vec.of(Math.random(), Math.random(), Math.random()).times(scale);
+        this.give_intent(random_intent);
+    }
 }

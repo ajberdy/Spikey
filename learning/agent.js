@@ -1,16 +1,13 @@
 class Agent {
 
-    constructor(config) {
-
-        this.stopTraining = false;
-
+    constructor(config, scene) {
         config = config || {};
         this.config = {
             "seed": config.seed || 0,
             "batchSize": config.batchSize || 128,
             "memorySize": config.memorySize || 30000,
-            "actorLearningRate": config.actorLr || 0.0001,
-            "criticLearningRate": config.criticLr || 0.001,
+            "actorLearningRate": config.LearningRate || 0.0001,
+            "criticLearningRate": config.LearningRate || 0.001,
             "gamma": config.gamma || 0.99,
             "noiseDecay": config.noiseDecay || 0.99,
             "rewardScale": config.rewardScale || 1,
@@ -22,9 +19,10 @@ class Agent {
             "desiredActionStddev": config.desiredActionStddev || 0.1,
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
             "maxStep": config.maxStep || 800,
-            "saveInterval": config.saveInterval || 5
+            "saveInterval": config.saveInterval || 5,
         };
 
+        this.scene = scene;
         this.epoch = 0;
         // From js/DDPG/noise.js
         this.noise = new Noise(this.config);
@@ -42,9 +40,6 @@ class Agent {
         Math.seedrandom(0);
 
         this.rewardsList = [];
-        this.epiDuration = [];
-        console.log(this.config);
-        // DDPG
         this.ddpg = new DDPG(this.actor, this.critic, this.memory, this.noise, this.config);
     }
 
@@ -77,10 +72,10 @@ class Agent {
     }
 
     /**
-     * Step into the training environement
-     * @param tfPreviousStep (tf.tensor2d) Current state
-     * @param mPreviousStep number[]
-     * @return {done, state} One boolean and the new state
+     *
+     * @param prevStateTensor
+     * @param prevStateArray
+     * @returns {{newState: (Chart.Ticks.generators.linear|Chart.Ticks.formatters.linear|Chart.easingEffects.linear|linear|*|M.easing.linear), newStateTensor: *}}
      */
     stepTrain(prevStateTensor, prevStateArray) {
         // Get actions
@@ -96,7 +91,7 @@ class Agent {
 
 
         // Add the new tuple to the buffer
-        this.ddpg.memory.pushExperience(prevStateArray, actionArray, reward, newState);
+        this.ddpg.memory.pushExperience(prevStateArray, expandedState, actionArray, reward, newState);
         // Dispose tensors
         prevStateTensor.dispose();
         actionTensor.dispose();
@@ -113,7 +108,7 @@ class Agent {
         let lossValuesActor = [];
         console.time("Training");
         for (let t = 0; t < this.config.nbTrainSteps; t++) {
-            let {lossC, lossA} = this.ddpg.optimizeCriticActor();
+            let {lossC, lossA} = this.ddpg.optimizeActorCritic();
             lossValuesCritic.push(lossC);
             lossValuesActor.push(lossA);
         }
@@ -125,24 +120,25 @@ class Agent {
      * Train DDPG Agent
      */
     async train() {
-        this.stopTraining = false;
-        for (this.epoch; this.epoch < this.config.nbEpochs; this.epoch++) {
+        console.log("Training Time!");
+        for (this.epoch; this.epoch < this.config.epochs; this.epoch++) {
             // Perform cycles.
             this.rewardsList = [];
             this.stepList = [];
             this.distanceList = [];
-            document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.nbEpochs + "<br>";
+            document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.epochs + "<br>";
             for (let c = 0; c < this.config.nbEpochsCycle; c++) {
                 // if (c%10==0){ logTfMemory(); }
 
                 // TODO: INITIALIZE NEW INSTANCE;
-                let mPreviousStep = this.env.getState().linear;
-                let tfPreviousStep = tf.tensor2d([mPreviousStep]);
+                this.scene.get_random_intent();
+                let prevStepTensor = this.scene.Spikey.brain.get_rl_tensors(this.scene.Spikey.intent);
+
+
                 console.time("LoopTime");
                 for (let step = 0; step < this.config.maxStep; step++) {
-                    let rel = this.stepTrain(tfPreviousStep, mPreviousStep);
-                    mPreviousStep = rel.mState;
-                    tfPreviousStep = rel.tfState;
+                    let rel = this.stepTrain(prevStepTensor);
+                    prevStepTensor = rel.tfState;
                     this.stepList.push(step);
                     console.timeEnd("LoopTime");
                     let distance = this.ddpg.adaptNoise();
@@ -166,4 +162,5 @@ class Agent {
             }
         }
     }
+
 }

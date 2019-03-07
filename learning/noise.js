@@ -8,8 +8,8 @@ class Noise {
      */
     constructor(conf){
         conf = conf || {};
-        this.initialStddev = conf.initialStddev || 0.4;
-        this.desiredActionStddev = conf.desiredActionStddev || 0.4;
+        this.initialStddev = conf.initialStddev || 0.5;
+        this.desiredActionStddev = conf.desiredActionStddev || 0.5;
         this.adoptionCoefficient = conf.adoptionCoefficient || 1.01;
         this.currentStddev = this.initialStddev;
     }

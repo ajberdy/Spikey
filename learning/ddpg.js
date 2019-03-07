@@ -29,16 +29,16 @@ class DDPG {
    * Sets operations necessary to perform training steps
    */
   setLearningOp(){
-    this.criticWithActor = (observation) => {
+    this.criticWithActor = (observation, expanded_observation) => {
       return tf.tidy(() => {
-        const action = this.actor.predict(observation);
+        const action = this.actor.predict(expanded_observation);
         return this.critic.predict(observation, action);
       });
     };
 
-    this.criticTargetWithActorTarget = (observation) => {
+    this.criticTargetWithActorTarget = (observation, expanded_observation) => {
       return tf.tidy(() => {
-        const action = this.actorTarget.predict(observation);
+        const action = this.actorTarget.predict(expanded_observation);
         return this.criticTarget.predict(observation, action);
       });
     };
@@ -62,9 +62,9 @@ class DDPG {
    * @param observations
    * @returns {*}
    */
-  trainActor(observations){
+  trainActor(observations, expanded_observations){
     const actorLoss = this.actorOptimizer.minimize(() => {
-      const predQ = this.criticWithActor(observations);
+      const predQ = this.criticWithActor(observations, expanded_observations);
       return tf.mean(predQ).mul(tf.scalar(-1.))
     }, true, this.actorWeights);
 
@@ -85,10 +85,10 @@ class DDPG {
    * @param rewards
    * @returns {*}
    */
-  trainCritic(states, actions, new_states, rewards){
+  trainCritic(states, expanded_states, actions, new_states, rewards){
     const criticLoss = this.criticOptimizer.minimize(() => {
       const predQ = this.critic.model.predict([states, actions]);
-      const targetPredQ = this.criticTargetWithActorTarget(new_states);
+      const targetPredQ = this.criticTargetWithActorTarget(new_states, expanded_states);
 
       const Q = rewards.add(this.gamma.mul(targetPredQ));
       const meanSquareLoss = tf.sub(Q, predQ).square();
@@ -124,22 +124,14 @@ class DDPG {
   }
 
   /**
-   * Update the target networks with the current weights
-   */
-  targetUpdate(){
-    targetUpdate(this.criticTarget, this.critic, this.config);
-    targetUpdate(this.actorTarget, this.actor, this.config);
-  }
-
-  /**
    * Takes in observation in tensor format of size 162
    * @param observations
    * @returns {*}
    */
-  noiseDistance(observations) {
+  noiseDistance(expanded_observations) {
     return tf.tidy(() => {
-      const noisyPredictions = this.noisyActor.predict(observations);
-      const predictions = this.actor.predict(observations);
+      const noisyPredictions = this.noisyActor.predict(expanded_observations);
+      const predictions = this.actor.predict(expanded_observations);
       return tf.square(noisyPredictions.sub(predictions)).mean().sqrt();
     })
   }
@@ -157,7 +149,7 @@ class DDPG {
 
     let distanceV = null;
     if (batch.states.length > 0){
-      const distance = this.noiseDistance(batch.states);
+      const distance = this.noiseDistance(batch.expanded_states);
       addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
       distanceV = distance.buffer().values;
@@ -181,29 +173,18 @@ class DDPG {
     return v[0];
   }
 
-  batchToTensors(){
-    const batch = this.memory.sample_batch(this.config.batchSize);
-
-    const actions = tf.tensor2d(batch.actions);
-    const states = tf.tensor2d(batch.states);
-    const new_states = tf.tensor2d(batch.new_states);
-    const _rewards = tf.tensor1d(batch.rewards);
-
-    const rewards = _rewards.expandDims(1);
-
-    return {actions, states, new_states, rewards};
-  }
 
   optimizeActorCritic(){
-    const {actions, states, new_states, rewards} = this.batchToTensors();
+    const batch = this.memory.sample_batch(this.config.batchSize);
 
-    const criticLoss = this.trainCritic(states, actions, new_states, rewards);
-    const actorLoss = this.trainActor(states);
+    const criticLoss = this.trainCritic(batch.states, batch.expanded_states, batch.actions, batch.new_states, batch.rewards);
+    const actorLoss = this.trainActor(batch.states, batch.expanded_states);
 
-    actions.dispose();
-    states.dispose();
-    new_states.dispose();
-    rewards.dispose();
+    batch.actions.dispose();
+    batch.expanded_states.dispose();
+    batch.states.dispose();
+    batch.new_states.dispose();
+    batch.rewards.dispose();
 
     return {criticLoss, actorLoss};
 
