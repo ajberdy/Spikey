@@ -94,20 +94,21 @@ class RL_Agent extends Spikey_Agent {
         */
         var t = state.t;
 
-        for (var i of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-            this.symmetrify_state(state, intent, i);
-        
-//         return [0, 0, 0, 0,
-//                 0, 0, 0, 0,
-//                 0, 0, 0, 0];
+        var symmetric_states = this.get_symmetric_states(state);
 
+        // symmetric_states is the input to the NN
+
+//         return this.get_rl_actuation(symmetric_states);
+
+        
         var actuation = Array.apply(null, Array(num_spikes));
         for (var i in actuation)
             actuation[i] = Math.cos(.4/100*t + i*2)*20;
         return actuation;
+
     }
 
-    symmetrify_state(state, intent, spike_ix) {
+    symmetrify_state(state, spike_ix) {
 //         console.log(state, intent, spike_ix);
         var spikey_orientation = state.orientation;
 
@@ -139,33 +140,46 @@ class RL_Agent extends Spikey_Agent {
 
         var transformed_orientations = orientations.map(orientation => q_transform.times(orientation)),
             transformed_impulses = impulses.map((impulse, i) => Rinv_transform.times(impulse));
+
+        var symmetric_state = {
+            transformed_spikes: []
+        }
+
+        for (var i in neighborhood) {
+            symmetric_state.transformed_spikes.push({
+                impulse: transformed_impulses[i],
+                h: filtered_subshapes[i].shape.h
+            });
+        }
+
+        return symmetric_state;
             
 
-        for (var i in relative_impulses) {
-            if (!transformed_impulses[i].norm())
-                continue;
-            state.scene.shapes.vector.draw(
-                state.scene.globals.graphics_state,
-                Mat4.y_to_vec(transformed_impulses[i], Vec.of(20, 20, 20)),
-//                     state.scene.entities[1].com.plus(filtered_subshapes[i].d)),
-                state.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
-        }
+//         for (var i in relative_impulses) {
+//             if (!transformed_impulses[0].norm())
+//                 continue;
+//             state.scene.shapes.vector.draw(
+//                 state.scene.globals.graphics_state,
+//                 Mat4.y_to_vec(transformed_impulses[0], Vec.of(20, 20, 20)),
+// //                     state.scene.entities[1].com.plus(filtered_subshapes[i].d)),
+//                 state.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
+//         }
         
 //         console.log(spike_0_q);
     
 
         
-        for (var i in orientations)
-            state.scene.shapes.cone.draw(
-                state.scene.globals.graphics_state,
-                Mat4.translation(Vec.of(0, 20, 20)).times(//).plus(
-//                     R.times(this.filtered_subshapes[i].d).minus(filtered_subshapes[i].shape.R.times(filtered_subshapes[i].shape.d)))).times(
-                Mat4.quaternion_rotation(q_transform.times(orientations[i]).normalized())).times(
-                Mat4.translation(filtered_subshapes[i].shape.d)).times(
-                Mat4.scale(Vec.of(2, 2, 20))),
-                state.scene.shader_mats.floor
-                );
+//         for (var i in orientations)
+//             state.scene.shapes.cone.draw(
+//                 state.scene.globals.graphics_state,
+//                 Mat4.translation(Vec.of(0, 20, 20)).times(//).plus(
+// //                     R.times(this.filtered_subshapes[i].d).minus(filtered_subshapes[i].shape.R.times(filtered_subshapes[i].shape.d)))).times(
+//                 Mat4.quaternion_rotation(q_transform.times(orientations[i]).normalized())).times(
+//                 Mat4.translation(filtered_subshapes[i].shape.d)).times(
+//                 Mat4.scale(Vec.of(2, 2, 20))),
+//                 state.scene.shader_mats.floor
+//                 );
 
 //         for (var i in orientations)
 //             state.scene.shapes.cone.draw(
@@ -177,6 +191,15 @@ class RL_Agent extends Spikey_Agent {
 //                 Mat4.scale(Vec.of(2, 2, 20))),
 //                 state.scene.shader_mats.floor
 //                 );
+    }
+
+    get_symmetric_states(state) {
+        var symmetric_states = Array.apply(null, Array(num_spikes));
+        return symmetric_states.map((x, i) => this.symmetrify_state(state, i));
+    }
+
+    get_rl_actuation(symmetric_states) {
+        return Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
 
 }
