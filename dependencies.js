@@ -140,6 +140,85 @@ window.Physics_Shader = window.classes.Physics_Shader = class Physics_Shader ext
 }
 
 
+
+window.Light_Shader = window.classes.Light_Shader = class Light_Shader extends Shader {
+    material(color) {
+        return new class Material {
+            constructor(shader, color=Color.of(1, 0, 0, 1)) {
+                // Assign defaults.
+                Object.assign(this, {
+                    shader,
+                    color
+                });
+            }
+
+        }
+        (this, color);
+    }
+
+    map_attribute_name_to_buffer_name(name) {
+        // Use a simple lookup table.
+        return {
+            object_space_pos: "positions"
+//             aVertexPosition: "light_position"
+        }[name];
+    }
+
+    vertex_glsl_code() {
+        return `
+        int shadowDepthTextureSize = 1024;
+
+        attribute vec3 aVertexPosition;
+
+        uniform mat4 uPMatrix;
+        uniform mat4 uMVMatrix;
+
+        void main (void) {
+          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        }
+        `;
+    }
+
+    fragment_glsl_code() {
+        return `
+
+        precision mediump float;
+
+        vec4 encodeFloat (float depth) {
+          const vec4 bitShift = vec4(
+            256 * 256 * 256,
+            256 * 256,
+            256,
+            1.0
+          );
+          const vec4 bitMask = vec4(
+            0,
+            1.0 / 256.0,
+            1.0 / 256.0,
+            1.0 / 256.0
+          );
+          vec4 comp = fract(depth * bitShift);
+          comp -= comp.xxyz * bitMask;
+          return comp;
+        }
+
+        void main (void) {
+          gl_FragColor = encodeFloat(gl_FragCoord.z);
+        }
+        `
+    }
+
+    update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
+        const PCM = g_state.projection_transform.times(g_state.camera_transform).times(model_transform);
+        gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
+
+
+        gl.uniform4fv(gpu.shapeColor_loc,  material.color);
+    }
+
+
+}
+
 // THE DEFAULT SHADER: This uses the Phong Reflection Model, with optional Gouraud shading. 
 // Wikipedia has good defintions for these concepts.  Subclasses of class Shader each store 
 // and manage a complete GPU program.  This particular one is a big "master shader" meant to 

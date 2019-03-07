@@ -75,8 +75,6 @@ class RL_Agent extends Spikey_Agent {
             [10, 4, 9, 11, 5, 6],
             [11, 3, 7, 5, 10, 9]
         );
-
-        this.backwards = [1, 2, 8, 10, 11];
     }
 
     get_actuation(state, intent) {
@@ -94,11 +92,12 @@ class RL_Agent extends Spikey_Agent {
         */
         var t = state.t;
 
-        var symmetric_states = this.get_symmetric_states(state);
+        var symmetric_states = this.get_symmetric_states(state, intent);
+        var rl_tensors = this.get_rl_tensors(state, intent, symmetric_states);
 
         // symmetric_states is the input to the NN
 
-//         return this.get_rl_actuation(symmetric_states);
+//         return this.get_rl_actuation(symmetric_states, intent);
 
         
         var actuation = Array.apply(null, Array(num_spikes));
@@ -108,7 +107,7 @@ class RL_Agent extends Spikey_Agent {
 
     }
 
-    symmetrify_state(state, spike_ix) {
+    symmetrify_state(state, spike_ix, intent) {
 //         console.log(state, intent, spike_ix);
         var spikey_orientation = state.orientation;
 
@@ -139,10 +138,12 @@ class RL_Agent extends Spikey_Agent {
             Rinv_transform = Mat4.quaternion_rotation(q_transform.inverse());
 
         var transformed_orientations = orientations.map(orientation => q_transform.times(orientation)),
-            transformed_impulses = impulses.map((impulse, i) => Rinv_transform.times(impulse));
+            transformed_impulses = impulses.map((impulse, i) => Rinv_transform.times(impulse).to3()),
+            transformed_intent = Rinv_transform.times(intent).to3();
 
         var symmetric_state = {
-            transformed_spikes: []
+            transformed_spikes: [],
+            intent: transformed_intent
         }
 
         for (var i in neighborhood) {
@@ -193,13 +194,36 @@ class RL_Agent extends Spikey_Agent {
 //                 );
     }
 
-    get_symmetric_states(state) {
+    get_symmetric_states(state, intent) {
         var symmetric_states = Array.apply(null, Array(num_spikes));
-        return symmetric_states.map((x, i) => this.symmetrify_state(state, i));
+        return symmetric_states.map((x, i) => this.symmetrify_state(state, i, intent));
     }
 
-    get_rl_actuation(symmetric_states) {
+    get_rl_actuation(symmetric_states, intent) {
         return Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    get_rl_tensors(state, intent, symmetric_states) {
+        var rl_tensors = {
+            global_52: null,
+            split_324: null
+        };
+
+        var transformed_intent = Mat4.quaternion_rotation(state.orientation.inverse()).times(intent);
+
+        var global_13x4 = state.spikes.map(spike => [...spike.impulse, spike.h]);
+        global_13x4.push([...transformed_intent]);
+
+        var split_12x7x4 = symmetric_states.map(sym_state =>
+            sym_state.transformed_spikes.map(spike => [...spike.impulse, spike.h]).concat([[...sym_state.intent.to4(0)]]));
+
+        rl_tensors.global_52 = tf.tensor(global_13x4);
+//         rl_tensors.global_52.print();
+
+        rl_tensors.split_324 = tf.tensor(split_12x7x4);
+//         rl_tensors.split_324.print();
+
+        return rl_tensors;
     }
 
 }

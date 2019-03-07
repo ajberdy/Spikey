@@ -254,11 +254,15 @@ class Spikey_Object extends Physics_Object {
 
     }
 
+    get intent() {
+        return Vec.of(0, 0, -1);
+    }
+
     update(dt) {
         super.update(dt);
         this.convex_decomposition;
         
-        this.actuate(this.get_actuation());
+        this.actuate(this.get_actuation(this.intent));
 
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
