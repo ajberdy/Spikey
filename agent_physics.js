@@ -105,6 +105,10 @@ class Spikey_Object extends Physics_Object {
         return new Spikey_Shape(...args);
     }
 
+    get_rl_tensors() {
+        return this.brain.get_rl_tensors(this.state);
+    }
+
     draw(graphics_state) {
 //         this.scene.shapes.spikey.draw(
 //             graphics_state,
