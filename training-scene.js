@@ -91,6 +91,8 @@ class Training_Scene {
     }
 
     reset_spiky_pos() {
-        this.Spikey.com = this.spikey_starting_pos;
+        // only reset position in xz plane
+        this.Spikey.com[0] = this.spikey_starting_pos[0];
+        this.Spikey.com[2] = this.spikey_starting_pos[2];
     }
 }
