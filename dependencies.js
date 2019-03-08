@@ -1,4 +1,4 @@
-SHADOW_DEPTH_TEXTURE_SIZE = 2048;
+SHADOW_DEPTH_TEXTURE_SIZE = 2048*2;
 
 
 // Subclasses of Shader each store and manage a complete GPU program.  This Shader is 
@@ -405,6 +405,296 @@ window.Camera_Shader = window.classes.Camera_Shader = class Camera_Shader extend
         gl.bindTexture(gl.TEXTURE_2D, this.shadowDepthTexture);
         gl.uniform1i(gpu.depthColorTexture_loc, 0);
     }
+}
+
+window.Phong_Shadow_Shader = window.classes.Phong_Shadow_Shader = class Phong_Shadow_Shader extends Camera_Shader {
+    material(color, properties) {
+        // Possible properties: ambient, diffusivity, specularity, smoothness, texture.
+        return new class Material {
+            constructor(shader, color=Color.of(0, 0, 0, 1), ambient=0, diffusivity=1, specularity=1, smoothness=40) {
+                // Assign defaults.
+                Object.assign(this, {
+                    shader,
+                    color,
+                    ambient,
+                    diffusivity,
+                    specularity,
+                    smoothness
+                });
+
+                // Optionally override defaults.
+                Object.assign(this, properties);
+            }
+
+            // Easily make temporary overridden versions of a base material, such as
+            // of a different color or diffusivity.  Use "opacity" to override only that.
+            override(properties) {
+                const copied = new this.constructor();
+                Object.assign(copied, this);
+                Object.assign(copied, properties);
+                copied.color = copied.color.copy();
+                if (properties["opacity"] != undefined)
+                    copied.color[3] = properties["opacity"];
+                return copied;
+            }
+        }
+        (this,color);
+    }
+
+    map_attribute_name_to_buffer_name(name) {
+        // Use a simple lookup table.
+        return {
+            object_space_pos: "positions",
+            normal: "normals",
+            tex_coord: "texture_coords"
+        }[name];
+    }
+
+    shared_glsl_code() 
+    {
+        return `
+            precision mediump float;
+
+            // We're limited to only so many inputs in hardware.  Lights are costly (lots of sub-values).
+            const int N_LIGHTS = 2;
+            uniform float ambient, diffusivity, specularity, smoothness, animation_time, attenuation_factor[N_LIGHTS];
+
+            // Flags for alternate shading methods
+            uniform bool GOURAUD, COLOR_NORMALS, USE_TEXTURE;
+            uniform vec4 lightPosition[N_LIGHTS], lightColor[N_LIGHTS], shapeColor;
+            
+            // Specifier "varying" means a variable's final value will be passed from the vertex shader
+            // on to the next phase (fragment shader), then interpolated per-fragment, weighted by the 
+            // pixel fragment's proximity to each of the 3 vertices (barycentric interpolation).       
+            varying vec3 N, E;                     
+            varying vec2 f_tex_coord;             
+            varying vec4 VERTEX_COLOR;            
+            varying vec3 L[N_LIGHTS];
+            varying float dist[N_LIGHTS];
+
+            vec3 phong_model_lights( vec3 N ) {
+                vec3 result = vec3(0.0);
+                for(int i = 0; i < N_LIGHTS; i++) {
+                    vec3 H = normalize( L[i] + E );
+                    
+                    float attenuation_multiplier = 1.0;// / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
+                    float diffuse  =      max( dot(N, L[i]), 0.0 );
+                    float specular = pow( max( dot(N, H), 0.0 ), smoothness );
+
+                    result += attenuation_multiplier * ( shapeColor.xyz * diffusivity * diffuse + lightColor[i].xyz * specularity * specular );
+                }
+                return result;
+            }`;
+    }
+
+    vertex_glsl_code() {
+        return `
+            attribute vec3 object_space_pos, normal;
+            attribute vec2 tex_coord;
+
+            uniform mat4 uPMatrix;
+            uniform mat4 uMVMatrix;
+            uniform mat4 lightPMatrix;
+            uniform mat4 lightMVMatrix;
+
+            const mat4 texUnitConverter = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 
+                0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+            varying vec4 shadowPos;
+
+
+            uniform mat4 camera_transform, camera_model_transform, projection_camera_model_transform;
+            uniform mat3 inverse_transpose_modelview;
+
+            void main() {
+                // The vertex's final resting place (in NDCS).
+                gl_Position = projection_camera_model_transform * vec4(object_space_pos, 1.0);
+                
+                // The final normal vector in screen space.
+                N = normalize( inverse_transpose_modelview * normal );
+                
+                // Directly use original texture coords and interpolate between.
+                f_tex_coord = tex_coord;
+
+                // Bypass all lighting code if we're lighting up vertices some other way.
+                if( COLOR_NORMALS ) {
+                    // In "normals" mode, rgb color = xyz quantity. Flash if it's negative.
+                    VERTEX_COLOR = vec4( N[0] > 0.0 ? N[0] : sin( animation_time * 3.0   ) * -N[0],             
+                                         N[1] > 0.0 ? N[1] : sin( animation_time * 15.0  ) * -N[1],
+                                         N[2] > 0.0 ? N[2] : sin( animation_time * 45.0  ) * -N[2] , 1.0 );
+                    return;
+                }
+                
+                // The rest of this shader calculates some quantities that the Fragment shader will need:
+                vec3 camera_space_pos = ( camera_model_transform * vec4(object_space_pos, 1.0) ).xyz;
+                E = normalize( -camera_space_pos );
+
+                // Light positions use homogeneous coords.  Use w = 0 for a directional light source -- a vector instead of a point.
+                for( int i = 0; i < N_LIGHTS; i++ ) {
+                    L[i] = normalize( ( camera_transform * lightPosition[i] ).xyz - lightPosition[i].w * camera_space_pos );
+
+                    // Is it a point light source?  Calculate the distance to it from the object.  Otherwise use some arbitrary distance.
+                    dist[i]  = lightPosition[i].w > 0.0 ? distance((camera_transform * lightPosition[i]).xyz, camera_space_pos)
+                                                        : distance( attenuation_factor[i] * -lightPosition[i].xyz, object_space_pos.xyz );
+                }
+
+                // Gouraud shading mode?  If so, finalize the whole color calculation here in the vertex shader,
+                // one per vertex, before we even break it down to pixels in the fragment shader.   As opposed 
+                // to Smooth "Phong" Shading, where we *do* wait to calculate final color until the next shader.
+                if( GOURAUD ) {
+                    VERTEX_COLOR      = vec4( shapeColor.xyz * ambient, shapeColor.w);
+                    VERTEX_COLOR.xyz += phong_model_lights( N );
+                }
+                shadowPos = texUnitConverter * lightPMatrix * lightMVMatrix * vec4(object_space_pos, 1.0);
+            }`;
+    }
+
+    // ********* FRAGMENT SHADER *********
+    // A fragment is a pixel that's overlapped by the current triangle.
+    // Fragments affect the final image or get discarded due to depth.
+    fragment_glsl_code() {
+        return `
+            varying vec4 shadowPos;
+
+            uniform sampler2D depthColorTexture;
+            uniform vec3 uColor;
+
+            uniform sampler2D texture;
+
+            float decodeFloat (vec4 color) {
+              const vec4 bitShift = vec4(
+                1.0 / (256.0 * 256.0 * 256.0),
+                1.0 / (256.0 * 256.0),
+                1.0 / 256.0,
+                1
+              );
+              return dot(color, bitShift);
+            }
+
+            vec4 phong() {
+                vec4 color;
+                // Do smooth "Phong" shading unless options like "Gouraud mode" are wanted instead.
+                // Otherwise, we already have final colors to smear (interpolate) across vertices.
+                if( GOURAUD || COLOR_NORMALS ) {
+                    color = VERTEX_COLOR;
+                    return color;
+                }                                 
+                // If we get this far, calculate Smooth "Phong" Shading as opposed to Gouraud Shading.
+                // Phong shading is not to be confused with the Phong Reflection Model.
+
+                // Sample the texture image in the correct place.
+                vec4 tex_color = texture2D( texture, f_tex_coord );                    
+
+                // Compute an initial (ambient) color:
+                if( USE_TEXTURE )
+                    color = vec4( ( tex_color.xyz + shapeColor.xyz ) * ambient, shapeColor.w * tex_color.w ); 
+                else
+                    color = vec4( shapeColor.xyz * ambient, shapeColor.w );
+                
+                // Compute the final color with contributions from lights.
+                color.xyz += phong_model_lights( N );
+
+                return color;
+            }
+
+
+            void main(void) {
+              vec3 fragmentDepth = shadowPos.xyz;
+              float shadowAcneRemover = 0.007;
+              fragmentDepth.z -= shadowAcneRemover;
+
+              float texelSize = 1.0 / ${this.shadowDepthTextureSize}.0;
+              float amountInLight = 0.0;
+
+              for (int x = -1; x <= 1; x++) {
+                for (int y = -1; y <= 1; y++) {
+                  float texelDepth = decodeFloat(texture2D(depthColorTexture,
+                  fragmentDepth.xy + vec2(x, y) * texelSize));
+                  if (fragmentDepth.z < texelDepth) {
+                    amountInLight += 1.0;
+                  }
+                }
+              }
+              amountInLight /= 9.0;
+
+              vec4 phong_color = phong();
+              gl_FragColor = vec4(amountInLight * phong_color.xyz, phong_color.w);
+            }
+        `;
+    }
+
+    update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
+        super.update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl)
+
+        // First, send the matrices to the GPU, additionally cache-ing some products of them we know we'll need:
+        this.update_matrices(g_state, model_transform, gpu, gl);
+        gl.uniform1f(gpu.animation_time_loc, g_state.animation_time / 1000);
+
+        if (g_state.gouraud === undefined) {
+            g_state.gouraud = g_state.color_normals = false;
+        }
+
+        // Keep the flags seen by the shader program up-to-date and make sure they are declared.
+        gl.uniform1i(gpu.GOURAUD_loc, g_state.gouraud);
+        gl.uniform1i(gpu.COLOR_NORMALS_loc, g_state.color_normals);
+
+        // Send the desired shape-wide material qualities to the graphics card, where they will
+        // tweak the Phong lighting formula.
+        gl.uniform4fv(gpu.shapeColor_loc,  material.color);
+        gl.uniform1f( gpu.ambient_loc,     material.ambient);
+        gl.uniform1f( gpu.diffusivity_loc, material.diffusivity);
+        gl.uniform1f( gpu.specularity_loc, material.specularity);
+        gl.uniform1f( gpu.smoothness_loc,  material.smoothness);
+
+        // NOTE: To signal not to draw a texture, omit the texture parameter from Materials.
+        if (material.texture) {
+            gpu.shader_attributes["tex_coord"].enabled = true;
+            gl.uniform1f(gpu.USE_TEXTURE_loc, 1);
+            gl.bindTexture(gl.TEXTURE_2D, material.texture.id);
+        }
+        else {
+            gl.uniform1f(gpu.USE_TEXTURE_loc, 0);
+            gpu.shader_attributes["tex_coord"].enabled = false;
+        }
+
+        if (!g_state.lights.length)
+            return;
+        var lightPositions_flattened = [],
+            lightColors_flattened = [],
+            lightAttenuations_flattened = [];
+        for (var i = 0; i < 4 * g_state.lights.length; i++) {
+            lightPositions_flattened.push(g_state.lights[Math.floor(i / 4)].position[i % 4]);
+            lightColors_flattened.push(g_state.lights[Math.floor(i / 4)].color[i % 4]);
+            lightAttenuations_flattened[Math.floor(i / 4)] = g_state.lights[Math.floor(i / 4)].attenuation;
+        }
+        gl.uniform4fv(gpu.lightPosition_loc, lightPositions_flattened);
+        gl.uniform4fv(gpu.lightColor_loc, lightColors_flattened);
+        gl.uniform1fv(gpu.attenuation_factor_loc, lightAttenuations_flattened);
+    }
+
+    // Helper function for sending matrices to GPU.
+    update_matrices(g_state, model_transform, gpu, gl) {
+        // (PCM will mean Projection * Camera * Model)
+        let [P,C,M] = [g_state.projection_transform, g_state.camera_transform, model_transform],
+            CM = C.times(M),
+            PCM = P.times(CM),
+            inv_CM = Mat4.inverse(CM).sub_block([0, 0], [3, 3]);
+
+        // Send the current matrices to the shader.  Go ahead and pre-compute
+        // the products we'll need of the of the three special matrices and just
+        // cache and send those.  They will be the same throughout this draw
+        // call, and thus across each instance of the vertex shader.
+        // Transpose them since the GPU expects matrices as column-major arrays.                                  
+        gl.uniformMatrix4fv(gpu.camera_transform_loc, false, Mat.flatten_2D_to_1D(C.transposed()));
+        gl.uniformMatrix4fv(gpu.camera_model_transform_loc, false, Mat.flatten_2D_to_1D(CM.transposed()));
+        gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
+        gl.uniformMatrix3fv(gpu.inverse_transpose_modelview_loc, false, Mat.flatten_2D_to_1D(inv_CM));
+    }
+
+
+
+
+
+
 }
 
 // THE DEFAULT SHADER: This uses the Phong Reflection Model, with optional Gouraud shading. 

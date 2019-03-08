@@ -145,7 +145,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.physics_shader = context.get_instance(Physics_Shader);
         this.light_shader = context.get_instance(Light_Shader);
-        this.camera_shader = context.get_instance(Camera_Shader);
+        this.camera_shader = context.get_instance(Phong_Shadow_Shader);
+//         this.camera_shader = context.get_instance(Camera_Shader);
+
         this.camera_shader.load_light_shader(this.light_shader);
 
 //         this.shadowDepthTexture = context.gl.createTexture()
@@ -158,8 +160,11 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         context.globals.graphics_state.light_view_matrix = Mat4.look_at(Vec.of(20, 50, 70), Vec.of(0, 0, 0), Vec.of(0, 1, 0));
 //         context.globals.graphics_state.light_projection_transform = Mat4.perspective(Math.PI / 4, r, .1, 1000);
 
-        context.globals.graphics_state.light_view_matrix = Mat4.look_at(Vec.of(0, 100, 0), Vec.of(0, 0, 0), Vec.of(0, 0, -1));
-        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-500, 500, -500, 500, -300, 100);
+        context.globals.graphics_state.light_view_matrix = Mat4.look_at(this.lights[0].position, Vec.of(0, 0, 0), Vec.of(0, 0, -1))
+//         context.globals.graphics_state.light_view_matrix = Mat4.look_at(Vec.of(100, 200, 0), Vec.of(0, 0, 0), Vec.of(0, 0, -1));
+//         context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-1000, 1000, -1000, 1000, -900, 500);
+        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 150);
+
     }
 
 
@@ -255,7 +260,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 
-        var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 50*Math.sin(t))).times(
+        var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 10*Math.sin(t))).times(
             Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
                 Mat4.scale(Vec.of(10, 10, 10).times(.1)));
 
@@ -268,7 +273,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.shapes.square.draw(
             graphics_state,
             Mat4.translation(Vec.of(0, 1, 0)).times(Mat4.scale(Vec.of(100, 100, 100))).times(
-                Mat4.rotation(PI/2, Vec.of(1, 0, 0))),
+                Mat4.rotation(-PI/2, Vec.of(1, 0, 0))),
             this.light_shader.material());
 
 //         this.shapes.ball.draw(
@@ -296,7 +301,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.shapes.square.draw(
             graphics_state,
             Mat4.translation(Vec.of(0, 1, 0)).times(Mat4.scale(Vec.of(100, 100, 100))).times(
-                Mat4.rotation(PI/2, Vec.of(1, 0, 0))),
+                Mat4.rotation(-PI/2, Vec.of(1, 0, 0))),
             this.camera_shader.material(Color.of(.7, 1, .9, 1)));
     }
         
