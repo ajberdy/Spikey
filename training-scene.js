@@ -90,9 +90,13 @@ class Training_Scene {
         this.give_intent(random_intent);
     }
 
-    reset_spiky_pos() {
+    reset_spiky_pos(reset_y=false) {
         // only reset position in xz plane
         this.Spikey.com[0] = this.spikey_starting_pos[0];
         this.Spikey.com[2] = this.spikey_starting_pos[2];
+
+        // unless specified
+        if (reset_y)
+            this.spikey.com[1] = this.spikey_starting_pos[1];
     }
 }
