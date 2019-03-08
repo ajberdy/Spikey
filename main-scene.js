@@ -21,6 +21,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         // Locate the camera here (inverted matrix).
         const r = context.width / context.height;
+        this.canvas_dims = [context.width, context.height];
         context.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(0, 20,0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 //         context.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 0, 30), Vec.of(0, 0,0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
@@ -143,6 +144,22 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.octree.initialize(this.entities);
 
         this.physics_shader = context.get_instance(Physics_Shader);
+        this.light_shader = context.get_instance(Light_Shader);
+        this.camera_shader = context.get_instance(Camera_Shader);
+        this.camera_shader.load_light_shader(this.light_shader);
+
+//         this.shadowDepthTexture = context.gl.createTexture()
+
+//         this.shadowMat = this.texture_base.override({
+//                 texture: this.shadowDepthTexture
+//             });
+
+
+//         context.globals.graphics_state.light_view_matrix = Mat4.look_at(Vec.of(20, 50, 70), Vec.of(0, 0, 0), Vec.of(0, 1, 0));
+//         context.globals.graphics_state.light_projection_transform = Mat4.perspective(Math.PI / 4, r, .1, 1000);
+
+        context.globals.graphics_state.light_view_matrix = Mat4.look_at(Vec.of(0, 100, 0), Vec.of(0, 0, 0), Vec.of(0, 0, -1));
+        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-500, 500, -500, 500, -300, 100);
     }
 
 
@@ -180,7 +197,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         var sx = this.entities[1].x, sz = this.entities[1].z;
         var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
         camera_location[1] = 30;
-//         this.globals.graphics_state.cameRra_transform = Mat4.look_at(camera_location, this.entities[1].pos, Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
+//         this.globals.graphics_state.camera_transform = Mat4.look_at(camera_location, this.entities[1].pos, Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
                 
         // Find how much time has passed in seconds, and use that to place shapes.
@@ -188,7 +205,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         if (!this.paused)
             this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
-        let dt = t - old_t;
+        let dt = 0;//t - old_t;
 
         if (dt) {
 
@@ -209,12 +226,80 @@ class Assignment_Two_Skeleton extends Scene_Component {
             
             this.update_entities(dt);
         }
+        
+//         this.shapes.square.draw(
+//             graphics_state,
+//             Mat4.translation(Vec.of(10, 20, 0)).times(
+//             Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
+//                 Mat4.scale(Vec.of(10, 10, 10).times(.5))),
+//             this.camera_shader.material().override({texture: this.shadowDepthTexture})
+//             );
+        
 
-
+        
+        this.draw_with_shadows(graphics_state, t);
+        this.draw_with_camera(graphics_state, t);
         this.draw_entities(graphics_state);
 
     }
 
+    draw_with_shadows(graphics_state, t) {
+        var gl = this.light_shader.gl;
+//         this.light_shader.activate();
+//         gl.useProgram(this.light_shader.program)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.light_shader.shadowFramebuffer)
+
+        gl.viewport(0, 0, this.light_shader.shadowDepthTextureSize, this.light_shader.shadowDepthTextureSize)
+        gl.clearColor(0, 0, 0, 1)
+        gl.clearDepth(1.0)
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+
+        var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 50*Math.sin(t))).times(
+            Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
+                Mat4.scale(Vec.of(10, 10, 10).times(.1)));
+
+        
+        this.shapes.spikey.draw(
+            graphics_state, 
+            transform,
+            this.light_shader.material());
+        
+        this.shapes.square.draw(
+            graphics_state,
+            Mat4.translation(Vec.of(0, 1, 0)).times(Mat4.scale(Vec.of(100, 100, 100))).times(
+                Mat4.rotation(PI/2, Vec.of(1, 0, 0))),
+            this.light_shader.material());
+
+//         this.shapes.ball.draw(
+//             graphics_state, 
+//             Mat4.translation(Vec.of(5, 5, 5)).times(transform),
+//             this.light_shader.material());
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+        gl.viewport(0, 0, ...this.canvas_dims);
+//         gl.clearColor(0.98, 0.98, 0.98, 1)
+//         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    }
+
+    draw_with_camera(graphics_state, t) {
+        var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 10*Math.sin(t))).times(
+            Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
+                Mat4.scale(Vec.of(10, 10, 10).times(.1)));
+
+        this.shapes.spikey.draw(
+            graphics_state, 
+            transform,
+//             this.plastic);
+            this.camera_shader.material(Color.of(0, 0, 1, 1)));
+
+        this.shapes.square.draw(
+            graphics_state,
+            Mat4.translation(Vec.of(0, 1, 0)).times(Mat4.scale(Vec.of(100, 100, 100))).times(
+                Mat4.rotation(PI/2, Vec.of(1, 0, 0))),
+            this.camera_shader.material(Color.of(.7, 1, .9, 1)));
+    }
+        
     dont_display(dt) {
 
         const g = this.gravity_off ? 0 : G;

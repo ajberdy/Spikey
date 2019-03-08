@@ -1,3 +1,6 @@
+SHADOW_DEPTH_TEXTURE_SIZE = 2048;
+
+
 // Subclasses of Shader each store and manage a complete GPU program.  This Shader is 
 // the simplest example of one.  It samples pixels from colors that are directly assigned 
 // to the vertices.  Materials here are minimal, without any settings.
@@ -142,6 +145,34 @@ window.Physics_Shader = window.classes.Physics_Shader = class Physics_Shader ext
 
 
 window.Light_Shader = window.classes.Light_Shader = class Light_Shader extends Shader {
+    constructor(gl) {
+        super(gl);
+        this.shadowDepthTextureSize = SHADOW_DEPTH_TEXTURE_SIZE;
+
+        this.shadowFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFramebuffer);
+
+        this.shadowDepthTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.shadowDepthTexture)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.shadowDepthTextureSize, 
+            this.shadowDepthTextureSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+
+        this.renderBuffer = gl.createRenderbuffer()
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.renderBuffer)
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 
+            this.shadowDepthTextureSize, this.shadowDepthTextureSize)
+
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.shadowDepthTexture, 0)
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.renderBuffer)
+
+        gl.bindTexture(gl.TEXTURE_2D, null)
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    }
+
     material(color) {
         return new class Material {
             constructor(shader, color=Color.of(1, 0, 0, 1)) {
@@ -160,21 +191,22 @@ window.Light_Shader = window.classes.Light_Shader = class Light_Shader extends S
         // Use a simple lookup table.
         return {
             object_space_pos: "positions"
-//             aVertexPosition: "light_position"
         }[name];
     }
 
     vertex_glsl_code() {
         return `
-        int shadowDepthTextureSize = 1024;
 
-        attribute vec3 aVertexPosition;
+        attribute vec3 object_space_pos;
+
+//         uniform mat4 projection_camera_model_transform;
+//         uniform mat4 LightMatrix;
 
         uniform mat4 uPMatrix;
         uniform mat4 uMVMatrix;
 
         void main (void) {
-          gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+          gl_Position = uPMatrix * uMVMatrix * vec4(object_space_pos, 1.0);
         }
         `;
     }
@@ -203,20 +235,176 @@ window.Light_Shader = window.classes.Light_Shader = class Light_Shader extends S
         }
 
         void main (void) {
-          gl_FragColor = encodeFloat(gl_FragCoord.z);
+            gl_FragColor = encodeFloat(gl_FragCoord.z);
+//             gl_FragColor = vec4(0., 0., 1., 1.);
         }
         `
     }
 
     update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
-        const PCM = g_state.projection_transform.times(g_state.camera_transform).times(model_transform);
-        gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
+        gl.uniformMatrix4fv(gpu.uPMatrix_loc, false, Mat.flatten_2D_to_1D(g_state.light_projection_transform.transposed()))
+//         gl.uniformMatrix4fv(gpu.uMVMatrix_loc, false, Mat.flatten_2D_to_1D(g_state.light_view_matrix))
+
+        gl.uniformMatrix4fv(gpu.uMVMatrix_loc, false, 
+            Mat.flatten_2D_to_1D(g_state.light_view_matrix.times(model_transform).transposed()))
 
 
-        gl.uniform4fv(gpu.shapeColor_loc,  material.color);
+//         const PCM = g_state.projection_transform.times(g_state.camera_transform).times(model_transform);
+//         const PLM = g_state.light_projection_transform.times(g_state.light_transform).times(model_transform);
+//         gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
+//         gl.uniformMatrix4fv(gpu.LightMatrix_loc, false, Mat.flatten_2D_to_1D(PLM.transposed()));
+    }
+}
+
+
+window.Camera_Shader = window.classes.Camera_Shader = class Camera_Shader extends Shader {
+    load_light_shader(light_shader) {
+        this.light_shader = light_shader;
+    }
+    get shadowDepthTexture() {
+        return this.light_shader.shadowDepthTexture;
+    }
+    get shadowDepthTextureSize() {
+        return SHADOW_DEPTH_TEXTURE_SIZE;
+    }
+    material(color) {
+        return new class Material {
+            constructor(shader, color=Color.of(1, 0, 0, 1)) {
+                // Assign defaults.
+                Object.assign(this, {
+                    shader,
+                    color
+                });
+            }
+
+            override(properties) {
+                const copied = new this.constructor();
+                Object.assign(copied, this);
+                Object.assign(copied, properties);
+                copied.color = copied.color.copy();
+                if (properties["opacity"] != undefined)
+                    copied.color[3] = properties["opacity"];
+                return copied;
+            }
+
+        }
+        (this, color);
+
+        
     }
 
+    map_attribute_name_to_buffer_name(name) {
+        // Use a simple lookup table.
+        return {
+            object_space_pos: "positions",
+            f_tex_coord: "texture_coords"
+        }[name];
+    }
 
+    vertex_glsl_code() {
+        return `
+        attribute vec3 object_space_pos;
+        attribute vec2 tex_coord;
+
+//         uniform mat4 projection_camera_model_transform;
+//         uniform mat4 LightMatrix;
+
+        uniform mat4 uPMatrix;
+        uniform mat4 uMVMatrix;
+        uniform mat4 lightPMatrix;
+        uniform mat4 lightMVMatrix;
+
+        varying vec2 f_tex_coord;
+
+         const mat4 texUnitConverter = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 
+         0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
+
+//         const mat4 texUnitConverter = mat4(1., 0.0, 0.0, 0.0, 0.0, 1., 
+//         0.0, 0.0, 0.0, 0.0, 1., 0.0, 1., 1., 1., 1.0);
+
+        varying vec4 shadowPos;
+
+        void main (void) {
+           gl_Position = uPMatrix * uMVMatrix * vec4(object_space_pos, 1.0);
+//             gl_Position = vec4(object_space_pos, 1.0);
+
+           shadowPos = texUnitConverter * lightPMatrix * lightMVMatrix * vec4(object_space_pos, 1.0);
+           f_tex_coord = tex_coord;
+
+        }
+        `;
+    }
+
+    fragment_glsl_code() {
+        return `
+        precision mediump float;
+
+        varying vec4 shadowPos;
+        varying vec2 f_tex_coord;
+
+        uniform sampler2D depthColorTexture;
+        uniform vec3 uColor;
+
+        float decodeFloat (vec4 color) {
+          const vec4 bitShift = vec4(
+            1.0 / (256.0 * 256.0 * 256.0),
+            1.0 / (256.0 * 256.0),
+            1.0 / 256.0,
+            1
+          );
+          return dot(color, bitShift);
+        }
+
+        void main(void) {
+          vec3 fragmentDepth = shadowPos.xyz;
+          float shadowAcneRemover = 0.007;
+          fragmentDepth.z -= shadowAcneRemover;
+
+          float texelSize = 1.0 / ${this.shadowDepthTextureSize}.0;
+          float amountInLight = 0.0;
+
+          for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+              float texelDepth = decodeFloat(texture2D(depthColorTexture,
+              fragmentDepth.xy + vec2(x, y) * texelSize));
+              if (fragmentDepth.z < texelDepth) {
+                amountInLight += 1.0;
+              }
+            }
+          }
+          amountInLight /= 9.0;
+
+          gl_FragColor = vec4(amountInLight * uColor, 1.0);
+//           gl_FragColor = shadowPos * .01;
+//           gl_FragColor = vec4(fragmentDepth*.008, 1.0);
+//           gl_FragColor = texture2D(depthColorTexture, f_tex_coord);
+//           gl_FragColor = vec4(uColor, 1.);
+//          gl_FragColor = vec4(decodeFloat(texture2D( depthColorTexture, f_tex_coord)) * vec3(1., 0., 1.), 1.0);
+//           vec4 tex_color = texture2D( depthColorTexture, shadowPos.xy * vec2(.01, .005) ); 
+//            gl_FragColor = vec4( ( tex_color.xyz ), tex_color.w ); 
+        }
+        `;
+    }
+
+    update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
+        gl.uniformMatrix4fv(gpu.uPMatrix_loc, false, 
+            Mat.flatten_2D_to_1D(g_state.projection_transform.transposed()));
+        gl.uniformMatrix4fv(gpu.uMVMatrix_loc, false,
+            Mat.flatten_2D_to_1D(g_state.camera_transform.times(model_transform).transposed()))
+
+        gl.uniformMatrix4fv(gpu.lightPMatrix_loc, false, 
+            Mat.flatten_2D_to_1D(g_state.light_projection_transform.transposed()));
+        gl.uniformMatrix4fv(gpu.lightMVMatrix_loc, false, 
+            Mat.flatten_2D_to_1D(g_state.light_view_matrix.times(model_transform).transposed()));
+
+//         console.log(g_state.light_projection_transform.times(g_state.light_view_matrix.times(model_transform)));
+       
+        gl.uniform3fv(gpu.uColor_loc, material.color.to3())
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, this.shadowDepthTexture);
+        gl.uniform1i(gpu.depthColorTexture_loc, 0);
+    }
 }
 
 // THE DEFAULT SHADER: This uses the Phong Reflection Model, with optional Gouraud shading. 
