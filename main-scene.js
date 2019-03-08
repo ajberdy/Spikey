@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 5*9.8,
+      G = 3*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 const NULL_AGENT = 0,
@@ -83,6 +83,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 texture: context.get_instance(shape_textures[t])
             });
 
+        this.light_shader = context.get_instance(Light_Shader);
+        this.camera_shader = context.get_instance(Phong_Shadow_Shader);
+//         this.camera_shader = context.get_instance(Camera_Shader);
+
+        this.camera_shader.load_light_shader(this.light_shader);
+
         
         this.shader_mats = {
             floor: context.get_instance(Phong_Shader).material(Color.of(.75, .75, .75, 1), {
@@ -101,11 +107,23 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 diffusivity: .9,
                 specularity: .2,
                 smoothness: 20
+            }),
+            shadow_spikey: context.get_instance(Phong_Shadow_Shader).material(Color.of(.398, .199, .598, 1), {
+                ambient: .2,
+                diffusivity: .9,
+                specularity: .2,
+                smoothness: 20
             })
         };
 
         this.materials = {
             wood: Material.of(.35, .1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+                ambient: 0,
+                diffusivity: .4,
+                specularity: .5,
+                smoothness: 20
+            })),
+            shadow_wood: Material.of(.35, .1, .01, this.camera_shader.material(Color.of(1, .96, .86, 1), {
                 ambient: 0,
                 diffusivity: .4,
                 specularity: .5,
@@ -144,11 +162,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.octree.initialize(this.entities);
 
         this.physics_shader = context.get_instance(Physics_Shader);
-        this.light_shader = context.get_instance(Light_Shader);
-        this.camera_shader = context.get_instance(Phong_Shadow_Shader);
-//         this.camera_shader = context.get_instance(Camera_Shader);
-
-        this.camera_shader.load_light_shader(this.light_shader);
 
 //         this.shadowDepthTexture = context.gl.createTexture()
 
@@ -210,7 +223,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         if (!this.paused)
             this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
-        let dt = 0;//t - old_t;
+        let dt = t - old_t;
 
         if (dt) {
 
@@ -242,13 +255,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
         
 
         
-        this.draw_with_shadows(graphics_state, t);
-        this.draw_with_camera(graphics_state, t);
+        this.draw_with_shadows(graphics_state);
+//         this.draw_with_camera(graphics_state, t);
         this.draw_entities(graphics_state);
 
     }
 
-    draw_with_shadows(graphics_state, t) {
+    draw_with_shadows(graphics_state) {
         var gl = this.light_shader.gl;
 //         this.light_shader.activate();
 //         gl.useProgram(this.light_shader.program)
@@ -259,22 +272,26 @@ class Assignment_Two_Skeleton extends Scene_Component {
         gl.clearDepth(1.0)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+        for (var e of this.entities) {
+            e.draw(graphics_state, this.light_shader.material());
+        }
 
-        var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 10*Math.sin(t))).times(
-            Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
-                Mat4.scale(Vec.of(10, 10, 10).times(.1)));
+
+//         var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 10*Math.sin(t))).times(
+//             Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
+//                 Mat4.scale(Vec.of(10, 10, 10).times(.1)));
 
         
-        this.shapes.spikey.draw(
-            graphics_state, 
-            transform,
-            this.light_shader.material());
+//         this.shapes.spikey.draw(
+//             graphics_state, 
+//             transform,
+//             this.light_shader.material());
         
-        this.shapes.square.draw(
-            graphics_state,
-            Mat4.translation(Vec.of(0, 1, 0)).times(Mat4.scale(Vec.of(100, 100, 100))).times(
-                Mat4.rotation(-PI/2, Vec.of(1, 0, 0))),
-            this.light_shader.material());
+//         this.shapes.square.draw(
+//             graphics_state,
+//             Mat4.translation(Vec.of(0, 1, 0)).times(Mat4.scale(Vec.of(100, 100, 100))).times(
+//                 Mat4.rotation(-PI/2, Vec.of(1, 0, 0))),
+//             this.light_shader.material());
 
 //         this.shapes.ball.draw(
 //             graphics_state, 
@@ -287,7 +304,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     }
 
-    draw_with_camera(graphics_state, t) {
+    draw_with_camera(graphics_state) {
         var transform = Mat4.translation(Vec.of(10*Math.cos(t), 30, 10*Math.sin(t))).times(
             Mat4.rotation(0*PI/2, Vec.of(-1, 0, 0))).times(
                 Mat4.scale(Vec.of(10, 10, 10).times(.1)));
@@ -296,7 +313,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             graphics_state, 
             transform,
 //             this.plastic);
-            this.camera_shader.material(Color.of(0, 0, 1, 1)));
+            this.shader_mats.shadow_spikey);
 
         this.shapes.square.draw(
             graphics_state,
@@ -341,7 +358,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
 //         this.entities.push(Ball.of(this, Vec.of(45n, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
@@ -363,8 +380,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities[1].rotate(Quaternion.of(5*PI/4, 5*PI/4, 0, PI/4).normalized());
 
 
-        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(0), Quaternion.unit(),
-                                             RL_AGENT));
+        this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
+                                             CHAOS_AGENT));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
@@ -429,6 +446,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //                 this.physics_shader.material(Color.of(1, 0, 0, 1)),
 //                 "LINES");
         }
+    }
+
+    draw_entities_with_shadows(graphics_state) {
+        this.draw_with_shadows(graphics_state, this.entities);
     }
 }
 

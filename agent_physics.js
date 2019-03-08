@@ -37,7 +37,7 @@ class Spikey_Object extends Physics_Object {
 
         this.spikey_material = spikey_material;
 
-        this.shape = new Spikey_Shape(spikey_consts);
+        this.shape = this.scene.shapes.spikey;//new Spikey_Shape(spikey_consts);
 
         this.base_points = this.shape.tips;
 
@@ -84,6 +84,7 @@ class Spikey_Object extends Physics_Object {
         this.last_intent = Vec.of(1, 0, 0);
         
         this.state = {
+            t: 0,
             spikes: Array.apply(null, Array(num_spikes)),
             orientation: this.orientation,
             intent: this.intent
@@ -109,7 +110,7 @@ class Spikey_Object extends Physics_Object {
         return this.brain.get_rl_tensors(this.state);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
 //         this.scene.shapes.spikey.draw(
 //             graphics_state,
 //             this.transform,
@@ -124,22 +125,22 @@ class Spikey_Object extends Physics_Object {
 
 //         return;
 
-        this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
-            this.scene.plastic);
+//         this.scene.shapes.ball.draw(
+//             this.scene.globals.graphics_state,
+//             Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
+//             this.scene.plastic);
 
-        this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(this.pos).times(Mat4.scale(2, 2, 2)),
-            this.scene.shader_mats.floor);
+//         this.scene.shapes.ball.draw(
+//             this.scene.globals.graphics_state,
+//             Mat4.translation(this.pos).times(Mat4.scale(2, 2, 2)),
+//             this.scene.shader_mats.floor);
 
-        if (this.scene.debug)
-            this.scene.shapes.vector.draw(
-                this.scene.globals.graphics_state,
-                Mat4.y_to_vec(this.d, this.com).times(10000000),
-                this.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//         if (this.scene.debug)
+//             this.scene.shapes.vector.draw(
+//                 this.scene.globals.graphics_state,
+//                 Mat4.y_to_vec(this.d, this.com).times(10000000),
+//                 this.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
 
 //         console.log(this.d);
 
@@ -151,7 +152,7 @@ class Spikey_Object extends Physics_Object {
 //                     Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
 //                     this.scene.shader_mats.floor);
 //             } 
-            subshape.draw(graphics_state);
+            subshape.draw(graphics_state, light_shader_mat);
 
         }
         
@@ -286,7 +287,7 @@ class Spikey_Object extends Physics_Object {
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
-        // this.state.t = this.scene.globals.graphics_state.animation_time;
+        this.state.t = this.scene.globals.graphics_state.animation_time;
         
     }
 

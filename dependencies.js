@@ -1,4 +1,4 @@
-SHADOW_DEPTH_TEXTURE_SIZE = 2048*2;
+SHADOW_DEPTH_TEXTURE_SIZE = 2048;
 
 
 // Subclasses of Shader each store and manage a complete GPU program.  This Shader is 
@@ -249,6 +249,18 @@ window.Light_Shader = window.classes.Light_Shader = class Light_Shader extends S
             Mat.flatten_2D_to_1D(g_state.light_view_matrix.times(model_transform).transposed()))
 
 
+//         let light_pos = g_state.lights[0].position,
+// //             model_pos = model_transform.times(Vec.of(0, 0, 0, 1)),
+//             model_pos = Vec.of(0, 0, 0),
+//             up_dir = light_pos.minus(model_pos).cross(model_pos);
+
+//         if (up_dir.dot(up_dir))
+//             gl.uniformMatrix4fv(gpu.lightMVMatrix_loc, false, 
+//             Mat.flatten_2D_to_1D(Mat4.look_at(light_pos, model_pos, up_dir).transposed()));
+        
+        
+
+
 //         const PCM = g_state.projection_transform.times(g_state.camera_transform).times(model_transform);
 //         const PLM = g_state.light_projection_transform.times(g_state.light_transform).times(model_transform);
 //         gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
@@ -396,6 +408,7 @@ window.Camera_Shader = window.classes.Camera_Shader = class Camera_Shader extend
             Mat.flatten_2D_to_1D(g_state.light_projection_transform.transposed()));
         gl.uniformMatrix4fv(gpu.lightMVMatrix_loc, false, 
             Mat.flatten_2D_to_1D(g_state.light_view_matrix.times(model_transform).transposed()));
+
 
 //         console.log(g_state.light_projection_transform.times(g_state.light_view_matrix.times(model_transform)));
        
@@ -669,6 +682,16 @@ window.Phong_Shadow_Shader = window.classes.Phong_Shadow_Shader = class Phong_Sh
         gl.uniform4fv(gpu.lightPosition_loc, lightPositions_flattened);
         gl.uniform4fv(gpu.lightColor_loc, lightColors_flattened);
         gl.uniform1fv(gpu.attenuation_factor_loc, lightAttenuations_flattened);
+
+
+//         let light_pos = g_state.lights[0].position,
+// //             model_pos = model_transform.times(Vec.of(0, 0, 0, 1)),
+//             model_pos = Vec.of(0, 0, 0),
+//             up_dir = light_pos.minus(model_pos).cross(model_pos);
+
+//         if (up_dir.dot(up_dir))
+//             gl.uniformMatrix4fv(gpu.lightMVMatrix_loc, false, 
+//                 Mat.flatten_2D_to_1D(Mat4.look_at(light_pos, model_pos, up_dir).transposed()));
     }
 
     // Helper function for sending matrices to GPU.

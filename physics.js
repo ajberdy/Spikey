@@ -49,6 +49,7 @@ class Physics_Object {
         this.bounding_radius;
 
         this.convex = true;
+        this.shape;
 
 
 //         // hacky stuff
@@ -221,6 +222,7 @@ class Ball extends Physics_Object {
         this.base_normals = scene.shapes.ball.normals;
 
         this.bounding_radius = this.r;
+        this.shape = this.scene.shapes.ball;
     }
 
     get transform() {
@@ -233,11 +235,11 @@ class Ball extends Physics_Object {
         return new Ball(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.ball.draw(
             graphics_state,
             this.transform,
-            this.shader_mat ? this.shader_mat : this.scene.shader_mats.soccer);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
     }
 
     support(d) {
@@ -267,6 +269,7 @@ class Box extends Physics_Object {
         this.base_normals = scene.shapes.box.normals;
 
         this.bounding_radius = this.dims.norm();
+        this.shape = this.scene.shapes.box;
     }
 
     get transform() {
@@ -283,11 +286,11 @@ class Box extends Physics_Object {
         return new Box(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.box.draw(
             graphics_state,
             this.transform,
-            this.shader_mat);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
     }
 }
 
@@ -358,6 +361,7 @@ class Cone_Object extends Physics_Object {
 //         console.log(this.I);
 
         this.bounding_radius = Math.max(this.r, this.h);
+        this.shape = this.scene.shapes.cone;
     }
 
 //     get com() {
@@ -379,11 +383,11 @@ class Cone_Object extends Physics_Object {
         return new Cone_Object(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.cone.draw(
             graphics_state,
             this.transform,
-            this.shader_mat);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
 
 //         this.scene.shapes.ball.draw(
 //                 graphics_state,
@@ -532,11 +536,11 @@ class Spike_Object extends Physics_Object {
         return new Spike_Object(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.cone.draw(
             graphics_state,
             this.transform,
-            this.shader_mat);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
 
 //         this.scene.shapes.ball.draw(
 //                 graphics_state,
