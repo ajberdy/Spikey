@@ -97,9 +97,6 @@ class RL_Agent extends Spikey_Agent {
         this.actuation = [0, 0, 0, 0,
                           0, 0, 0, 0,
                           0, 0, 0, 0];
-
-        this.policy = null;
-        this.on_policy = false;
     }
 
 //     get_actuation(state, intent) {
@@ -132,22 +129,7 @@ class RL_Agent extends Spikey_Agent {
 
 //     }
 
-    load_policy(policy, set_policy_mode) {
-        this.policy = policy
-
-        if (set_policy_mode)
-            this.on_policy = true;
-    }
-
-    get_actuation(state, intent) {
-        if (!this.on_policy)
-            return this.actuation;
-
-        var rl_tensors = this.get_rl_tensors(state),
-            split_tensor = rl_tensors.split_336.reshape([1, 336]);
-
-        let actuation = this.policy(split_tensor);
-        this.update_actuation(actuation);
+    get_actuation() {
         return this.actuation;
     }
 
@@ -274,21 +256,9 @@ class RL_Agent extends Spikey_Agent {
 //         rl_tensors.global_52.print();
 
         rl_tensors.split_336 = tf.tensor(split_12x7x4);
-//         console.log(rl_tensors.split_324[0]);        
+//         console.log(rl_tensors.split_336[0]);
 
         return rl_tensors;
     }
 
-}
-
-class Trained_Agent extends Spikey_Agent {
-    constructor() {
-        this.policy = null;
-    }
-
-    
-
-    get_actuation(state, intent) {
-        return policy(rl_tensor);
-    }
 }

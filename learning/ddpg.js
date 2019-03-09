@@ -8,7 +8,7 @@ class DDPG {
     this.config = config;
     this.gamma = tf.scalar(config.gamma);
 
-    this.modelObservationInput = tf.input({batchShape: [null, 13, 4]});
+    this.modelObservationInput = tf.input({batchShape: [null, 52]});
     this.singleObservationInput = tf.input({batchShape: [null, 28]});
     this.actionInput = tf.input({batchShape: [null, 12]});
 
@@ -38,8 +38,8 @@ class DDPG {
 
     this.criticTargetWithActorTarget = (observation, expanded_observation) => {
       return tf.tidy(() => {
-        const action = this.actorTarget.predict(expanded_observation);
-        return this.criticTarget.predict(observation, action);
+        const actions = this.actorTarget.predict(expanded_observation);
+        return this.criticTarget.predict(observation, actions);
       });
     };
 
@@ -68,8 +68,6 @@ class DDPG {
       return tf.mean(predQ).mul(tf.scalar(-1.))
     }, true, this.actorWeights);
 
-    targetUpdate(this.actorTarget, this.actor, this.config);
-
     const loss = actorLoss.buffer().values[0];
     actorLoss.dispose();
 
@@ -80,17 +78,19 @@ class DDPG {
    * Does a single batch worth of training on the critic model, loss function being mean-square loss between target
    * network and regular network
    * @param states
+   * @param expanded_states
    * @param actions
    * @param new_states
+   * @param expanded_new_states
    * @param rewards
    * @returns {*}
    */
-  trainCritic(states, expanded_states, actions, new_states, rewards){
+  trainCritic(states, expanded_states, actions, new_states, expanded_new_states, rewards){
     const criticLoss = this.criticOptimizer.minimize(() => {
-      const predQ = this.critic.model.predict([states, actions]);
-      const targetPredQ = this.criticTargetWithActorTarget(new_states, expanded_states);
+      const predQ = this.critic.predict(states, actions);
+      const new_state_Q = this.criticTargetWithActorTarget(new_states, expanded_new_states);
 
-      const Q = rewards.add(this.gamma.mul(targetPredQ));
+      const Q = rewards.add(this.gamma.mul(new_state_Q));
       const meanSquareLoss = tf.sub(Q, predQ).square();
 
       return meanSquareLoss.mean();
@@ -99,10 +99,14 @@ class DDPG {
     const loss = criticLoss.buffer().values[0];
     criticLoss.dispose();
 
-    targetUpdate(this.criticTarget, this.critic, this.config);
-
     return loss;
 
+  }
+
+  targetUpdate(){
+    // Define in js/DDPG/models.js
+    targetUpdate(this.criticTarget, this.critic, this.config);
+    targetUpdate(this.actorTarget, this.actor, this.config);
   }
 
   /**
@@ -147,14 +151,20 @@ class DDPG {
       return [0]
     }
 
-    let distanceV = null;
     const distance = this.noiseDistance(batch.expanded_states);
     addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
-    distanceV = distance.buffer().values;
+    let distanceV = distance.buffer().values;
     this.noise.adapt(distanceV[0]);
 
+    // Dispose our created tensors
+    batch.states.dispose();
+    batch.expanded_states.dispose();
+    batch.actions.dispose();
+    batch.rewards.dispose();
+    batch.new_states.dispose();
     distance.dispose();
+
     return distanceV;
   }
 
@@ -175,7 +185,12 @@ class DDPG {
   optimizeActorCritic(){
     const batch = this.memory.sample_batch(this.config.batchSize);
 
-    const criticLoss = this.trainCritic(batch.states, batch.expanded_states, batch.actions, batch.new_states, batch.rewards);
+    const criticLoss = this.trainCritic(batch.states,
+                                        batch.expanded_states,
+                                        batch.actions,
+                                        batch.new_states,
+                                        batch.expanded_new_states,
+                                        batch.rewards);
     const actorLoss = this.trainActor(batch.states, batch.expanded_states);
 
     batch.actions.dispose();
@@ -184,7 +199,7 @@ class DDPG {
     batch.new_states.dispose();
     batch.rewards.dispose();
 
-    return {criticLoss, actorLoss};
+    return {lossC: criticLoss, lossA: actorLoss};
 
   }
 

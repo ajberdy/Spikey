@@ -11,8 +11,9 @@ class Actor{
    * Builds a single actor model
    * @param observation
    */
-  buildModel(observation){
+  buildModel(observation, action){
     this.observation = observation;
+    this.action = action;
     this.layer1 = tf.layers.dense({
       units: 28,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
@@ -60,23 +61,20 @@ class Actor{
    */
   predict(observation){
     // observation.print();
-    if(observation.rank == 3){
-      observation = observation.expandDims();
-    }
     return tf.tidy(() => {
-      let out0 = this.singlePredict(observation.slice([0, 0, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out1 = this.singlePredict(observation.slice([0, 1, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out2 = this.singlePredict(observation.slice([0, 2, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out3 = this.singlePredict(observation.slice([0, 3, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out4 = this.singlePredict(observation.slice([0, 4, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out5 = this.singlePredict(observation.slice([0, 5, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out6 = this.singlePredict(observation.slice([0, 6, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out7 = this.singlePredict(observation.slice([0, 7, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out8 = this.singlePredict(observation.slice([0, 8, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out9 = this.singlePredict(observation.slice([0, 9, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out10 = this.singlePredict(observation.slice([0, 10, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      let out11 = this.singlePredict(observation.slice([0, 11, 0, 0], [-1, 1, 7, 4]).reshape([-1, 28])).buffer().values[0];
-      return tf.tensor([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]);
+      let out0 = this.singlePredict(observation.slice([0, 0], [-1, 28])).reshape([-1]);
+      let out1 = this.singlePredict(observation.slice([0, 28], [-1, 28])).reshape([-1]);
+      let out2 = this.singlePredict(observation.slice([0, 56], [-1, 28])).reshape([-1]);
+      let out3 = this.singlePredict(observation.slice([0, 84], [-1, 28])).reshape([-1]);
+      let out4 = this.singlePredict(observation.slice([0, 112], [-1, 28])).reshape([-1]);
+      let out5 = this.singlePredict(observation.slice([0, 140], [-1, 28])).reshape([-1]);
+      let out6 = this.singlePredict(observation.slice([0, 168], [-1, 28])).reshape([-1]);
+      let out7 = this.singlePredict(observation.slice([0, 196], [-1, 28])).reshape([-1]);
+      let out8 = this.singlePredict(observation.slice([0, 224], [-1, 28])).reshape([-1]);
+      let out9 = this.singlePredict(observation.slice([0, 252], [-1, 28])).reshape([-1]);
+      let out10 = this.singlePredict(observation.slice([0, 280], [-1, 28])).reshape([-1]);
+      let out11 = this.singlePredict(observation.slice([0, 308], [-1, 28])).reshape([-1]);
+      return tf.stack([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11], 1);
     })
   }
 }
@@ -132,14 +130,17 @@ class Critic{
       biasInitializer: "zeros"
     });
 
-    this.predict = (tfState, tfActions) => {
+    this.predict = (states, actions) => {
       return tf.tidy(() => {
-        if (tfState && tfActions){
-          observation = tfState;
-          action = tfActions;
+        if (states && actions){
+          observation = states;
+          action = actions;
         };
-        let l1 = tf.layers.add().apply([this.firstLayerAction.apply(action), this.firstLayerState.apply(observation)]);
-        return this.outputLayer.apply(this.secondLayer.apply(l1));
+        let l1a = this.firstLayerAction.apply(action);
+        let l1s = this.firstLayerState.apply(observation);
+        let l2concat = tf.layers.add().apply([l1a, l1s]);
+        let l2 = this.secondLayer.apply(l2concat);
+        return this.outputLayer.apply(l2);
       })
     };
     const output = this.predict();

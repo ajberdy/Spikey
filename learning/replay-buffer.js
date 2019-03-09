@@ -19,7 +19,7 @@ class ReplayBuffer {
      * @param reward
      * @private
      */
-    pushExperience(state, expanded_state, action, new_state, reward){
+    pushExperience(state, expanded_state, action, new_state, expanded_new_state, reward){
         if(this.count == this.max_size){
             this.buffer.shift();
             self.count -= 1;
@@ -29,6 +29,7 @@ class ReplayBuffer {
            expanded_state: expanded_state,
            action: action,
            new_state: new_state,
+           expanded_new_state: expanded_new_state,
            reward: reward,
         });
         this.count += 1;
@@ -49,12 +50,13 @@ class ReplayBuffer {
      * @returns {{new_states: Array, actions: Array, rewards: Array, states: Array}}
      */
     sample_batch(batch_size){
-        console.log(batch_size, this.count);
+        // console.log(batch_size, this.count);
         const batch = {
             'states': [],
             'expanded_states': [],
             'actions': [],
             'new_states': [],
+            'expanded_new_states': [],
             'rewards': []
         };
         if(batch_size > this.count) {
@@ -64,20 +66,25 @@ class ReplayBuffer {
         const sample_bucket = Array.from(Array(this.count).keys());
         for (let i = 0; i < batch_size; i++){
             let idx = Math.floor(Math.random() * sample_bucket.length);
-            batch['states'].push(this.buffer[sample_bucket[idx]].state);
-            batch['expanded_states'].push(this.buffer[sample_bucket[idx]].expanded_state);
-            batch['actions'].push(this.buffer[sample_bucket[idx]].action);
-            batch['new_states'].push(this.buffer[sample_bucket[idx]].new_state);
+            batch['states'].push(Array.from(this.buffer[sample_bucket[idx]].state));
+            batch['expanded_states'].push(Array.from(this.buffer[sample_bucket[idx]].expanded_state));
+            batch['actions'].push(Array.from(this.buffer[sample_bucket[idx]].action));
+            batch['new_states'].push(Array.from(this.buffer[sample_bucket[idx]].new_state));
+            batch['expanded_new_states'].push(Array.from(this.buffer[sample_bucket[idx]].expanded_new_state));
             batch['rewards'].push(this.buffer[sample_bucket[idx]].reward);
             sample_bucket.splice(idx, 1);
         }
+        // console.log(Array.from(batch['states']));
         let ret_batch = {
-            states: tf.stack(batch['states']),
-            expanded_states: tf.stack(batch['expanded_states']),
-            actions: tf.stack(batch['actions']),
-            new_states: tf.stack(batch['new_states']),
-            rewards: tf.tensor(batch['rewards'])
-        }
+            states: tf.tensor(batch.states),
+            expanded_states: tf.tensor(batch.expanded_states),
+            actions: tf.tensor(batch.actions),
+            new_states: tf.tensor(batch.new_states),
+            expanded_new_states: tf.tensor(batch.expanded_new_states),
+            rewards: tf.tensor(batch.rewards)
+        };
+        // console.log(batch.states.flat(1));
+        // tf.tensor2d(batch.states, [batch_size, 52]).print();
         return ret_batch;
     }
 
