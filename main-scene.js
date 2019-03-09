@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 3*9.8,
+      G = 1*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 const NULL_AGENT = 0,
@@ -361,9 +361,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
-//         this.entities.push(Ball.of(this, Vec.of(45n, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
-//         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(60, 0, 0), Vec.of(0, 0, 50), Quaternion.unit(), 50, 5, Material.of(.4, .2, .9, this.shader_mats.soccer)));
-//         this.entities.push(Box.of(this, Vec.of(-45, 10, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 100, Vec.of(10, 10, 10), this.materials.rubber));
+        this.entities.push(Ball.of(this, Vec.of(45, 40, 0), Vec.of(-10, 0, 0), Vec.of(0, 10, 0), Quaternion.unit(), 50, 15, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+        this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(60, 0, 0), Vec.of(0, 0, 50), Quaternion.unit(), 50, 5, Material.of(.5, .3, .9, this.shader_mats.soccer)));
+        this.entities.push(Box.of(this, Vec.of(-45, 10, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 100, Vec.of(10, 10, 10), this.materials.rubber));
 
 
 //         this.entities.push(new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 30, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
@@ -381,7 +381,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
 
         this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
-                                             CHAOS_AGENT));
+                                             NULL_AGENT));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {

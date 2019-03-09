@@ -97,6 +97,9 @@ class RL_Agent extends Spikey_Agent {
         this.actuation = [0, 0, 0, 0,
                           0, 0, 0, 0,
                           0, 0, 0, 0];
+
+        this.policy = null;
+        this.on_policy = false;
     }
 
 //     get_actuation(state, intent) {
@@ -129,7 +132,22 @@ class RL_Agent extends Spikey_Agent {
 
 //     }
 
-    get_actuation() {
+    load_policy(policy, set_policy_mode) {
+        this.policy = policy
+
+        if (set_policy_mode)
+            this.on_policy = true;
+    }
+
+    get_actuation(state, intent) {
+        if (!this.on_policy)
+            return this.actuation;
+
+        var rl_tensors = this.get_rl_tensors(state),
+            split_tensor = rl_tensors.split_336.reshape([1, 336]);
+
+        let actuation = this.policy(split_tensor);
+        this.update_actuation(actuation);
         return this.actuation;
     }
 
@@ -241,7 +259,7 @@ class RL_Agent extends Spikey_Agent {
 
         var rl_tensors = {
             global_52: null,
-            split_324: null
+            split_336: null
         };
 
         var transformed_intent = Mat4.quaternion_rotation(state.orientation.inverse()).times(intent);
@@ -255,10 +273,22 @@ class RL_Agent extends Spikey_Agent {
         rl_tensors.global_52 = tf.tensor(global_13x4);
 //         rl_tensors.global_52.print();
 
-        rl_tensors.split_324 = tf.tensor(split_12x7x4);
+        rl_tensors.split_336 = tf.tensor(split_12x7x4);
 //         console.log(rl_tensors.split_324[0]);        
 
         return rl_tensors;
     }
 
+}
+
+class Trained_Agent extends Spikey_Agent {
+    constructor() {
+        this.policy = null;
+    }
+
+    
+
+    get_actuation(state, intent) {
+        return policy(rl_tensor);
+    }
 }
