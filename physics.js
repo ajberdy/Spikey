@@ -1267,7 +1267,7 @@ class Collision_Detection {
         var rel_vel = a.point_vel(a_r).minus(b.point_vel(b_r)),
             vel_along_normal = rel_vel.dot(normal);
             
-        const percent = .2;
+        const percent = .8;
         var penetration_depth = a.r + b.r - a.com.minus(b.com).norm(),
             slop = .01,
             correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);
