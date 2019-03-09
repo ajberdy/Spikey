@@ -287,7 +287,7 @@ class Spikey_Object extends Physics_Object {
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
-        this.state.t = this.scene.globals.graphics_state.animation_time;
+        // this.state.t = this.scene.globals.graphics_state.animation_time;
         
     }
 

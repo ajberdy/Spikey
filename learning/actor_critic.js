@@ -10,10 +10,10 @@ class Actor{
   /**
    * Builds a single actor model
    * @param observation
+   * @param action
    */
-  buildModel(observation, action){
+  buildModel(observation){
     this.observation = observation;
-    this.action = action;
     this.layer1 = tf.layers.dense({
       units: 28,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),

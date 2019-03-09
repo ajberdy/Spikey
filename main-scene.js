@@ -156,7 +156,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.pulsate = false;
 
         this.entities = [];
-        this.initialize_entities();
+        this.initialize_entities("rl_render");
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
 //         this.octree.initialize(this.entities);
@@ -342,7 +342,18 @@ class Assignment_Two_Skeleton extends Scene_Component {
         Collision_Detection.collide(a, b);
     }
 
-    initialize_entities() {
+    initialize_entities(scene_type) {
+        if(scene_type == 'rl_render'){
+            this.agent = new Agent(this);
+            this.agent.restore();
+            this.spikey_starting_pos = Vec.of(0, spikey_consts.sphere_radius + spikey_consts.max_spike_protrusion, 0);
+            let floor_material = this.materials.shadow_wood;
+            this.Spikey = Spikey_Object.of(this, this.spikey_starting_pos, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), RL_AGENT);
+            this.floor = Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(100000, 100, 100000), floor_material);
+            this.entities = [this.Spikey, this.floor];
+            this.Spikey.brain.load_agent(this.agent, true);
+            return;
+        }
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 

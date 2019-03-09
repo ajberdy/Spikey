@@ -60,7 +60,7 @@ class ReplayBuffer {
             'rewards': []
         };
         if(batch_size > this.count) {
-            console.warn("Batch size greater than buffer size, returning empty batch.");
+            // console.warn("Batch size greater than buffer size, returning empty batch.");
             return batch;
         }
         const sample_bucket = Array.from(Array(this.count).keys());
