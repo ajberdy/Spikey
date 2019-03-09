@@ -8,6 +8,8 @@ const NULL_AGENT = 0,
       RL_AGENT = 3,
       CONSTANT_AGENT = 4;
 
+const TOWER = 0,
+      CHAOS = 1;
 
 
 class Assignment_Two_Skeleton extends Scene_Component {
@@ -156,7 +158,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.pulsate = false;
 
         this.entities = [];
-        this.initialize_entities("rl_render");
+        this.initialize_entities(CHAOS);
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
 //         this.octree.initialize(this.entities);
@@ -212,9 +214,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
     display(graphics_state) {
         // Use the lights stored in this.lights.
         graphics_state.lights = this.lights;
-        var sx = this.entities[1].x, sz = this.entities[1].z;
-        var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
-        camera_location[1] = 30;
+//         var sx = this.entities[1].x, sz = this.entities[1].z;
+//         var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
+//         camera_location[1] = 30;
 //         this.globals.graphics_state.camera_transform = Mat4.look_at(camera_location, this.entities[1].pos, Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
                 
@@ -343,6 +345,43 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
     initialize_entities(scene_type) {
+
+        if (scene_type == TOWER) {
+            let num_blocks = 30,
+                base_pos = Vec.of(0, 0, 0),
+                side_length = 10,
+                mass = 10,
+                spacing = 5,
+                epsilon = .1,
+                mat = this.materials.shadow_wood.override({e: .7});
+
+            for (var i in Array.apply(null, Array(num_blocks))) {
+                this.entities.push(Ball.of(this, base_pos.plus(Vec.of(0, side_length/2 + epsilon, 0)).plus(
+                    Vec.of(0, (side_length + spacing)*i, 0)), Vec.of(Math.random(), 0, Math.random()), Vec.of(0, 0, 0), Quaternion.unit(),
+                    mass, side_length/2, mat));//Vec.of(1, 1, 1).times(side_length), mat));
+            }
+            for (var i in Array.apply(null, Array(num_blocks))) {
+                this.entities.push(Ball.of(this, base_pos.plus(Vec.of(-side_length - epsilon, side_length/2 + epsilon, 0)).plus(
+                    Vec.of(0, (side_length + spacing)*i, 0)), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
+                    mass, side_length/2, mat));//Vec.of(1, 1, 1).times(side_length), mat));
+            }
+            for (var i in Array.apply(null, Array(num_blocks))) {
+                this.entities.push(Ball.of(this, base_pos.plus(Vec.of(side_length + epsilon, side_length/2 + epsilon, 0)).plus(
+                    Vec.of(0, (side_length + spacing)*i, 0)), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
+                    mass, side_length/2, mat));//Vec.of(1, 1, 1).times(side_length), mat));
+            }
+
+            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood.override({e: .8})));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+
+            return;
+        }
+
+        if (scene_type == CHAOS) {
+          this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+          this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
+            CHAOS_AGENT));
+          return;
+        }
         if(scene_type == 'rl_render'){
             this.agent = new Agent(this);
             this.agent.restore();
