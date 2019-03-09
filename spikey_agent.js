@@ -40,6 +40,8 @@ class Constant_Agent {
         this.actuation = [0, 0, 0, 0,
                           0, 0, 0, 0,
                           0, 0, 0, 0];
+
+
     }
 
     get_actuation() {
@@ -97,6 +99,8 @@ class RL_Agent extends Spikey_Agent {
         this.actuation = [0, 0, 0, 0,
                           0, 0, 0, 0,
                           0, 0, 0, 0];
+        this.policy = null;
+        this.on_policy = false;
     }
 
 //     get_actuation(state, intent) {
@@ -129,7 +133,22 @@ class RL_Agent extends Spikey_Agent {
 
 //     }
 
-    get_actuation() {
+    load_agent(agent, set_policy_mode) {
+        this.agent = agent;
+
+        if (set_policy_mode)
+            this.on_policy = true;
+    }
+
+    get_actuation(state, intent) {
+        if (!this.on_policy)
+            return this.actuation;
+
+        var rl_tensors = this.get_rl_tensors(state),
+          split_tensor = rl_tensors.split_336.reshape([1, 336]);
+
+        let actuation = this.agent.act(split_tensor);
+        this.update_actuation(actuation.buffer().values.map( x => 1000*x));
         return this.actuation;
     }
 

@@ -19,7 +19,7 @@ class Agent {
             "desiredActionStddev": config.desiredActionStddev || 0.1,
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
             "maxStep": config.maxStep || 30,
-            "saveInterval": config.saveInterval || 10,
+            "saveInterval": config.saveInterval || 1,
         };
 
         this.scene = scene;
@@ -52,11 +52,11 @@ class Agent {
         /*
             Restore the weights of the network
         */
-        const critic = await tf.loadModel('https://metacar-project.com/public/models/' + folder + '/critic-' + name + '.json');
-        const actor = await tf.loadModel("https://metacar-project.com/public/models/" + folder + "/actor-" + name + ".json");
+        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-2.json');
+        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-2.json");
 
-        this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.obsInput, this.ddpg.actionInput);
-        this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.obsInput, this.ddpg.actionInput);
+        this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
+        this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
 
         // Define in js/DDPG/models.js
         // Init target network Q' and μ' with the same weights
@@ -97,7 +97,7 @@ class Agent {
         // actionTensor.print();
 
         // TODO: this is where the training interacts with the environment
-        let reward = this.scene.run_simulation(25, 0.02, actionTensor.buffer().values, this.scene.Spikey.intent);
+        let reward = this.scene.run_simulation(25, 0.02, actionTensor.buffer().values.map(x => 50*x), this.scene.Spikey.intent);
         let tensorDict = this.scene.Spikey.get_rl_tensors();
 
         let newStateTensor = tensorDict.global_52;
@@ -143,7 +143,6 @@ class Agent {
      * Train DDPG Agent
      */
     async train() {
-        console.log("Training Time!");
         for (this.epoch; this.epoch < this.config.epochs; this.epoch++) {
             // Perform cycles.
             this.rewardsList = [];
@@ -164,7 +163,7 @@ class Agent {
                     let distance = this.ddpg.adaptNoise();
                     this.distanceList.push(distance[0]);
 
-                    console.log("e=" + this.epoch + ", c=" + c);
+                    // console.log("e=" + this.epoch + ", c=" + c);
 
                     await tf.nextFrame();
                 }

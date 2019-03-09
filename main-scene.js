@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 1*9.8,
+      G = 10*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 const NULL_AGENT = 0,
@@ -377,9 +377,20 @@ class Assignment_Two_Skeleton extends Scene_Component {
         }
 
         if (scene_type == CHAOS) {
-            this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
-            this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
-                                             THROB_AGENT));
+          this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+          this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
+            CHAOS_AGENT));
+          return;
+        }
+        if(scene_type == 'rl_render'){
+            this.agent = new Agent(this);
+            this.agent.restore();
+            this.spikey_starting_pos = Vec.of(0, spikey_consts.sphere_radius + spikey_consts.max_spike_protrusion, 0);
+            let floor_material = this.materials.shadow_wood;
+            this.Spikey = Spikey_Object.of(this, this.spikey_starting_pos, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), RL_AGENT);
+            this.floor = Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(100000, 100, 100000), floor_material);
+            this.entities = [this.Spikey, this.floor];
+            this.Spikey.brain.load_agent(this.agent, true);
             return;
         }
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
