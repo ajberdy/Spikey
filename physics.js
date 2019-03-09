@@ -459,6 +459,7 @@ class Spike_Object extends Physics_Object {
         this.bounding_radius = Math.max(this.r, this.h);
 
         this._actuation_impulse = Vec.of(0, 0, 0);
+        this.jext = Vec.of(0, 0, 0);
     }
 
     static of(...args) {
@@ -502,7 +503,11 @@ class Spike_Object extends Physics_Object {
     }
 
     set actuation_impulse(ja) {
-        this.dh = ja * 3 / this.submass * this.strength;         
+        if (this.jext.norm())
+            console.log(ja, this.jext, this.jext.dot(this.h_axis.normalized()))
+        this.dh = (ja*this.strength + this.jext.dot(this.h_axis.normalized())) * 3 / this.submass;
+            console.log(this.dh)
+                 
 //         var j = this.submass/3 * this.dh * this.strength;
 //         console.log(ja, j);
         this._actuation_impulse = this.h_axis.normalized().times(ja);
@@ -1015,8 +1020,10 @@ class Collision_Detection {
                 var collision_info = Collision_Detection.get_collision_info(a_i, b);
 
                 if (!collision_info) {
-                    if (a instanceof Spikey_Object && i != 0)
+                    if (a instanceof Spikey_Object && i != 0) {
                         a.update_state(i - 1, a_i.h, Vec.of(0, 0, 0));
+                        a_i.jext = Vec.of(0, 0, 0);
+                    }
                     continue;
                 }
 
@@ -1035,6 +1042,8 @@ class Collision_Detection {
 
                 if (a instanceof Spikey_Object && i != 0) {
                     a.update_state(i - 1, a_i.h, impulse_a);    // i - 1 because body
+                    a_i.jext = collision_info.impulse_a.plus(collision_info.friction_impulse_a);
+//                     console.log(a_i.jext);
                 }
 
             }

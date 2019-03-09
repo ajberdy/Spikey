@@ -9,7 +9,7 @@ const spikey_body_mass = 20,
       max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01,
-      spikey_strength = 10;
+      spikey_strength = .05;
 
 const spikey_consts = {
             spikey_body_mass: spikey_body_mass,
@@ -158,7 +158,7 @@ class Spikey_Object extends Physics_Object {
         
     }
 
-    update_state(i, h, impulse) {
+    update_state(i, h, impulse, actuation) {
         if (impulse != undefined)
             this.state.spikes[i].impulse = impulse;
         

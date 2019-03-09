@@ -379,7 +379,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         if (scene_type == CHAOS) {
             this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
             this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
-                                             CHAOS_AGENT));
+                                             THROB_AGENT));
             return;
         }
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
