@@ -147,6 +147,16 @@ function flattenToTensor(observation){
 }
 
 /**
+ * Logs memory usage
+ */
+function logTfMemory(){
+  let mem = tf.memory();
+  console.log("numBytes:" + mem.numBytes +
+    "\nnumBytesInGPU:" + mem.numBytesInGPU +
+    "\nnumDataBuffers:" + mem.numDataBuffers +
+    "\nnumTensors:" + mem.numTensors);
+}
+/**
  * Updates a target model with the original model's weights multiplied by 1-tau
  * @param target
  * @param original

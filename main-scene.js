@@ -1,5 +1,5 @@
 const PI = Math.PI,
-      G = 1*9.8,
+      G = 5*9.8,
       PHI = (1 + Math.sqrt(5)) / 2;
 
 const NULL_AGENT = 0,
@@ -158,7 +158,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.pulsate = false;
 
         this.entities = [];
-        this.initialize_entities(CHAOS);
+        this.initialize_entities('rl_render');
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
 //         this.octree.initialize(this.entities);
@@ -226,7 +226,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
         let dt = t - old_t;
-
+        dt = 0.02;
         if (dt) {
 
             this.apply_forces();

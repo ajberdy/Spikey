@@ -14,6 +14,9 @@ class Actor{
    */
   buildModel(observation){
     this.observation = observation;
+    this.layerN = tf.layers.batchNormalization({
+      axis: 1
+    });
     this.layer1 = tf.layers.dense({
       units: 28,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
@@ -43,9 +46,10 @@ class Actor{
     this.singlePredict = (tfState) => {
       return tf.tidy(() => {
         if (tfState){
+          // tfState.print();
           observation = tfState;
         }
-        return this.outputLayer.apply(this.layer2.apply(this.layer1.apply(observation)));
+        return this.outputLayer.apply(this.layer2.apply(this.layer1.apply(this.layerN.apply(observation))));
       });
     };
     const output = this.singlePredict();
@@ -74,6 +78,11 @@ class Actor{
       let out9 = this.singlePredict(observation.slice([0, 252], [-1, 28])).reshape([-1]);
       let out10 = this.singlePredict(observation.slice([0, 280], [-1, 28])).reshape([-1]);
       let out11 = this.singlePredict(observation.slice([0, 308], [-1, 28])).reshape([-1]);
+      // for(var i in [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]){
+      //   let list = [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11];
+      //   console.log("out" + i + ":");
+      //   list[i].print();
+      // }
       return tf.stack([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11], 1);
     })
   }
@@ -98,21 +107,21 @@ class Critic{
     this.action = action;
 
     this.firstLayerState = tf.layers.dense({
-      units: 50,
+      units: 10,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.firstLayerAction = tf.layers.dense({
-      units: 50,
+      units: 10,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.secondLayer = tf.layers.dense({
-      units:100,
+      units:20,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,

@@ -101,6 +101,7 @@ class RL_Agent extends Spikey_Agent {
                           0, 0, 0, 0];
         this.policy = null;
         this.on_policy = false;
+        this.timesteps_since_last_update = 0;
     }
 
 //     get_actuation(state, intent) {
@@ -143,12 +144,30 @@ class RL_Agent extends Spikey_Agent {
     get_actuation(state, intent) {
         if (!this.on_policy)
             return this.actuation;
-
         var rl_tensors = this.get_rl_tensors(state),
           split_tensor = rl_tensors.split_336.reshape([1, 336]);
 
-        let actuation = this.agent.act(split_tensor);
-        this.update_actuation(actuation.buffer().values.map( x => 1000*x));
+        if (state.scene instanceof Assignment_Two_Skeleton) {
+            state.scene.shapes.vector.draw(
+              state.scene.globals.graphics_state,
+              Mat4.y_to_vec(intent.times(50), state.scene.Spikey.com),
+              state.scene.physics_shader.material(Color.of(0, 1, 1, 1)),
+              "LINES");
+        }
+        if(this.timesteps_since_last_update == 12){
+            this.update_actuation(this.actuation.map(x => -x));
+        }
+
+        if(this.timesteps_since_last_update == 25) {
+            // split_tensor.print();
+            let actuation = this.agent.act(split_tensor);
+            // actuation.print();
+            this.update_actuation(actuation.buffer().values);
+            this.timesteps_since_last_update = 0;
+        }
+        else{
+            this.timesteps_since_last_update += 1
+        }
         return this.actuation;
     }
 

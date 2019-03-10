@@ -19,7 +19,7 @@ class ReplayBuffer {
      * @param reward
      * @private
      */
-    pushExperience(state, expanded_state, action, new_state, expanded_new_state, reward){
+    pushExperience(state, expanded_state, action, new_state, expanded_new_state, reward, terminal){
         if(this.count == this.max_size){
             this.buffer.shift();
             self.count -= 1;
@@ -31,6 +31,7 @@ class ReplayBuffer {
            new_state: new_state,
            expanded_new_state: expanded_new_state,
            reward: reward,
+           terminal: terminal
         });
         this.count += 1;
     }
@@ -57,7 +58,8 @@ class ReplayBuffer {
             'actions': [],
             'new_states': [],
             'expanded_new_states': [],
-            'rewards': []
+            'rewards': [],
+            'terminals': []
         };
         if(batch_size > this.count) {
             // console.warn("Batch size greater than buffer size, returning empty batch.");
@@ -72,6 +74,7 @@ class ReplayBuffer {
             batch['new_states'].push(Array.from(this.buffer[sample_bucket[idx]].new_state));
             batch['expanded_new_states'].push(Array.from(this.buffer[sample_bucket[idx]].expanded_new_state));
             batch['rewards'].push(this.buffer[sample_bucket[idx]].reward);
+            batch['terminals'].push(this.buffer[sample_bucket[idx]].terminal);
             sample_bucket.splice(idx, 1);
         }
         // console.log(Array.from(batch['states']));
@@ -81,7 +84,8 @@ class ReplayBuffer {
             actions: tf.tensor(batch.actions),
             new_states: tf.tensor(batch.new_states),
             expanded_new_states: tf.tensor(batch.expanded_new_states),
-            rewards: tf.tensor(batch.rewards)
+            rewards: tf.tensor(batch.rewards),
+            terminals: tf.tensor(batch.terminals)
         };
         // console.log(batch.states.flat(1));
         // tf.tensor2d(batch.states, [batch_size, 52]).print();

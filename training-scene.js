@@ -23,21 +23,27 @@ class Training_Scene {
         this.entities = [this.Spikey, this.floor];
     }
 
-    run_simulation(num_steps, dt, actuation, intent, reset) {
-        if (reset)
-            this.reset_spiky_pos();
-        this.give_intent(intent);
+    run_simulation(num_steps, dt, actuation, intent) {
+        this.give_intent(this.global_intent.minus(this.Spikey.pos));
         this.give_actuation(actuation);
 
         var original_pos = this.Spikey.pos;
 
-        for (var i in Array.apply(null, Array(num_steps))) {
+        for (var i in Array.apply(null, Array(Math.floor(num_steps/2)))) {
+            this.step(dt);
+        }
+        this.give_actuation(actuation.map(x => -x));
+        for (var i in Array.apply(null, Array(Math.ceil(num_steps/2)))) {
             this.step(dt);
         }
 
         var final_pos = this.Spikey.pos;
 
-        return this.reward(original_pos, final_pos, intent);
+        let reward = this.reward();
+        return {
+            reward: reward,
+            terminal: reward ? 1 : 0
+        };
     }
 
     step(dt) {
@@ -72,21 +78,18 @@ class Training_Scene {
         this.Spikey.brain.update_actuation(actuation);
     }
 
-    reward(original_pos, final_pos, intent) {
-        const regularization = .1;
-
-        const displacement = final_pos.minus(original_pos),
-              distance_off = intent.minus(final_pos).norm(),
-              directionally_correct_factor = displacement.dot(intent),
-              reward = distance_off + directionally_correct_factor * regularization;
-
-        return reward;
+    reward() {
+        if(this.Spikey.pos.minus(this.spikey_starting_pos).norm() > this.global_intent.norm()){
+            return -1 * this.Spikey.pos.minus(this.global_intent).norm();
+        }
+        return 0;
     }
 
     get_random_intent() {
-        const scale = 5;
-        var random_intent = Vec.of(Math.random(), 0, Math.random()).times(scale);
+        const scale = 50;
+        var random_intent = Vec.of(Math.random(), 0, Math.random()).normalized().times(scale);
         this.give_intent(random_intent);
+        return random_intent;
     }
 
     reset_spiky_pos(reset_y=false) {
@@ -96,6 +99,14 @@ class Training_Scene {
 
         // unless specified
         if (reset_y)
-            this.spikey.com[1] = this.spikey_starting_pos[1];
+            this.Spikey.com[1] = this.spikey_starting_pos[1];
+    }
+
+    start_new_trajectory(){
+        this.reset_spiky_pos(true);
+        this.global_intent = this.get_random_intent();
+        this.Spikey.momentum = Vec.of(0, 0, 0);
+        this.Spikey.L = Vec.of(0, 0, 0);
+        this.Spikey.recalc();
     }
 }

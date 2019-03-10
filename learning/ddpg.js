@@ -85,12 +85,12 @@ class DDPG {
    * @param rewards
    * @returns {*}
    */
-  trainCritic(states, expanded_states, actions, new_states, expanded_new_states, rewards){
+  trainCritic(states, expanded_states, actions, new_states, expanded_new_states, rewards, terminals){
     const criticLoss = this.criticOptimizer.minimize(() => {
       const predQ = this.critic.predict(states, actions);
       const new_state_Q = this.criticTargetWithActorTarget(new_states, expanded_new_states);
 
-      const Q = rewards.add(this.gamma.mul(new_state_Q));
+      const Q = rewards.add(tf.scalar(1).sub(terminals).mul(this.gamma).mul(new_state_Q));
       const meanSquareLoss = tf.sub(Q, predQ).square();
 
       return meanSquareLoss.mean();
@@ -190,7 +190,8 @@ class DDPG {
                                         batch.actions,
                                         batch.new_states,
                                         batch.expanded_new_states,
-                                        batch.rewards);
+                                        batch.rewards,
+                                        batch.terminals);
     const actorLoss = this.trainActor(batch.states, batch.expanded_states);
 
     batch.actions.dispose();

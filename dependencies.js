@@ -1,4 +1,4 @@
-SHADOW_DEPTH_TEXTURE_SIZE = 2048;
+SHADOW_DEPTH_TEXTURE_SIZE = 2048/4;
 
 
 // Subclasses of Shader each store and manage a complete GPU program.  This Shader is 

@@ -9,7 +9,7 @@ const spikey_body_mass = 20,
       max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01,
-      spikey_strength = 10;
+      spikey_strength = 2;
 
 const spikey_consts = {
             spikey_body_mass: spikey_body_mass,
@@ -87,7 +87,8 @@ class Spikey_Object extends Physics_Object {
             t: 0,
             spikes: Array.apply(null, Array(num_spikes)),
             orientation: this.orientation,
-            intent: this.intent
+            intent: this.intent,
+            scene: scene
         }
 
         for (var i in this.state.spikes)
@@ -287,7 +288,9 @@ class Spikey_Object extends Physics_Object {
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
-        // this.state.t = this.scene.globals.graphics_state.animation_time;
+        if(this.scene instanceof Assignment_Two_Skeleton) {
+            this.state.t = this.scene.globals.graphics_state.animation_time;
+        }
         
     }
 

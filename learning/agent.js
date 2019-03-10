@@ -19,7 +19,7 @@ class Agent {
             "desiredActionStddev": config.desiredActionStddev || 0.1,
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
             "maxStep": config.maxStep || 30,
-            "saveInterval": config.saveInterval || 1,
+            "saveInterval": config.saveInterval || 2,
         };
 
         this.scene = scene;
@@ -52,8 +52,8 @@ class Agent {
         /*
             Restore the weights of the network
         */
-        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-2.json');
-        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-2.json");
+        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-6.json');
+        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-6.json");
 
         this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
         this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
@@ -97,28 +97,35 @@ class Agent {
         // actionTensor.print();
 
         // TODO: this is where the training interacts with the environment
-        let reward = this.scene.run_simulation(25, 0.02, actionTensor.buffer().values.map(x => 50*x), this.scene.Spikey.intent);
+        let resultDict = this.scene.run_simulation(25, 0.02, actionTensor.buffer().values.map(x => 40*x), this.scene.Spikey.intent);
         let tensorDict = this.scene.Spikey.get_rl_tensors();
 
         let newStateTensor = tensorDict.global_52;
         let newStateBuffer = newStateTensor.buffer().values;
 
-        let expanded_newStateTensor = tensorDict.split_336;
+        let expanded_newStateTensor = tensorDict.split_336.reshape([1, 336]);
         let expanded_newStateBuffer = expanded_newStateTensor.buffer().values;
 
-        this.rewardsList.push(reward);
+        if(resultDict.reward){
+            this.rewardsList.push(resultDict.reward);
+        }
         // Add the new tuple to the buffer
         this.ddpg.memory.pushExperience(prevStateBuffer,
                                         expanded_prevStateBuffer,
                                         actionTensorBuffer,
                                         newStateBuffer,
                                         expanded_newStateBuffer,
-                                        reward);
+                                        resultDict.reward,
+                                        resultDict.terminal);
         // Dispose tensors
         prevStateTensor.dispose();
         actionTensor.dispose();
 
-        return newStateTensor;
+        return {
+            newStateTensor: newStateTensor,
+            expanded_newStateTensor: expanded_newStateTensor,
+            terminal: resultDict.terminal
+        };
     }
 
     /**
@@ -128,13 +135,13 @@ class Agent {
         this.ddpg.noise.desiredActionStddev = Math.max(0.1, this.config.noiseDecay * this.ddpg.noise.desiredActionStddev);
         let lossValuesCritic = [];
         let lossValuesActor = [];
-        console.time("Training");
+        console.time("TrainTime");
         for (let t = 0; t < this.config.trainSteps; t++) {
             let losses = this.ddpg.optimizeActorCritic();
             lossValuesCritic.push(losses.lossC);
             lossValuesActor.push(losses.lossA);
         }
-        console.timeEnd("Training");
+        console.timeEnd("TrainTime");
         setMetric("CriticLoss", mean(lossValuesCritic));
         setMetric("ActorLoss", mean(lossValuesActor));
     }
@@ -148,47 +155,52 @@ class Agent {
             this.rewardsList = [];
             this.stepList = [];
             this.distanceList = [];
+            delete this.scene;
+            this.scene = new Training_Scene();
             document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.epochs + "<br>";
             for (let c = 0; c < this.config.nbEpochsCycle; c++) {
-                this.scene.get_random_intent();
-                this.scene.reset_spiky_pos();
+                if (c%5==0){ logTfMemory(); }
+                this.scene.start_new_trajectory();
                 let tensorDict = this.scene.Spikey.get_rl_tensors();
                 let prevStepTensor = tensorDict.global_52.reshape([1, 52]);
                 let expanded_prevStepTensor = tensorDict.split_336.reshape([1, 336]);
-
-                console.time("LoopTime");
-                for (let step = 0; step < this.config.maxStep; step++) {
-                    prevStepTensor = this.stepTrain(prevStepTensor, expanded_prevStepTensor);
-                    this.stepList.push(step);
-                    let distance = this.ddpg.adaptNoise();
-                    this.distanceList.push(distance[0]);
-
-                    // console.log("e=" + this.epoch + ", c=" + c);
-
+                let step = 0;
+                console.time("EnvLoopTime");
+                for (step = 0; step < this.config.maxStep; step++) {
+                    let resultDict = this.stepTrain(prevStepTensor, expanded_prevStepTensor);
+                    prevStepTensor = resultDict.newStateTensor;
+                    expanded_prevStepTensor = resultDict.expanded_newStateTensor;
+                    if(resultDict.terminal){
+                        break;
+                    }
                     await tf.nextFrame();
                 }
+                this.stepList.push(step);
+                let distance = this.ddpg.adaptNoise();
+                this.distanceList.push(distance[0]);
+                console.log("e=" + this.epoch + ", c=" + c);
 
                 prevStepTensor.dispose();
                 expanded_prevStepTensor.dispose();
 
-                console.timeEnd("LoopTime");
+                console.timeEnd("EnvLoopTime");
                 if (this.epoch > 0) {
                     this._optimize();
                     this.ddpg.targetUpdate();
                 }
-                setMetric("Reward", mean(this.rewardsList));
-                setMetric("EpisodeDuration", mean(this.stepList));
-                setMetric("NoiseDistance", mean(this.distanceList));
-                await tf.nextFrame();
             }
             if (this.epoch % this.config.saveInterval == 0 && this.epoch != 0) {
                 await this.save("model-ddpg-epoch-" + this.epoch);
             }
+            setMetric("Reward", mean(this.rewardsList));
+            setMetric("EpisodeDuration", mean(this.stepList));
+            setMetric("NoiseDistance", mean(this.distanceList));
+            await tf.nextFrame();
         }
     }
 
     act(inputTensor){
-        return this.ddpg.actor.predict(inputTensor);
+        return this.ddpg.predict(inputTensor).mul(tf.scalar(40));
     }
 
 }
