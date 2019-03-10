@@ -164,7 +164,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.gravity_off = true;
 //         this.use_octree = false;
         this.debug = false;
-        this.paused = true;
+//         this.paused = true;
 
         this.friction_off = false;
         this.pulsate = false;

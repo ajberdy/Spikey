@@ -158,9 +158,16 @@ class Spikey_Object extends Physics_Object {
         
     }
 
-    update_state(i, h, impulse, actuation) {
-        if (impulse != undefined)
-            this.state.spikes[i].impulse = impulse;
+    update_state(i, h, impulse, actuation, moving_avg = true) {
+        if (impulse != undefined) {
+            if (moving_avg) {
+                const alpha = .9;
+                this.state.spikes[i].impulse = this.state.spikes[i].impulse * alpha + impulse * (1 - decay);
+            }
+            else
+                this.state.spikes[i].impulse = impulse;
+        }
+            
         
         this.state.spikes[i].h = h;
         this.state.orientation = this.orientation;
