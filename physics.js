@@ -164,8 +164,8 @@ class Physics_Object {
 
     update(dt) {
 
-        this.momentum = this.momentum.plus(this.F.times(dt));
-        this.L = this.L.plus(this.T.times(dt));
+        this.momentum = this.momentum.plus(this.F.times(dt)).times(1 - .01);
+        this.L = this.L.plus(this.T.times(dt)).times(1 - .01);
 
         this.recalc();
 
@@ -244,6 +244,17 @@ class Ball extends Physics_Object {
 
     support(d) {
         return this.pos.plus(d.normalized().times(this.r));
+    }
+}
+
+class Planet extends Ball {
+    constructor(scene, pos, vel, w, orientation, mass, radius, material, g) {
+        super(scene, pos, vel, w, orientation, mass, radius, material);
+        this.g = g;
+    }
+
+    static of(...args) {
+        return new Planet(...args);
     }
 }
 
@@ -503,14 +514,15 @@ class Spike_Object extends Physics_Object {
     }
 
     set actuation_impulse(ja) {
-        if (this.jext.norm())
-            console.log(ja, this.jext, this.jext.dot(this.h_axis.normalized()))
+//         if (this.jext.norm())
+//             console.log(ja, this.jext, this.jext.dot(this.h_axis.normalized()))
         this.dh = (ja*this.strength + this.jext.dot(this.h_axis.normalized())) * 3 / this.submass;
-            console.log(this.dh)
+//             console.log(this.dh)
                  
 //         var j = this.submass/3 * this.dh * this.strength;
 //         console.log(ja, j);
         this._actuation_impulse = this.h_axis.normalized().times(ja);
+        console.log(ja);
     }
 
     actuate(ja) {
