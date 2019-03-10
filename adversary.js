@@ -57,7 +57,7 @@ class Adversary extends Box{
     
     draw(graphics_state){
         // console.log(this.base_points);
-        this.crab.draw(graphics_state, Mat4.translation(this.pos));
+        this.crab.draw(graphics_state, this.shader_mat, Mat4.translation(this.pos));
     }
 }
 
@@ -201,7 +201,7 @@ class Crab{
 
     //target position is vector from origin indicating where ball/tip should be (should be homogenous vector)
     //socket center also contains information about orientation of parent
-    draw_limb_segment ( graphics_state, socket_center, rotation, limb, right = false){
+    draw_limb_segment ( graphics_state, socket_center, rotation, limb, shader, right = false){
         var sock_vector;
         var move_center;
         var ball_vec;
@@ -225,46 +225,43 @@ class Crab{
         this.limbs[limb].draw(
                 graphics_state,
                 position,
-                this.scene_component.plastic.override({color: Color.of(1,1,1,1)})
+                shader
         );
         return rotation.times(ball_vec);
     }
-    draw_leg(graphics_state, socket_center, rotations, right = false){
+    draw_leg(graphics_state, socket_center, rotations, shader, right = false){
         for(var limb in {'upper_leg':0, 'mid_leg':1, 'lower_leg':2, 'foot': 3}){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, right);
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, shader, right);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limb]);
         }
     }
 
-    draw_arm(graphics_state, socket_center, rotations, right = false){
+    draw_arm(graphics_state, socket_center, rotations,  shader, right = false){
         for(var limb in {'arm': 0, 'lower_claw' : 0, 'upper_claw' : 0}){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, right);
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, shader, right);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limb]);
         }
     }
 
     //rotations has the structure {'L1' : [ <rotation about y>, {'upper_leg' : <rotation_matrix>, 'mid_leg' .. }, ... }]
     //theta in radians
-    draw ( graphics_state, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
+    draw ( graphics_state,  shader, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
         if (this.initialized){
             var i;
             this.limbs['body'].draw(
                 graphics_state,
                 origin_translation.times(Mat4.scale(this.scale)),
-                this.scene_component.plastic.override({color: Color.of(1,0,1,1)})
-            )
+                shader
+            );
             for(var i = 0; i < 2; i +=1){
                 for(var leg in {'1': 0, '2': 0, '3': 0, '4': 0}){
-                    this.draw_leg(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body'][(!!i ? 'R' : 'L') + leg])).times(rotations[(!!i ? 'R' : 'L') + leg][0]), rotations[(!!i ? 'R' : 'L') + leg][1], !!i);
+                    this.draw_leg(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body'][(!!i ? 'R' : 'L') + leg])).times(rotations[(!!i ? 'R' : 'L') + leg][0]), rotations[(!!i ? 'R' : 'L') + leg][1], shader, !!i);
                 }              
             }      
-            this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1]);
-            this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], true);
+            this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1], shader);
+            this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], shader, true);
         }
     }
-
-    force(){}
-    update(){}
 }
 
 window.BlenderObject = window.classes.BlenderObject = class BlenderObject extends Shape {
