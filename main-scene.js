@@ -22,6 +22,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         context.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 0, 30), Vec.of(0, 0,0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
         context.globals.graphics_state.projection_transform = Mat4.perspective(Math.PI / 4, r, .1, 1000);
+        // console.log(context.globals.gl);
+        // var crab_limbs = {};
+        // loadCrab(context.globals.gl, crab_limbs);
+        // // for ( limb in crab_limbs ){
+        // //     console.log(limb);
+        // // }
 
         // At the beginning of our program, load one of each of these shape
         // definitions onto the GPU.  NOTE:  Only do this ONCE per shape
@@ -43,10 +49,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'cone': new Closed_Cone(20),
             'ball': new Subdivision_Sphere(4),
 
-            'spikey': new Spikey_Shape(spikey_consts)
+            'spikey': new Spikey_Shape(spikey_consts),
         }
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
+
+        this.adversary = new Crab(this, context.globals.gl, context, 2);
 
         // Make some Material objects available to you:
         this.clay = context.get_instance(Phong_Shader).material(Color.of(.9, .5, .9, 1), {
@@ -182,7 +190,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         const t = this.t;
         let dt = t - old_t;
 
-        if (dt) {
+        // if (dt) {
 
             this.apply_forces();
 
@@ -200,7 +208,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }
             
             this.update_entities(dt);
-        }
+        
 
 
         this.draw_entities(graphics_state);
@@ -228,6 +236,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
     initialize_entities() {
+        this.entities.push(this.adversary)
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
@@ -243,7 +252,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.entities.push(new Ball(this, Vec.of(45, 45, 0), Vec.of(-50, 0, 0), Vec.of(0, 0, 0), 20, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, 45, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
-        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+        // this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
 
 //         this.entities.push(Ball.of(this, Vec.of(45, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
@@ -267,6 +276,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(1, 0, 0).times(1), Quaternion.unit(),
                                              CHAOS_AGENT));
+        // this.entities.push(new Spikey_Object(this, Vec.of(-50, 30, 0), Vec.of(10, 0, 0), Vec.of(0, 1, 0), Quaternion.unit()));
 
 // //         for (var i = -1; i < 2; ++i) {
 //             for (var j = -1; j < 2; ++j) {
@@ -309,7 +319,39 @@ class Assignment_Two_Skeleton extends Scene_Component {
     draw_entities(graphics_state) {
         for (let e in this.entities) {
             this.entities[e].draw(graphics_state);
+        
+        // this.shapes.box.draw(
+        //     graphics_state,
+        //     Mat4.scale(Vec.of(.001,.001,100)).times(Mat4.identity()),
+        //     this.plastic.override({color: Color.of(1,0,1,1)})
+        // );    
+        // this.shapes.box.draw(
+        //     graphics_state,
+        //     Mat4.translation(Vec.of(0,0,0)).times(Mat4.scale(Vec.of(.001,100,.001))).times(Mat4.identity()),
+        //     this.plastic.override({color: Color.of(0,1,1,1)})
+        // );
 
+        // this.shapes.box.draw(
+        //     graphics_state,
+        //     Mat4.translation(Vec.of(0,0,0)).times(Mat4.scale(Vec.of(100,.001,.001))).times(Mat4.identity()),
+        //     this.plastic.override({color: Color.of(0,1,0,1)})
+        // );
+        // this.shapes.box.draw(
+        //     graphics_state,
+        //     Mat4.translation(Vec.of(-0.9704800248146057, 1.5378700494766235, -0.004470000043511391)).times(Mat4.scale(Vec.of(100,.001,.001))).times(Mat4.identity()),
+        //     this.plastic.override({color: Color.of(0,1,0,1)})
+        // );
+        // this.shapes.box.draw(
+        //     graphics_state,
+        //     Mat4.translation(Vec.of(-0.9704800248146057, 1.5378700494766235, -0.004470000043511391)).times(Mat4.scale(Vec.of(.001,.001,100)).times(Mat4.identity())),
+        //     this.plastic.override({color: Color.of(1,0,1,1)})
+        // );    
+        // this.shapes.box.draw(
+        //     graphics_state,
+        //     Mat4.translation(Vec.of(-0.9704800248146057, 1.5378700494766235, -0.004470000043511391)).times(Mat4.scale(Vec.of(.001,100,.001))).times(Mat4.identity()),
+        //     this.plastic.override({color: Color.of(0,1,1,1)})
+        // );
+        
 //             this.shapes.vector.draw(
 //                 graphics_state,
 //                     Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(
