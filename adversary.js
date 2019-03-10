@@ -55,9 +55,10 @@ class Adversary extends Box{
         this.crab = crab;
     }
     
-    draw(graphics_state){
+    draw(graphics_state, light_shader_mat){
         // console.log(this.base_points);
-        this.crab.draw(graphics_state, this.shader_mat, Mat4.translation(this.pos));
+        let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
+        this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos));
     }
 }
 
@@ -181,8 +182,8 @@ class Crab{
             'lower_claw': 'adversary/lower_claw.obj',
             'lower_leg': 'adversary/lower_leg.obj',
             'mid_leg': 'adversary/mid_leg.obj',
-            'upper_claw': 'adversary/arm.obj',//'adversary/upper_claw.obj',
-            'upper_leg': 'adversary/arm.obj'//'adversary/upper_leg.obj',
+            'upper_claw': 'adversary/upper_claw.obj',
+            'upper_leg': 'adversary/upper_leg.obj',
           },
           (function(args){
               self.initialize(args, self);
@@ -267,6 +268,8 @@ class Crab{
 window.BlenderObject = window.classes.BlenderObject = class BlenderObject extends Shape {
     constructor(mesh){
         super("positions", "normals", "texture_coords");
+        // super("positions", "normals");
+
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
@@ -275,9 +278,8 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         this.positions.push(...Vec.cast(...positions));        
         this.normals.push(...Vec.cast(...normals));
-        this.texture_coords.push(...Vec.cast(...textures));
+        this.texture_coords.push(...Vec.cast(...positions));
         this.indices.push(...mesh.indices);
-
     }
 }
 

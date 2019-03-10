@@ -152,7 +152,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 diffusivity: .4,
                 specularity: .5,
                 smoothness: 20
-            }))
+            })),
+            crab:  Material.of(.5, .7, .9, context.get_instance(Phong_Shader).material(Color.of(.0429, .398, .137, 1)))
         }
         
         this.lights = [new Light(Vec.of(0, 100, 0, .1), Color.of(1, 1, .7, 1), 100000),
@@ -160,7 +161,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.t = 0;
 
-        this.gravity_off = true;
+//         this.gravity_off = true;
 //         this.use_octree = false;
         this.debug = false;
         this.paused = true;
@@ -170,7 +171,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.entities = [];
         this.gcenters = [];
-        this.initialize_entities(ADVERSARY, context);
+        this.initialize_entities(ADVERSARY);
         this.initialize_gcenters()
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
@@ -224,7 +225,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
 
-    display(graphics_state) {
+    display(graphics_state, nothing) {
         // Use the lights stored in this.lights.
         graphics_state.lights = this.lights;
 //         var sx = this.entities[1].x, sz = this.entities[1].z;
@@ -261,7 +262,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.update_entities(dt);
         }     
 
-//         this.draw_with_shadows(graphics_state);
+        this.draw_with_shadows(graphics_state);
         this.draw_entities(graphics_state);
 
     }
@@ -351,8 +352,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
         }
         
         if (scene_type == ADVERSARY) {
-            this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(10, 10, 10), Material.of(.5, .7, .9, this.shader_mats.soccer), this.crab));
-            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.wood.override({e: .8})));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+            this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
+                50, Vec.of(10, 25, 10), this.materials.crab, this.crab));
+            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
+                Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 
             return;
         }
