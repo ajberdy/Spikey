@@ -80,7 +80,7 @@ class Training_Scene {
 
     reward() {
         if(this.Spikey.pos.minus(this.spikey_starting_pos).norm() > this.global_intent.norm()){
-            return -1 * this.Spikey.pos.minus(this.global_intent).norm();
+            return 50 + -1 * Vec.of(this.Spikey.pos[0], 0, this.Spikey.pos[2]).minus(this.global_intent).norm();
         }
         return 0;
     }
@@ -89,6 +89,7 @@ class Training_Scene {
         const scale = 50;
         var random_intent = Vec.of(Math.random(), 0, Math.random()).normalized().times(scale);
         this.give_intent(random_intent);
+        console.log(random_intent);
         return random_intent;
     }
 

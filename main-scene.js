@@ -228,7 +228,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
         let dt = t - old_t;
         dt = 0.02;
         if (dt) {
-
             this.apply_forces();
 
             if (this.use_octree) {

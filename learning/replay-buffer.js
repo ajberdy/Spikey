@@ -78,18 +78,9 @@ class ReplayBuffer {
             sample_bucket.splice(idx, 1);
         }
         // console.log(Array.from(batch['states']));
-        let ret_batch = {
-            states: tf.tensor(batch.states),
-            expanded_states: tf.tensor(batch.expanded_states),
-            actions: tf.tensor(batch.actions),
-            new_states: tf.tensor(batch.new_states),
-            expanded_new_states: tf.tensor(batch.expanded_new_states),
-            rewards: tf.tensor(batch.rewards),
-            terminals: tf.tensor(batch.terminals)
-        };
         // console.log(batch.states.flat(1));
         // tf.tensor2d(batch.states, [batch_size, 52]).print();
-        return ret_batch;
+        return batch;
     }
 
     /**

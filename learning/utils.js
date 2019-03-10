@@ -199,6 +199,7 @@ function addNoise(model, noisyModel, stdDev, seed){
       let randomTensor = tf.randomNormal(shape, 0, stdDev, "float32", seed);
       let newValue = weights[i].val.add(randomTensor);
       noisyModel.model.trainableWeights[i].val.assign(newValue);
+      randomTensor.dispose();
     }
   })
 }

@@ -14,23 +14,22 @@ class Actor{
    */
   buildModel(observation){
     this.observation = observation;
-    this.layerN = tf.layers.batchNormalization({
-      axis: 1
-    });
     this.layer1 = tf.layers.dense({
-      units: 28,
+      units: 200,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
       biasInitializer: "zeros"
     });
+    this.layerNorm1_5 = tf.layers.batchNormalization({});
     this.layer2 = tf.layers.dense({
-      units: 25,
+      units: 100,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,
       biasInitializer: "zeros"
     });
+    this.layerNorm2_5 = tf.layers.batchNormalization({});
     this.outputLayer = tf.layers.dense({
       units: 1,
       kernelInitializer: tf.initializers.randomUniform({
@@ -49,7 +48,9 @@ class Actor{
           // tfState.print();
           observation = tfState;
         }
-        return this.outputLayer.apply(this.layer2.apply(this.layer1.apply(this.layerN.apply(observation))));
+        let normed1 = this.layerNorm1_5.apply(this.layer1.apply(observation));
+        let normed2 = this.layerNorm2_5.apply(this.layer2.apply(normed1));
+        return this.outputLayer.apply(normed2);
       });
     };
     const output = this.singlePredict();
@@ -107,21 +108,21 @@ class Critic{
     this.action = action;
 
     this.firstLayerState = tf.layers.dense({
-      units: 10,
+      units: 100,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.firstLayerAction = tf.layers.dense({
-      units: 10,
+      units: 100,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'linear',
       useBias: true,
       biasInitializer: "zeros"
     });
     this.secondLayer = tf.layers.dense({
-      units:20,
+      units:100,
       kernelInitializer: tf.initializers.glorotUniform({seed: this.seed}),
       activation: 'relu',
       useBias: true,

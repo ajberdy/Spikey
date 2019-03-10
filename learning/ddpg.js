@@ -146,23 +146,23 @@ class DDPG {
    */
   adaptNoise(){
     const batch = this.memory.sample_batch(this.config.batchSize);
-    if(batch.states.length == 0 || batch.states.size == 0){
+    const states = tf.tensor(batch.states);
+    const expanded_states = tf.tensor(batch.expanded_states);
+
+    if(states.size == 0){
       addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
       return [0]
     }
 
-    const distance = this.noiseDistance(batch.expanded_states);
+    const distance = this.noiseDistance(expanded_states);
     addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
     let distanceV = distance.buffer().values;
     this.noise.adapt(distanceV[0]);
 
     // Dispose our created tensors
-    batch.states.dispose();
-    batch.expanded_states.dispose();
-    batch.actions.dispose();
-    batch.rewards.dispose();
-    batch.new_states.dispose();
+    states.dispose();
+    expanded_states.dispose();
     distance.dispose();
 
     return distanceV;
@@ -185,20 +185,30 @@ class DDPG {
   optimizeActorCritic(){
     const batch = this.memory.sample_batch(this.config.batchSize);
 
-    const criticLoss = this.trainCritic(batch.states,
-                                        batch.expanded_states,
-                                        batch.actions,
-                                        batch.new_states,
-                                        batch.expanded_new_states,
-                                        batch.rewards,
-                                        batch.terminals);
-    const actorLoss = this.trainActor(batch.states, batch.expanded_states);
+    const states = tf.tensor(batch.states);
+    const expanded_states = tf.tensor(batch.expanded_states);
+    const actions = tf.tensor(batch.actions);
+    const new_states= tf.tensor(batch.new_states);
+    const expanded_new_states = tf.tensor(batch.expanded_new_states);
+    const rewards = tf.tensor(batch.rewards);
+    const terminals = tf.tensor(batch.terminals);
 
-    batch.actions.dispose();
-    batch.expanded_states.dispose();
-    batch.states.dispose();
-    batch.new_states.dispose();
-    batch.rewards.dispose();
+    const criticLoss = this.trainCritic(states,
+                                        expanded_states,
+                                        actions,
+                                        new_states,
+                                        expanded_new_states,
+                                        rewards,
+                                        terminals);
+    const actorLoss = this.trainActor(states, expanded_states);
+
+    actions.dispose();
+    expanded_states.dispose();
+    states.dispose();
+    new_states.dispose();
+    rewards.dispose();
+    terminals.dispose();
+    expanded_new_states.dispose();
 
     return {lossC: criticLoss, lossA: actorLoss};
 

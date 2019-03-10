@@ -145,7 +145,7 @@ class RL_Agent extends Spikey_Agent {
         if (!this.on_policy)
             return this.actuation;
         var rl_tensors = this.get_rl_tensors(state),
-          split_tensor = rl_tensors.split_336.reshape([1, 336]);
+          split_tensor = rl_tensors.split_336;
 
         if (state.scene instanceof Assignment_Two_Skeleton) {
             state.scene.shapes.vector.draw(
@@ -163,6 +163,7 @@ class RL_Agent extends Spikey_Agent {
             let actuation = this.agent.act(split_tensor);
             // actuation.print();
             this.update_actuation(actuation.buffer().values);
+            actuation.dispose();
             this.timesteps_since_last_update = 0;
         }
         else{
@@ -290,10 +291,10 @@ class RL_Agent extends Spikey_Agent {
         var split_12x7x4 = symmetric_states.map(sym_state =>
             sym_state.transformed_spikes.map(spike => [...spike.impulse, spike.h]).concat([[...sym_state.intent.to4(0)]]));
 
-        rl_tensors.global_52 = tf.tensor(global_13x4);
+        rl_tensors.global_52 = tf.tensor(global_13x4.flat(), [1, 52]);
 //         rl_tensors.global_52.print();
 
-        rl_tensors.split_336 = tf.tensor(split_12x7x4);
+        rl_tensors.split_336 = tf.tensor(split_12x7x4.flat(2), [1, 336]);
 //         console.log(rl_tensors.split_336[0]);
 
         return rl_tensors;

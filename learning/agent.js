@@ -3,11 +3,11 @@ class Agent {
     constructor(scene) {
         let config = {};
         this.config = {
-            "seed": config.seed || 123,
+            "seed": config.seed || 156,
             "batchSize": config.batchSize || 128,
             "memorySize": config.memorySize || 30000,
-            "actorLearningRate": config.LearningRate || 0.005,
-            "criticLearningRate": config.LearningRate || 0.005,
+            "actorLearningRate": config.LearningRate || 0.001,
+            "criticLearningRate": config.LearningRate || 0.001,
             "gamma": config.gamma || 0.99,
             "noiseDecay": config.noiseDecay || 0.99,
             "rewardScale": config.rewardScale || 1,
@@ -44,16 +44,23 @@ class Agent {
     }
 
     async save(name) {
-        await this.ddpg.critic.model.save('downloads://critic-' + name);
-        await this.ddpg.actor.model.save('downloads://actor-' + name);
+        await this.ddpg.critic.model.save('/models/critic-' + name);
+        await this.ddpg.actor.model.save('models/actor-' + name);
     }
 
+    async warmStart_critic(folder, name) {
+        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-warm.json');
+
+        this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
+
+        this.ddpg.criticTarget = copyModel(this.ddpg.critic, Critic);
+    }
     async restore(folder, name) {
         /*
             Restore the weights of the network
         */
-        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-6.json');
-        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-6.json");
+        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-10.json');
+        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-10.json");
 
         this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
         this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
@@ -103,7 +110,7 @@ class Agent {
         let newStateTensor = tensorDict.global_52;
         let newStateBuffer = newStateTensor.buffer().values;
 
-        let expanded_newStateTensor = tensorDict.split_336.reshape([1, 336]);
+        let expanded_newStateTensor = tensorDict.split_336;
         let expanded_newStateBuffer = expanded_newStateTensor.buffer().values;
 
         if(resultDict.reward){
@@ -120,6 +127,7 @@ class Agent {
         // Dispose tensors
         prevStateTensor.dispose();
         actionTensor.dispose();
+        expanded_prevStateTensor.dispose();
 
         return {
             newStateTensor: newStateTensor,
@@ -162,8 +170,8 @@ class Agent {
                 if (c%5==0){ logTfMemory(); }
                 this.scene.start_new_trajectory();
                 let tensorDict = this.scene.Spikey.get_rl_tensors();
-                let prevStepTensor = tensorDict.global_52.reshape([1, 52]);
-                let expanded_prevStepTensor = tensorDict.split_336.reshape([1, 336]);
+                let prevStepTensor = tensorDict.global_52;
+                let expanded_prevStepTensor = tensorDict.split_336;
                 let step = 0;
                 console.time("EnvLoopTime");
                 for (step = 0; step < this.config.maxStep; step++) {
@@ -184,7 +192,7 @@ class Agent {
                 expanded_prevStepTensor.dispose();
 
                 console.timeEnd("EnvLoopTime");
-                if (this.epoch > 0) {
+                if (this.epoch > 1) {
                     this._optimize();
                     this.ddpg.targetUpdate();
                 }

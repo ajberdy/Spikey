@@ -80,7 +80,7 @@ class Spikey_Object extends Physics_Object {
 //             scene: this.scene   // for debugging
 //         }
 
-        this._intent = Vec.of(1, 0, 0);
+        this._intent = Vec.of(-1, 0, 0);
         this.last_intent = Vec.of(1, 0, 0);
         
         this.state = {
