@@ -49,11 +49,23 @@ const default_rotations = {
             'upper_leg': Mat4.rotation(.5, Vec.of(0,0,1,0)),}],
 };
 
+class Adversary extends Box{
+    constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
+        super(scene, pos, vel, w, orientation, mass, dims, material);
+        this.crab = crab;
+    }
+    
+    draw(graphics_state){
+        // console.log(this.base_points);
+        this.crab.draw(graphics_state, Mat4.translation(this.pos));
+    }
+}
+
 class Crab{
-    constructor(scene_component, gl, context, scale = 1){
+    constructor(scene_component, context, scale = 1){
         this.limbs = {};
         this.scene_component = scene_component;
-        this.gl = gl;
+        this.gl = context.globals.gl;
         this.context = context;
         this.scale = scale;
         this.origin = Vec.of(0,0,0,0);
@@ -306,49 +318,6 @@ function arbitrary_rotation( vec1, vec2){
         [0,0,0,1]
     );
     return (m2.transposed()).times(m1);
-}
-
-function deepCopy(obj) {
-    var rv;
-
-    switch (typeof obj) {
-        case "object":
-            if (obj === null) {
-                // null => null
-                rv = null;
-            } else {
-                switch (toString.call(obj)) {
-                    case "[object Array]":
-                        // It's an array, create a new array with
-                        // deep copies of the entries
-                        rv = obj.map(deepCopy);
-                        break;
-                    case "[object Date]":
-                        // Clone the date
-                        rv = new Date(obj);
-                        break;
-                    case "[object RegExp]":
-                        // Clone the RegExp
-                        rv = new RegExp(obj);
-                        break;
-                    // ...probably a few others
-                    default:
-                        // Some other kind of object, deep-copy its
-                        // properties into a new object
-                        rv = Object.keys(obj).reduce(function(prev, key) {
-                            prev[key] = deepCopy(obj[key]);
-                            return prev;
-                        }, {});
-                        break;
-                }
-            }
-            break;
-        default:
-            // It's a primitive, copy via assignment
-            rv = obj;
-            break;
-    }
-    return rv;
 }
 
 // const step_size = 5; //degrees
