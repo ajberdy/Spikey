@@ -181,8 +181,8 @@ class Crab{
             'lower_claw': 'adversary/lower_claw.obj',
             'lower_leg': 'adversary/lower_leg.obj',
             'mid_leg': 'adversary/mid_leg.obj',
-            'upper_claw': 'adversary/upper_claw.obj',
-            'upper_leg': 'adversary/upper_leg.obj',
+            'upper_claw': 'adversary/arm.obj',//'adversary/upper_claw.obj',
+            'upper_leg': 'adversary/arm.obj'//'adversary/upper_leg.obj',
           },
           (function(args){
               self.initialize(args, self);
@@ -270,7 +270,7 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
-        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
+        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize, true);
         // create_vectors(mesh.indices, mesh.indexBuffer.itemSize);
 
         this.positions.push(...Vec.cast(...positions));        
@@ -281,7 +281,7 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
     }
 }
 
-function create_vectors( values, vec_length){
+function create_vectors( values, vec_length, zeros){
     var vecs = new Array();
     var i = 0;
     while(i < values.length){
@@ -291,8 +291,10 @@ function create_vectors( values, vec_length){
             vec.push(parseFloat(values[i + j]));
             j += 1;
         }
+        if (zeros)
+            vec = [0, 0];
         vecs.push(vec);
-        i += 3;
+        i += vec_length;
     }
     return vecs;
 }

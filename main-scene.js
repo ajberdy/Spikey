@@ -63,7 +63,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.shape_count = Object.keys(shapes).length;
 
         this.crab = new Crab(this, context, 2);
-        this.adversary = null;
 
         // Make some Material objects available to you:
         this.clay = context.get_instance(Phong_Shader).material(Color.of(.9, .5, .9, 1), {
@@ -161,9 +160,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.t = 0;
 
-//         this.gravity_off = true;
+        this.gravity_off = true;
 //         this.use_octree = false;
         this.debug = false;
+        this.paused = true;
 
         this.friction_off = false;
         this.pulsate = false;
@@ -261,7 +261,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.update_entities(dt);
         }     
 
-        this.draw_with_shadows(graphics_state);
+//         this.draw_with_shadows(graphics_state);
         this.draw_entities(graphics_state);
 
     }
@@ -347,8 +347,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
                     Vec.of(0, (side_length + spacing)*i, 0)), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
                     mass, side_length/2, mat));//Vec.of(1, 1, 1).times(side_length), mat));
             }
-
-            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood.override({e: .8})));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+            return;
+        }
+        
+        if (scene_type == ADVERSARY) {
+            this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(10, 10, 10), Material.of(.5, .7, .9, this.shader_mats.soccer), this.crab));
+            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.wood.override({e: .8})));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 
             return;
         }
@@ -379,14 +383,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
                                              CHAOS_AGENT));
             return;
         }
-        if (scene_type == ADVERSARY) {
-//             var crab = new Crab(this, context, 2);
-            this.entities.push(new Adversary(this, Vec.of(-20, 20, 20), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 
-                Quaternion.unit(), 30, Vec.of(20, 20, 20), this.materials.shadow_wood, this.crab));
-            this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), 
-                Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
-
-        }
         return;
         // this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 //         this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
@@ -394,6 +390,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.entities.push(Ball.of(this, Vec.of(45, 40, 0), Vec.of(-10, 0, 0), Vec.of(0, 10, 0), Quaternion.unit(), 50, 15, Material.of(.5, .7, .9, this.shader_mats.soccer)));
         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(60, 0, 0), Vec.of(0, 0, 50), Quaternion.unit(), 50, 5, Material.of(.5, .3, .9, this.shader_mats.soccer)));
         this.entities.push(Box.of(this, Vec.of(-45, 10, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 100, Vec.of(10, 10, 10), this.materials.rubber));
+        this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(300, 100, 500), this.materials.wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+        // this.entities.push(new Box(this, Vec.of(0, 25, -50), Vec.of(0, 0, 10), Vec.of(0.2, 1, 0.1).times(1), 50, Vec.of(10, 10, 10), .05, Material.of(.5, .1, this.plastic)));
+
+        // this.entities.push(Ball.of(this, Vec.of(45, 10, 0), Vec.of(-10, 0, 0), Vec.of(0, 0, 10), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+//         this.entities.push(Ball.of(this, Vec.of(-45, 5, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, 5, Material.of(.5, .7, .9, this.shader_mats.soccer)));
+        // this.entities.push(Box.of(this, Vec.of(-45, 20, 0), Vec.of(10, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, Vec.of(10, 10, 10), Material.of(.5, .7, .9, this.shader_mats.soccer)));
 
 
 //         this.entities.push(new Cone_Object(this, Vec.of(0, 40, 0), Vec.of(0, 0, 0), Vec.of(0, 30, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
