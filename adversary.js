@@ -272,7 +272,7 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
-        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
+        // let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
         // create_vectors(mesh.indices, mesh.indexBuffer.itemSize);
 
         this.positions.push(...Vec.cast(...positions));        
