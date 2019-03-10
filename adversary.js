@@ -267,6 +267,8 @@ class Crab{
 window.BlenderObject = window.classes.BlenderObject = class BlenderObject extends Shape {
     constructor(mesh){
         super("positions", "normals", "texture_coords");
+        // super("positions", "normals");
+
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
@@ -275,9 +277,8 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         this.positions.push(...Vec.cast(...positions));        
         this.normals.push(...Vec.cast(...normals));
-        this.texture_coords.push(...Vec.cast(...textures));
+        this.texture_coords.push(...Vec.cast(...positions));
         this.indices.push(...mesh.indices);
-
     }
 }
 
