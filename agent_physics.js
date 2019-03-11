@@ -9,7 +9,7 @@ const spikey_body_mass = 20,
       max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01,
-      spikey_strength = 5;
+      spikey_strength = 10;
 
 const spikey_consts = {
             spikey_body_mass: spikey_body_mass,
@@ -26,11 +26,9 @@ const spikey_consts = {
 
 class Spikey_Object extends Physics_Object {
     constructor(scene, pos, vel, w, q, agent_type) {
-        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
+        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey_textured);
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
-
-        this.brain = Spikey_Agent.new_agent(agent_type);
         
         this.sr = spikey_consts.sphere_radius;
         this.spr = spikey_consts.max_spike_protrusion;
@@ -39,7 +37,7 @@ class Spikey_Object extends Physics_Object {
 
         this.spikey_material = spikey_material;
 
-        this.shape = new Spikey_Shape(spikey_consts);
+        this.shape = this.scene.shapes.spikey;//new Spikey_Shape(spikey_consts);
 
         this.base_points = this.shape.tips;
 
@@ -48,6 +46,8 @@ class Spikey_Object extends Physics_Object {
                                    1, 1, 1, 1).times(spikey_consts.max_spike_protrusion);
 
         this._convex_decomposition = this.init_convex_decomposition();
+
+        this.brain = Spikey_Agent.new_agent(agent_type, this.spikes);
 
         for (var i in this._convex_decomposition) {
             var subshape = this._convex_decomposition[i].shape,
@@ -73,6 +73,29 @@ class Spikey_Object extends Physics_Object {
 
         this.initialize();
 
+//         this.state = {
+//             t: 0,
+//             spikes: Array.apply(null, Array(num_spikes)),
+//             orientation: this.orientation,
+//             scene: this.scene   // for debugging
+//         }
+
+        this._intent = Vec.of(1, 0, 0);
+        this.last_intent = Vec.of(1, 0, 0);
+        
+        this.state = {
+            t: 0,
+            spikes: Array.apply(null, Array(num_spikes)),
+            orientation: this.orientation,
+            intent: this.intent
+        }
+
+        for (var i in this.state.spikes)
+            this.state.spikes[i] = {
+                impulse: Vec.of(0, 0, 0),
+                h:       this.spr
+            };
+
     }
 
     get spikes() {
@@ -80,38 +103,44 @@ class Spikey_Object extends Physics_Object {
     }
 
     static of(...args) {
-        return new Spikey_Shape(...args);
+        return new Spikey_Object(...args);
     }
 
-    draw(graphics_state) {
+    get_rl_tensors() {
+        return this.brain.get_rl_tensors(this.state);
+    }
+
+    draw(graphics_state, light_shader_mat) {
 //         this.scene.shapes.spikey.draw(
 //             graphics_state,
 //             this.transform,
 //             this.shader_mat);
 
 
-//         for (var tip of this.base_points)
+//         for (var i in this.base_points)
 //             this.scene.shapes.ball.draw(
 //                 graphics_state,
-//                 this.transform.times(Mat4.translation(tip)).times(Mat4.scale(2, 2, 2)),
+//                 this.transform.times(Mat4.translation(this.base_points[i])).times(Mat4.scale(2, 2, 2)),
 //                 this.scene.shader_mats.soccer);
 
-        this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
-            this.scene.plastic);
+//         return;
 
-        this.scene.shapes.ball.draw(
-            this.scene.globals.graphics_state,
-            Mat4.translation(this.pos).times(Mat4.scale(2, 2, 2)),
-            this.scene.shader_mats.floor);
+//         this.scene.shapes.ball.draw(
+//             this.scene.globals.graphics_state,
+//             Mat4.translation(this.com).times(Mat4.scale(2, 2, 2)),
+//             this.scene.plastic);
 
-        if (this.scene.debug)
-            this.scene.shapes.vector.draw(
-                this.scene.globals.graphics_state,
-                Mat4.y_to_vec(this.d, this.com).times(10000000),
-                this.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-                "LINES");
+//         this.scene.shapes.ball.draw(
+//             this.scene.globals.graphics_state,
+//             Mat4.translation(this.pos).times(Mat4.scale(2, 2, 2)),
+//             this.scene.shader_mats.floor);
+
+//         if (this.scene.debug)
+//             this.scene.shapes.vector.draw(
+//                 this.scene.globals.graphics_state,
+//                 Mat4.y_to_vec(this.d, this.com).times(10000000),
+//                 this.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
+//                 "LINES");
 
 //         console.log(this.d);
 
@@ -123,11 +152,25 @@ class Spikey_Object extends Physics_Object {
 //                     Mat4.translation(subshape.com).times(Mat4.scale(2, 2, 2)),
 //                     this.scene.shader_mats.floor);
 //             } 
-            subshape.draw(graphics_state);
+            subshape.draw(graphics_state, light_shader_mat);
 
         }
-
         
+    }
+
+    update_state(i, h, impulse, actuation, moving_avg = true) {
+        if (impulse != undefined) {
+            if (moving_avg) {
+                const alpha = .9;
+                this.state.spikes[i].impulse = this.state.spikes[i].impulse * alpha + impulse * (1 - alpha);
+            }
+            else
+                this.state.spikes[i].impulse = impulse;
+        }
+            
+        
+        this.state.spikes[i].h = h;
+        this.state.orientation = this.orientation;
     }
 
     init_convex_decomposition() {
@@ -162,7 +205,8 @@ class Spikey_Object extends Physics_Object {
                 z = spike[2];
 
             var phi = Math.atan(y/Math.sqrt(x**2 + z**2)),
-                theta = Math.atan(x/z) + (z < 0 ? PI : 0);
+                theta = Math.atan(x/z) + (z < 0 ? PI : 0),
+                axis_angle = PI/5;
 
             var translate_vec = spike.normalized().times(R);
 
@@ -173,17 +217,21 @@ class Spikey_Object extends Physics_Object {
                                                 spikey_consts.spike_base_radius, 
                                                 spikey_consts.max_spike_protrusion));
 
+            var spike_axis_rotate = Mat4.rotation(axis_angle, Vec.of(0, 0, 1));
+
             
             var transform = spike_translate.times(
                 spike_rotate_h).times(
                 spike_rotate_v).times(
+                spike_axis_rotate).times(
                 spike_scale);
 
             var Rm = spike_rotate_h.times(spike_rotate_v);
 
             var qh = Quaternion.from(Math.cos(theta/2), Vec.of(0, 1, 0).times(Math.sin(theta/2))),
                 qv = Quaternion.from(Math.cos(phi/2), Vec.of(-1, 0, 0).times(Math.sin(phi/2))),
-                q = qh.times(qv);
+                qa = Quaternion.from(Math.cos(axis_angle/2), Vec.of(0, 0, 1).times(Math.sin(axis_angle/2))),
+                q = qh.times(qv.times(qa));
 
             var cone = Spike_Object.of(this.scene, this.pos, this.vel, this.w, this.orientation.times(q).normalized(), 
                             spikey_consts.spikey_mass,  spikey_consts.spike_base_radius, 
@@ -228,27 +276,30 @@ class Spikey_Object extends Physics_Object {
 
     }
 
+    get intent() {
+        return this._intent;
+    }
+
+    set intent(intent) {
+        this.last_intent = this.intent;
+        this._intent = intent;
+    }
+
     update(dt) {
         super.update(dt);
         this.convex_decomposition;
         
-        this.actuate(this.get_actuation());
+        this.actuate(this.get_actuation(this.intent));
 
         var new_com = this.convex_decomposition.reduce(
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
+        this.state.t = this.scene.globals.graphics_state.animation_time;
         
     }
 
-    get_actuation() {
-        var state = {
-            t: this.scene.globals.graphics_state.animation_time
-        };
-        return this.brain.get_actuation(state);
-//         var actuation = [];
-//         for (var i in this.spikes)
-//             actuation.push(this.scene.pulsate ? Math.cos(.4/100*this.scene.globals.graphics_state.animation_time + i*2)*20 : 0);
-//         return actuation;
+    get_actuation(intent_vector) {
+        return this.brain.get_actuation(this.state, intent_vector);
     }
 
     set_spike_lengths(spike_vector) {

@@ -4,16 +4,23 @@
          window.classes = {}                    
          </script>        
 <script src="tiny-graphics.js" ></script>  <!--  Javascript "include" files.  Any code in them gets executed as part of the page loading. //-->
-<script src= "dependencies.js" ></script>
-<script src=       "shapes.js" ></script>
-<script src=      "physics.js" ></script>
-<script src=    "materials.js" ></script>
-<script src= "spikey_agent.js" ></script>
-<script src="agent_physics.js" ></script>
-<script src=       "octree.js" ></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.6"> </script> <!-- Tensorflow for the model training -->
+<script src=  "dependencies.js" ></script>
+<script src=        "shapes.js" ></script>
+<script src=       "physics.js" ></script>
+<script src=     "materials.js" ></script>
+<script src=  "spikey_agent.js" ></script>
+<script src= "agent_physics.js" ></script>
+<script src=        "octree.js" ></script>
+<script src="training-scene.js" ></script>
+<script src="learning/utils.js"></script>
+<script src="learning/replay-buffer.js"></script>
+<script src="learning/noise.js"></script>
+<script src="learning/actor_critic.js"></script>
+<script src="learning/ddpg.js"></script>
+<script src="learning/agent.js"></script>
 <script src=   "webgl-obj-loader.js" ></script>
 <script src=   "adversary.js" ></script>
-<script src=   "debugging.js" ></script>
 <script src=   "main-scene.js" ></script>
 <style>
   * { font-family: monospace }

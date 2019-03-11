@@ -49,6 +49,7 @@ class Physics_Object {
         this.bounding_radius;
 
         this.convex = true;
+        this.shape;
 
 
 //         // hacky stuff
@@ -163,13 +164,15 @@ class Physics_Object {
 
     update(dt) {
 
-        this.momentum = this.momentum.plus(this.F.times(dt));
-        this.L = this.L.plus(this.T.times(dt));
+        this.momentum = this.momentum.plus(this.F.times(dt)).times(1 - .01);
+        this.L = this.L.plus(this.T.times(dt)).times(1 - .01);
 
         this.recalc();
 
         this.com = this.com.plus(this.vel.times(dt));
-
+        if(isNaN(this.spin[0])){
+            console.log();
+        }
         this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
     
         this.F = Vec.of(0, 0, 0);
@@ -219,6 +222,7 @@ class Ball extends Physics_Object {
         this.base_normals = scene.shapes.ball.normals;
 
         this.bounding_radius = this.r;
+        this.shape = this.scene.shapes.ball;
     }
 
     get transform() {
@@ -231,15 +235,26 @@ class Ball extends Physics_Object {
         return new Ball(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.ball.draw(
             graphics_state,
             this.transform,
-            this.shader_mat ? this.shader_mat : this.scene.shader_mats.soccer);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
     }
 
     support(d) {
         return this.pos.plus(d.normalized().times(this.r));
+    }
+}
+
+class Planet extends Ball {
+    constructor(scene, pos, vel, w, orientation, mass, radius, material, g) {
+        super(scene, pos, vel, w, orientation, mass, radius, material);
+        this.g = g;
+    }
+
+    static of(...args) {
+        return new Planet(...args);
     }
 }
 
@@ -265,6 +280,7 @@ class Box extends Physics_Object {
         this.base_normals = scene.shapes.box.normals;
 
         this.bounding_radius = this.dims.norm();
+        this.shape = this.scene.shapes.simplebox;
     }
 
     get transform() {
@@ -281,11 +297,11 @@ class Box extends Physics_Object {
         return new Box(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.box.draw(
             graphics_state,
             this.transform,
-            this.shader_mat);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
     }
 }
 
@@ -356,6 +372,7 @@ class Cone_Object extends Physics_Object {
 //         console.log(this.I);
 
         this.bounding_radius = Math.max(this.r, this.h);
+        this.shape = this.scene.shapes.cone;
     }
 
 //     get com() {
@@ -377,11 +394,11 @@ class Cone_Object extends Physics_Object {
         return new Cone_Object(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.cone.draw(
             graphics_state,
             this.transform,
-            this.shader_mat);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
 
 //         this.scene.shapes.ball.draw(
 //                 graphics_state,
@@ -428,7 +445,7 @@ class Spike_Object extends Physics_Object {
         this.max_h = height_range[1];
         this.h = this.max_h;
         this._dh = 0;
-        this.max_dh = .5;
+        this.max_dh = 1;
         this.I = Mat3.of(
             [2*this.h**2 + 3*this.r**2, 0, 0],
             [0, 2*this.h**2 + 3*this.r**2, 0],
@@ -453,6 +470,7 @@ class Spike_Object extends Physics_Object {
         this.bounding_radius = Math.max(this.r, this.h);
 
         this._actuation_impulse = Vec.of(0, 0, 0);
+        this.jext = Vec.of(0, 0, 0);
     }
 
     static of(...args) {
@@ -496,15 +514,21 @@ class Spike_Object extends Physics_Object {
     }
 
     set actuation_impulse(ja) {
-        this.dh = ja * 3 / this.submass / this.strength;         
+//         if (this.jext.norm())
+//             console.log(ja, this.jext, this.jext.dot(this.h_axis.normalized()))
+        this.dh = (ja*this.strength + this.jext.dot(this.h_axis.normalized())) * 3 / this.submass;
+//             console.log(this.dh)
+                 
 //         var j = this.submass/3 * this.dh * this.strength;
 //         console.log(ja, j);
         this._actuation_impulse = this.h_axis.normalized().times(ja);
+        console.log(ja);
     }
 
     actuate(ja) {
         this.actuation_impulse = ja;
         this.move_spike();
+        console.log(this.dh)
     }
 
 //     update(dt) {
@@ -514,7 +538,7 @@ class Spike_Object extends Physics_Object {
 //     }
 
     point_vel(x_r, count_actuation) {
-        var actuation = count_actuation ? this.dh : 0;
+        var actuation = count_actuation ? this.dh*0 : 0;
         return super.point_vel(x_r).plus(x_r.project_onto(this.h_axis).times(actuation));
     }
 
@@ -530,11 +554,11 @@ class Spike_Object extends Physics_Object {
         return new Spike_Object(...args);
     }
 
-    draw(graphics_state) {
+    draw(graphics_state, light_shader_mat) {
         this.scene.shapes.cone.draw(
             graphics_state,
             this.transform,
-            this.shader_mat);
+            light_shader_mat ? light_shader_mat : this.shader_mat);
 
 //         this.scene.shapes.ball.draw(
 //                 graphics_state,
@@ -1008,20 +1032,32 @@ class Collision_Detection {
 
                 var collision_info = Collision_Detection.get_collision_info(a_i, b);
 
-                if (!collision_info)
+                if (!collision_info) {
+                    if (a instanceof Spikey_Object && i != 0) {
+                        a.update_state(i - 1, a_i.h, Vec.of(0, 0, 0));
+                        a_i.jext = Vec.of(0, 0, 0);
+                    }
                     continue;
+                }
 
-                a.impulse(collision_info.impulse_a, collision_info.a_r);
-                b.impulse(collision_info.impulse_b, collision_info.b_r);
+                var impulse_a = collision_info.impulse_a.plus(
+                                collision_info.friction_impulse_a).plus(
+                                collision_info.actuation_impulse_a),
+                    impulse_b = collision_info.impulse_b.plus(
+                                collision_info.friction_impulse_b).plus(
+                                collision_info.actuation_impulse_b);
+
+                a.impulse(impulse_a, collision_info.a_r);
+                b.impulse(impulse_b, collision_info.b_r);
 
                 a.shift(collision_info.correction_a);
                 b.shift(collision_info.correction_b);
 
-                a.impulse(collision_info.friction_impulse_a, collision_info.a_r);
-                b.impulse(collision_info.friction_impulse_b, collision_info.b_r);
-
-                a.impulse(collision_info.actuation_impulse_a, collision_info.a_r);
-                b.impulse(collision_info.actuation_impulse_b, collision_info.b_r);
+                if (a instanceof Spikey_Object && i != 0) {
+                    a.update_state(i - 1, a_i.h, impulse_a);    // i - 1 because body
+                    a_i.jext = collision_info.impulse_a.plus(collision_info.friction_impulse_a);
+//                     console.log(a_i.jext);
+                }
 
             }
 
@@ -1094,7 +1130,7 @@ class Collision_Detection {
             var actuated_rel_vel = a.point_vel(a_r, true).minus(b.point_vel(b_r, true)),
                 actuated_vel_along_normal = actuated_rel_vel.dot(normal);
 
-            const percent = .2;
+            const percent = .8;
             var penetration_depth = manifold.penetration_depth,
                 slop = .01,
                 correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);
@@ -1146,8 +1182,22 @@ class Collision_Detection {
                     actuation_impulse_a: actuation_impulse_a,
                     actuation_impulse_b: actuation_impulse_b
                 };
-            
-            rel_vel = b.point_vel(b_r, true).minus(a.point_vel(a_r, true));
+
+//             var post_impulse_a_mom = a.momentum.plus(impulse_a).plus(actuation_impulse_a),
+//                 post_impulse_a_L = a.L.plus(a_r.cross(impulse_a)).plus(a_r.cross(actuation_impulse_a)),
+//                 post_impulse_a_vel = post_impulse_a_mom.times(a.m_inv),
+//                 post_impulse_a_w = a.I_inv.times(post_impulse_a_vel),
+
+//                 post_impulse_b_mom = b.momentum.plus(impulse_b).plus(actuation_impulse_b),
+//                 post_impulse_b_L = b.L.plus(a_r.cross(impulse_b)).plus(b_r.cross(actuation_impulse_b)),
+//                 post_impulse_b_vel = post_impulse_b_mom.times(b.m_inv),
+//                 post_impulse_b_w = b.I_inv.times(post_impulse_b_vel);
+
+//             rel_vel = post_impulse_b_vel.plus(post_impulse_b_w.cross(b_r)).minus(
+//                       post_impulse_a_vel.plus(post_impulse_a_w.cross(a_r)));
+
+            rel_vel = a.point_vel(a_r, true).minus(b.point_vel(b_r, true));
+//             console.log(rel_vel);
             if (normal.times(rel_vel.dot(normal)).equals(rel_vel))
                 return {
                     impulse_a: impulse_a,
@@ -1162,9 +1212,10 @@ class Collision_Detection {
                     actuation_impulse_b: actuation_impulse_b
                 };
 
-            var tangent = rel_vel.minus(normal.times(rel_vel.dot(normal))).normalized();
+            var tangent = rel_vel.minus(rel_vel.project_onto(normal)).normalized();
 
             var jt = -rel_vel.dot(tangent);
+
             jt /= a.m_inv + b.m_inv + 
                      a.R.times(a.I_inv).times(a.R_inv).times(a_r.cross(tangent)).cross(a_r).dot(tangent) + 
                      b.R.times(b.I_inv).times(b.R_inv).times(b_r.cross(tangent)).cross(b_r).dot(tangent);
@@ -1172,11 +1223,14 @@ class Collision_Detection {
             var mu_s = Math.sqrt(a.mu_s**2 + b.mu_s**2);
 
             var friction_impulse;
-            var jn = -(j + normal.dot(ja));
-//             console.log(jn, j, normal.dot(ja));
+            var jn = j + normal.dot(ja);
+//             console.log(rel_vel.dot(tangent));
+//             console.log(a.w.norm());
             var friction_color = Color.of(1, 0, 0, 1);
 
-            if (Math.abs(jt) < (jn * mu_s)) {
+//             console.log(jt, jn);
+
+            if (Math.abs(jt) < Math.abs(jn * mu_s)) {
                 friction_impulse = tangent.times(jt);
             }
             else {
@@ -1188,11 +1242,20 @@ class Collision_Detection {
             var friction_impulse_a = friction_impulse.times(-1),
                 friction_impulse_b = friction_impulse.times(1);
 
+//             console.log(friction_impulse_a.norm());
+
             if (a.scene.debug)
                 a.scene.shapes.vector.draw(
                     a.scene.globals.graphics_state,
                     Mat4.y_to_vec(friction_impulse_a.times(10), a.com.plus(a_r).plus(Vec.of(0, 3, 0))),
                     a.scene.physics_shader.material(friction_color),
+                    "LINES");
+
+            if (a.scene.debug)
+                a.scene.shapes.vector.draw(
+                    a.scene.globals.graphics_state,
+                    Mat4.y_to_vec(tangent.times(rel_vel.dot(tangent)).times(10), a.com.plus(a_r).plus(Vec.of(0, 3, 0))),
+                    a.scene.physics_shader.material(Color.of(0, 1, 0, 1)),
                     "LINES");
 
             return {
@@ -1226,7 +1289,7 @@ class Collision_Detection {
         var rel_vel = a.point_vel(a_r).minus(b.point_vel(b_r)),
             vel_along_normal = rel_vel.dot(normal);
             
-        const percent = .2;
+        const percent = .8;
         var penetration_depth = a.r + b.r - a.com.minus(b.com).norm(),
             slop = .01,
             correction = normal.times(Math.max(penetration_depth - slop, 0) / (a.m_inv + b.m_inv) * percent);

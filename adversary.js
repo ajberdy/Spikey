@@ -49,6 +49,57 @@ const default_rotations = {
             'upper_leg': Mat4.rotation(.5, Vec.of(0,0,1,0)),}],
 };
 
+const default_parameterization = {
+    'LA' : {'base': {rad: .5, axis: Vec.of(0,-1,0,0)}, 
+            'arm': {rad: .5, axis: Vec.of(0,-1,0,0)},
+            'lower_claw': {rad: .6, axis: Vec.of(0,-1,0,0)},
+            'upper_claw': {rad: .1, axis: Vec.of(0,-1,0,0)}},
+    'L1' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+    'L2' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+    'L3' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+    'L4' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+    'RA' : {'base': {rad: .5, axis: Vec.of(0,1,0,0)}, 
+            'arm': {rad: .5, axis: Vec.of(0,1,0,0)},
+            'lower_claw': {rad: .6, axis: Vec.of(0,1,0,0)},
+            'upper_claw': {rad: .1, axis: Vec.of(0,1,0,0)}},
+    'R1' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+    'R2' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+    'R3' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+    'R4' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
+            'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+};
+
 class Adversary extends Box{
     constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
         super(scene, pos, vel, w, orientation, mass, dims, material);
@@ -59,9 +110,96 @@ class Adversary extends Box{
         return this.tip_positions;
     }
     
-    draw(graphics_state){
+    draw(graphics_state, light_shader_mat){
         // console.log(this.base_points);
         this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos));
+
+        let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
+
+        let param = default_parameterization;
+//         for (var leg of ['L1', 'L2', 'L3', 'L4'])
+//             Adversary.bend(leg, PI/2, param);
+        let rotations = Adversary.rotation_from_params(param);
+        this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), rotations);
+    }
+
+    static rotation_from_params(param) {
+        var leg_names = ['LA', 'L1', 'L2', 'L3', 'L4', 
+                         'RA', 'R1', 'R2', 'R3', 'R4']
+        var rotations_list = leg_names.map(leg =>
+            [Mat4.rotation(param[leg].base.rad, param[leg].base.axis),
+            leg == 'LA' || leg == 'RA' ?
+            {'arm': Mat4.rotation(param[leg].arm.rad, param[leg].arm.axis),
+             'lower_claw': Mat4.rotation(param[leg].lower_claw.rad, param[leg].lower_claw.axis),
+             'upper_claw': Mat4.rotation(param[leg].upper_claw.rad, param[leg].upper_claw.axis)} :
+            {'foot': Mat4.rotation(param[leg].foot.rad, param[leg].foot.axis),
+             'lower_leg': Mat4.rotation(param[leg].lower_leg.rad, param[leg].lower_leg.axis),
+             'mid_leg': Mat4.rotation(param[leg].mid_leg.rad, param[leg].mid_leg.axis),
+             'upper_leg': Mat4.rotation(param[leg].upper_leg.rad, param[leg].upper_leg.axis)}]);
+
+         var rotations_obj = {};
+         for (var i in leg_names)
+            rotations_obj[leg_names[i]] = rotations_list[i];
+        return rotations_obj;
+    }
+
+    static bend(leg, radians, param) {
+        /* uniform bending (doesn't look as good as default) */
+        var num_sublegs = ['LA', 'RA'].includes(leg) ? 4 : 5;
+
+        for (var subleg of Object.keys(param[leg])) {
+            if (subleg == 'base')
+                continue;
+            
+            param[leg][subleg].rad = radians / (num_sublegs - 1);
+//             console.log(subleg);
+        }
+//         return param;
+    }
+
+    support(d) {
+        /* return the point on the crab furthest in the direction of d */
+        return super.support(d);
+
+        // TODO: when d.dot(y_axis) < 0, return the lowest leg tip.
+
+//         let candidates = [...Vec.cast(
+//             [-15, -12, -10],
+//             [-15, -12,   0],
+//             [-15, -12,  10],
+//             [-15, -12,  20],
+           
+//             [ 15, -12, -10],
+//             [ 15, -12,   0],
+//             [ 15, -12,  10],
+//             [ 15, -12,  20],
+
+//             [-15, 2, -10],
+//             [-15, 2,   0],
+//             [-15, 2,  10],
+//             [-15, 2,  20],
+           
+//             [ 15, 2, -10],
+//             [ 15, 2,   0],
+//             [ 15, 2,  10],
+//             [ 15, 2,  20],
+//         )]
+
+//          not sure the best way to get the lef tips, ^ is just 
+//          filler and not correct
+
+//         var max_v, max_dot = -Infinity;
+//         for (var v of candidates) {
+//             let p = this.com.plus(v),
+//                 dot = p.dot(d);
+
+//             if (dot >= max_dot) {
+//                 max_v = v;
+//                 max_dot = dot;
+//             }
+//         }
+
+//         return max_v;
     }
 }
 
@@ -291,7 +429,11 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
+<<<<<<< HEAD
         let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
+=======
+        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize, true);
+>>>>>>> rl-agent
         // create_vectors(mesh.indices, mesh.indexBuffer.itemSize);
 
         this.positions.push(...Vec.cast(...positions));        
@@ -301,7 +443,7 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
     }
 }
 
-function create_vectors( values, vec_length){
+function create_vectors( values, vec_length, zeros){
     var vecs = new Array();
     var i = 0;
     while(i < values.length){
@@ -311,6 +453,8 @@ function create_vectors( values, vec_length){
             vec.push(parseFloat(values[i + j]));
             j += 1;
         }
+        if (zeros)
+            vec = [0, 0];
         vecs.push(vec);
         i += vec_length;
     }
