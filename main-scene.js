@@ -31,6 +31,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         context.globals.graphics_state.projection_transform = Mat4.perspective(Math.PI / 4, r, .1, 1000);
         context.globals.graphics_state.shadows = true;
+        context.globals.graphics_state.perlin = true;
         // console.log(context.globals.gl);
         // var crab_limbs = {};
         // loadCrab(context.globals.gl, crab_limbs);
@@ -90,7 +91,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
             pyramid: "assets/tetrahedron-texture2.png",
             simplebox: "assets/tetrahedron-texture2.png",
             cone: "assets/hypnosis.jpg",
-            circle: "assets/hypnosis.jpg"
+            circle: "assets/hypnosis.jpg",
+            spikey: "assets/spikey_texture.jpg"
         };
         for (let t in shape_textures)
             this.shape_materials[t] = this.texture_base.override({
@@ -117,17 +119,22 @@ class Assignment_Two_Skeleton extends Scene_Component {
             soccer: this.texture_base.override({
                 texture: context.get_instance(shape_textures.ball)
             }),
+            spikey_textured: this.texture_base.override({
+                texture: context.get_instance(shape_textures.spikey)
+            }),
             spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
                 ambient: .2,
                 diffusivity: .9,
                 specularity: .2,
-                smoothness: 20
+                smoothness: 20,
+                texture: context.get_instance[shape_textures.spikey]
             }),
-            shadow_spikey: context.get_instance(Phong_Shadow_Shader).material(Color.of(.398, .199, .598, 1), {
+            shadow_spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
                 ambient: .2,
                 diffusivity: .9,
                 specularity: .2,
-                smoothness: 20
+                smoothness: 20,
+                texture: context.get_instance[shape_textures.ball]
             }),
             ocean: this.camera_shader.material(Color.of(0, 1, 1, .55), {
                 ambient: .4,
@@ -238,6 +245,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.key_triggered_button("Toggle Shadows", ["h"], () => {
             this.globals.graphics_state.shadows = !this.globals.graphics_state.shadows;
         });
+        this.key_triggered_button("Toggle Perlin", ["c"], () => {
+            this.globals.graphics_state.perlin = !this.globals.graphics_state.perlin;
+        });
 
 //         this.key_triggered_button("Toggle Pulsate", ["x"], () => {
 //             this.pulsate = !this.pulsate;
@@ -253,13 +263,15 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
 
-    display(graphics_state, nothing) {
+    display(graphics_state) {
         // Use the lights stored in this.lights.
         graphics_state.lights = this.lights;
+        let light_position = this.lights[0].position;
+        graphics_state.light_view_matrix = Mat4.look_at(this.entities[1].pos.plus(Vec.of(0, 100, 0)), this.entities[1].pos, Vec.of(0, 0, -1))
 //         var sx = this.entities[1].x, sz = this.entities[1].z;
 //         var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
 //         camera_location[1] = 30;
-//         this.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 0, 20), Vec.of(0, 0, 0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
+        graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(this.entities[1].pos[0], 30, this.entities[1].pos[2]), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
                 
         // Find how much time has passed in seconds, and use that to place shapes.

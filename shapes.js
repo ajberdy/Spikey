@@ -213,6 +213,8 @@ window.Cone = window.classes.Cone = class Cone extends Shape {
             this.indices.push(
                 id - 1, id, id + 1);
         }
+        for (var i in this.texture_coords)
+            this.texture_coords[i] = this.texture_coords[i].times(1/30);
     }
 }
 

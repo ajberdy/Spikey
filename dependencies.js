@@ -719,7 +719,8 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
     material(color, properties) {
         // Possible properties: ambient, diffusivity, specularity, smoothness, texture.
         return new class Material {
-            constructor(shader, color=Color.of(0, 0, 0, 1), ambient=0, diffusivity=1, specularity=1, smoothness=40, shadows=true) {
+            constructor(shader, color=Color.of(0, 0, 0, 1), ambient=0, diffusivity=1, specularity=1, smoothness=40, shadows=true,
+                do_perlin = true) {
                 // Assign defaults.
                 Object.assign(this, {
                     shader,
@@ -728,7 +729,8 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                     diffusivity,
                     specularity,
                     smoothness,
-                    shadows
+                    shadows,
+                    do_perlin
                 });
 
                 // Optionally override defaults.
@@ -866,7 +868,7 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
 
             uniform sampler2D depthColorTexture;
             uniform vec3 uColor;
-            uniform bool shadows;
+            uniform bool shadows, do_perlin;
 
             uniform float scale1, scale2, scaleb, freq1, freq2, freq_global;
             uniform vec4 color1, color2, backdrop;
@@ -1017,10 +1019,14 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
               float texelSize = 1.0 / ${this.shadowDepthTextureSize}.0;
               float amountInLight = 0.0;
 
-              vec4 perlin_color = perlin(f_tex_coord.x, f_tex_coord.y);
+              vec4 perlin_color;
+              if (!do_perlin)
+                  perlin_color = shapeColor;
+              else
+                  perlin_color = perlin(f_tex_coord.x, f_tex_coord.y);
               vec4 phong_color = phong(perlin_color);
 
-              if (!shadows || shadowPos.x + shadowPos.y > 1.) {
+              if (!shadows || length(shadowPos.xy) > 1.) {
                   gl_FragColor = phong_color;
                   return;
               }
@@ -1064,6 +1070,7 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
         gl.uniform1f( gpu.specularity_loc, material.specularity);
         gl.uniform1f( gpu.smoothness_loc,  material.smoothness);
         gl.uniform1f( gpu.shadows_loc,     g_state.shadows);
+        gl.uniform1f( gpu.do_perlin_loc,      g_state.perlin && material.do_perlin);
 
         // NOTE: To signal not to draw a texture, omit the texture parameter from Materials.
         if (material.texture) {
@@ -1090,7 +1097,8 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
         gl.uniform4fv(gpu.lightColor_loc, lightColors_flattened);
         gl.uniform1fv(gpu.attenuation_factor_loc, lightAttenuations_flattened);
 
-        gl.uniform4fv(gpu.color1_loc, material.color1);
+        if (material.do_perlin) {
+            gl.uniform4fv(gpu.color1_loc, material.color1);
         gl.uniform4fv(gpu.color2_loc, material.color2);
         gl.uniform1f(gpu.scale1_loc, material.scale1);
         gl.uniform1f(gpu.scale1_loc, material.scale2);
@@ -1098,6 +1106,8 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
         gl.uniform1f(gpu.freq1_loc, material.freq1);
         gl.uniform1f(gpu.freq2_loc, material.freq2);
         gl.uniform1f(gpu.freq_global_loc, material.freq_global);
+        }
+        
 
 
 
