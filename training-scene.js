@@ -84,12 +84,15 @@ class Training_Scene extends Assignment_Two_Skeleton{
     }
 
     reward(original_pos, final_pos) {
-        let displacement = final_pos.minus(original_pos),
+        // console.log(final_pos);
+        let displacement = Vec.of(final_pos[0], 0, final_pos[2]).minus(Vec.of(0, 0, 0)),
             on_intent = displacement.project_onto(this.global_intent),
             off_intent = displacement.minus(on_intent).norm();
 
         on_intent = Math.sign(displacement.dot(this.global_intent)) * on_intent.norm();
-        let reward = Math.floor(on_intent / 2);
+
+        // console.log(off_intent, on_intent)
+        let reward = Math.floor(on_intent / 4);
         let terminal = off_intent > 15 || (on_intent < -15);
 
         return {

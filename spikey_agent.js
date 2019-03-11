@@ -145,9 +145,14 @@ class RL_Agent extends Spikey_Agent {
         if (!this.on_policy){
             state.scene.shapes.vector.draw(
               state.scene.globals.graphics_state,
-              Mat4.y_to_vec(intent.times(50), state.scene.Spikey.com),
+              Mat4.y_to_vec(state.intent.times(10), state.scene.Spikey.com),
               state.scene.physics_shader.material(Color.of(0, 1, 1, 1)),
               "LINES");
+            state.scene.shapes.ball.draw(
+              state.scene.globals.graphics_state,
+              Mat4.translation(state.scene.Spikey.pos.plus(state.intent)).times(Mat4.scale(2, 2, 2)),
+              state.scene.plastic
+            );
             return this.actuation;
         }
         var rl_tensors = this.get_rl_tensors(state),

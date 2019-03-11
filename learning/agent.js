@@ -20,7 +20,7 @@ class Agent {
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
             "maxStep": config.maxStep || 30,
             "saveInterval": config.saveInterval || 5,
-            "actionReg": config.actionReg || 0.01,
+            "actionReg": config.actionReg || 0.15,
             "goodRatio": config.goodRatio || 0.2
         };
 
