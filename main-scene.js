@@ -54,7 +54,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
 
-        this.crab = new Crab(this, context, 2);
+        this.paused = true;
 
         // Make some Material objects available to you:
         this.clay = context.get_instance(Phong_Shader).material(Color.of(.9, .5, .9, 1), {
@@ -80,7 +80,16 @@ class Assignment_Two_Skeleton extends Scene_Component {
             pyramid: "assets/tetrahedron-texture2.png",
             simplebox: "assets/tetrahedron-texture2.png",
             cone: "assets/hypnosis.jpg",
-            circle: "assets/hypnosis.jpg"
+            circle: "assets/hypnosis.jpg",
+            arm:'adversary/arm.png',
+            body:'adversary/body.png',
+            foot: 'adversary/foot.png',
+            lower_claw: 'adversary/lower_claw.png',
+            lower_leg: 'adversary/lower_leg.png',
+            mid_leg: 'adversary/mid_leg.png',
+            upper_claw: 'adversary/upper_claw.png',
+            upper_leg: 'adversary/upper_leg.png',
+
         };
         for (let t in shape_textures)
             this.shape_materials[t] = this.texture_base.override({
@@ -105,8 +114,34 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 diffusivity: .9,
                 specularity: .2,
                 smoothness: 20
-            })
+            }),
+            'arm':this.texture_base.override({
+                texture: context.get_instance(shape_textures.arm)
+            }),
+            'body':this.texture_base.override({
+                texture: context.get_instance(shape_textures.body)
+            }),
+            'foot': this.texture_base.override({
+                texture: context.get_instance(shape_textures.foot)
+            }),
+            'lower_claw': this.texture_base.override({
+                texture: context.get_instance(shape_textures.lower_claw)
+            }),
+            'lower_leg': this.texture_base.override({
+                texture: context.get_instance(shape_textures.lower_leg)
+            }),
+            'mid_leg': this.texture_base.override({
+                texture: context.get_instance(shape_textures.mid_leg)
+            }),
+            'upper_claw': this.texture_base.override({
+                texture: context.get_instance(shape_textures.upper_claw)
+            }),
+            'upper_leg': this.texture_base.override({
+                texture: context.get_instance(shape_textures.upper_leg)
+            }),
         };
+        this.crab = new Crab(this, context, this.shader_mats, 2);
+
 
         this.materials = {
             wood: Material.of(.35, .1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
@@ -236,7 +271,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
     initialize_entities() {
-        this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(.1, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 50, Vec.of(10, 10, 10), Material.of(.5, .7, .9, this.shader_mats.soccer), this.crab));
+        this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(-.1, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 1, Vec.of(25, 25, 25), Material.of(.5, .7, .9, this.shader_mats.soccer), this.crab, this.shader_mats));
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
