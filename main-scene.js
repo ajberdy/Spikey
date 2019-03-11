@@ -11,7 +11,8 @@ const NULL_AGENT = 0,
 const TOWER = 0,
       CHAOS = 1,
       PLANETS = 2,
-      ADVERSARY = 3;
+      ADVERSARY = 3,
+      MAIN = 4;
 
 
 class Assignment_Two_Skeleton extends Scene_Component {
@@ -192,7 +193,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 freq_global: 5
             })
         };
-        this.crab = new Crab(this, context, this.shader_mats, 2);
+//         this.crab = new Crab(this, context, this.shader_mats, 2);
 
 
         this.materials = {
@@ -247,7 +248,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.entities = [];
 //         this.gcenters = [];
-        this.initialize_entities(ADVERSARY);
+        this.scene_type = MAIN;
+        this.initialize_entities(null, context);
 //         this.initialize_gcenters()
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
@@ -416,7 +418,21 @@ class Assignment_Two_Skeleton extends Scene_Component {
     collide(a, b) {
         Collision_Detection.collide(a, b);
     }
-    initialize_entities(scene_type) {
+    initialize_entities(scene_type, context) {
+
+        if (this.scene_type == MAIN) {
+            this.Spikey = Spikey_Object.of(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
+                CHAOS_AGENT);
+            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
+                Infinity, Vec.of(3000, 100, 5000), this.materials.sand));
+            
+            let num_crabs = 1;
+            for (var i of Array.apply(null, Array(num_crabs))); {
+                let crab = new Crab(this, context, this.shader_mats, 5);
+                this.entities.push(new Adversary(this, Vec.of(0, 10, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
+                    50, Vec.of(10, 25, 10), this.materials.crab, crab));
+            }
+        }
 
         if (scene_type == TOWER) {
             let num_blocks = 30,

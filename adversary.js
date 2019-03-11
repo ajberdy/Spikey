@@ -102,26 +102,98 @@ const default_parameterization = {
 
 class Adversary extends Box{
     constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
-        super(scene, pos, vel, w, orientation, mass, dims.times(1), material);
+        super(scene, pos, vel, w, orientation, mass, dims.times(crab.scale/2), material);
         this.crab = crab;
         this.tip_positions = {};
+        this.t = 0;
+        this.param = default_parameterization;
+        this.leg_names = ['LA', 'L1', 'L2', 'L3', 'L4', 
+                          'RA', 'R1', 'R2', 'R3', 'R4']
     }
     get_tip_positions(){
         return this.tip_positions;
     }
+
+    update(dt) {
+        this.t += dt;
+        let dparam = this.get_dparam();
+        for (var leg of this.leg_names) {
+            for (var subleg in this.param[leg]) {
+                this.param[leg][subleg].rad += dt;//dparam[leg][subleg]*dt;
+            }
+        }
+    }
     
     draw(graphics_state, light_shader_mat){
-        // console.log(this.base_points);
-        this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos).times(Mat4.scale(1, 1, 1)),
-            default_rotations, light_shader_mat);
-        return;
-        let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
-
-        let param = default_parameterization;
-//         for (var leg of ['L1', 'L2', 'L3', 'L4'])
-//             Adversary.bend(leg, PI/2, param);
+        let param = this.param;
         let rotations = Adversary.rotation_from_params(param);
-        this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), default_rotations);
+        this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos).times(Mat4.scale(1, 1, 1)),
+            rotations, light_shader_mat);
+        return;
+
+
+//         let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
+
+//         let param = default_parameterization;
+// //         for (var leg of ['L1', 'L2', 'L3', 'L4'])
+// //             Adversary.bend(leg, PI/2, param);
+//         let rotations = Adversary.rotation_from_params(param);
+//         this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), default_rotations);
+    }
+
+    get_dparam() {
+        let cos = Math.cos, sin = Math.sin, t = this.t;
+        return {
+    'LA' : {'base': cos(t), 
+            'arm': 0,
+            'lower_claw': 0,
+            'upper_claw': 0},
+    'L1' : {'base': 0, 
+            'foot': 0,
+            'lower_leg': 0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'L2' : {'base': 0, 
+            'foot': 0,
+            'lower_leg': 0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'L3' : {'base': 0, 
+            'foot': 0,
+            'lower_leg': 0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'L4' : {'base': 0, 
+            'foot':0,
+            'lower_leg':0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'LA' : {'base': cos(t), 
+            'arm': 0,
+            'lower_claw': 0,
+            'upper_claw': 0},
+    'L1' : {'base': 0, 
+            'foot': 0,
+            'lower_leg': 0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'L2' : {'base': 0, 
+            'foot': 0,
+            'lower_leg': 0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'L3' : {'base': 0, 
+            'foot': 0,
+            'lower_leg': 0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+    'L4' : {'base': 0, 
+            'foot':0,
+            'lower_leg':0,
+            'mid_leg': 0,
+            'upper_leg': 0},
+};
+
     }
 
     static rotation_from_params(param) {
