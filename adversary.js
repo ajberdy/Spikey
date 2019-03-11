@@ -50,11 +50,10 @@ const default_rotations = {
 };
 
 class Adversary extends Box{
-    constructor(scene, pos, vel, w, orientation, mass, dims, material, crab, shaders) {
+    constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
         super(scene, pos, vel, w, orientation, mass, dims, material);
         this.crab = crab;
         this.tip_positions = {};
-        this.shaders = shaders;
     }
     get_tip_positions(){
         return this.tip_positions;
@@ -62,7 +61,7 @@ class Adversary extends Box{
     
     draw(graphics_state){
         // console.log(this.base_points);
-        this.tip_positions = this.crab.draw(graphics_state, this.shaders, Mat4.translation(this.pos));
+        this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos));
     }
 }
 
@@ -207,7 +206,7 @@ class Crab{
 
     //target position is vector from origin indicating where ball/tip should be (should be homogenous vector)
     //socket center also contains information about orientation of parent
-    draw_limb_segment ( graphics_state, socket_center, rotation, limb, shader, right = false){
+    draw_limb_segment ( graphics_state, socket_center, rotation, limb, right = false){
         var sock_vector;
         var move_center;
         var ball_vec;
@@ -235,22 +234,22 @@ class Crab{
         );
         return rotation.times(ball_vec);
     }
-    draw_leg(graphics_state, socket_center, rotations, shader, right = false){
+    draw_leg(graphics_state, socket_center, rotations, right = false){
         var result_positions = {};
         var limbs = ['upper_leg', 'mid_leg', 'lower_leg', 'foot'];
         for(var i = 0; i < limbs.length; i+=1){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], shader, right);
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
             result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
         return result_positions;
     }
 
-    draw_arm(graphics_state, socket_center, rotations,  shader, right = false){
+    draw_arm(graphics_state, socket_center, rotations, right = false){
         var result_positions = {};
         var limbs = ['arm', 'lower_claw', 'upper_claw'];
         for(var i = 0; i < limbs.length; i+=1){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], shader, right);
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
             result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
@@ -259,7 +258,7 @@ class Crab{
 
     //rotations has the structure {'L1' : [ <rotation about y>, {'upper_leg' : <rotation_matrix>, 'mid_leg' .. }, ... }]
     //theta in radians
-    draw ( graphics_state, shader, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
+    draw ( graphics_state, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
         if (this.initialized){
             var result_positions = {};
             this.limbs['body'].draw(
@@ -273,12 +272,11 @@ class Crab{
                         graphics_state, 
                         origin_translation.times(Mat4.translation(this.ball_vectors['body'][(!!i ? 'R' : 'L') + leg])).times(rotations[(!!i ? 'R' : 'L') + leg][0]), 
                         rotations[(!!i ? 'R' : 'L') + leg][1], 
-                        shader, 
                         !!i);
                 }              
             }      
-            result_positions['LA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1], shader);
-            result_positions['RA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], shader, true);
+            result_positions['LA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1]);
+            result_positions['RA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], true);
             return result_positions;
         }
         return {};

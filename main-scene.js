@@ -271,7 +271,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
     initialize_entities() {
-        this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(-.1, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 1, Vec.of(25, 25, 25), Material.of(.5, .7, .9, this.shader_mats.soccer), this.crab, this.shader_mats));
+        this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(-.1, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 1, Vec.of(25, 25, 25), Material.of(.5, .7, .9, this.shader_mats.soccer), this.crab));
 //         this.entities.push(new Ball(this, Vec.of(45, -35, 0), Vec.of(-20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1));
 //         this.entities.push(new Ball(this, Vec.of(-45, -35, 0), Vec.of(20, 0, 0), Vec.of(0, 0, 0), 10, 5, 1, this.clay));
 
