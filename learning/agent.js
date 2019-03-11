@@ -3,27 +3,30 @@ class Agent {
     constructor(scene) {
         let config = {};
         this.config = {
-            "seed": config.seed || 156,
-            "batchSize": config.batchSize || 128,
+            "seed": config.seed || 121,
+            "batchSize": config.batchSize || 64,
             "memorySize": config.memorySize || 30000,
             "actorLearningRate": config.LearningRate || 0.001,
             "criticLearningRate": config.LearningRate || 0.001,
             "gamma": config.gamma || 0.99,
-            "noiseDecay": config.noiseDecay || 0.99,
+            "noiseDecay": config.noiseDecay || 0.95,
             "rewardScale": config.rewardScale || 1,
             "epochs": config.epochs || 100,
             "nbEpochsCycle": config.nbEpochsCycle || 10,
-            "trainSteps": config.nbTrainSteps || 100,
+            "trainSteps": config.TrainSteps || 20,
             "tau": config.tau || 0.008,
             "initialStddev": config.initialStddev || 0.1,
-            "desiredActionStddev": config.desiredActionStddev || 0.1,
+            "desiredActionStddev": config.desiredActionStddev || 0.05,
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
             "maxStep": config.maxStep || 30,
-            "saveInterval": config.saveInterval || 2,
+            "saveInterval": config.saveInterval || 5,
+            "actionReg": config.actionReg || 0.01,
+            "goodRatio": config.goodRatio || 0.2
         };
 
         this.scene = scene;
         this.epoch = 0;
+        this.maxStep = this.config.maxStep;
         // From js/DDPG/noise.js
         this.noise = new Noise(this.config);
 
@@ -44,23 +47,34 @@ class Agent {
     }
 
     async save(name) {
-        await this.ddpg.critic.model.save('/models/critic-' + name);
-        await this.ddpg.actor.model.save('models/actor-' + name);
+        await this.ddpg.critic.model.save('downloads://critic-' + name);
+        await this.ddpg.actor.model.save('downloads://actor-' + name);
     }
 
-    async warmStart_critic(folder, name) {
+    async warmStart_critic() {
         const critic = await tf.loadModel('models/critic-model-ddpg-epoch-warm.json');
 
         this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
 
         this.ddpg.criticTarget = copyModel(this.ddpg.critic, Critic);
     }
+
+    async warmStart_actor() {
+        const actor = await tf.loadModel('../good_models/actor-model-ddpg-epoch-2.json');
+
+        this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
+
+        this.ddpg.actorTarget = copyModel(this.ddpg.actor, Actor);
+        this.ddpg.noisyActor = copyModel(this.ddpg.actor, Actor);
+
+        this.ddpg.setLearningOp();
+    }
     async restore(folder, name) {
         /*
             Restore the weights of the network
         */
-        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-10.json');
-        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-10.json");
+        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-14.json');
+        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-14.json");
 
         this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
         this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
@@ -94,17 +108,22 @@ class Agent {
      * @param expanded_prevStateTensor
      * @returns {{newState: (Chart.Ticks.generators.linear|Chart.Ticks.formatters.linear|Chart.easingEffects.linear|linear|*|M.easing.linear), newStateTensor: *}}
      */
-    stepTrain(prevStateTensor, expanded_prevStateTensor) {
+    async stepTrain(prevStateTensor, expanded_prevStateTensor) {
         // Get actions
         let prevStateBuffer = prevStateTensor.buffer().values;
         let expanded_prevStateBuffer = expanded_prevStateTensor.buffer().values;
         // expanded_prevStateTensor.print();
         const actionTensor = this.ddpg.noisyPredict(expanded_prevStateTensor);
         let actionTensorBuffer = actionTensor.buffer().values;
+
+        // if(isNaN(actionTensorBuffer[0])){
+        //     actionTensor.print();
+        // }
         // actionTensor.print();
 
         // TODO: this is where the training interacts with the environment
-        let resultDict = this.scene.run_simulation(25, 0.02, actionTensor.buffer().values.map(x => 40*x), this.scene.Spikey.intent);
+        // console.log(actionTensorBuffer);
+        let resultDict = await this.scene.run_simulation(25, 0.02, actionTensorBuffer, this.scene.Spikey.intent);
         let tensorDict = this.scene.Spikey.get_rl_tensors();
 
         let newStateTensor = tensorDict.global_52;
@@ -113,9 +132,8 @@ class Agent {
         let expanded_newStateTensor = tensorDict.split_336;
         let expanded_newStateBuffer = expanded_newStateTensor.buffer().values;
 
-        if(resultDict.reward){
-            this.rewardsList.push(resultDict.reward);
-        }
+        this.rewardsList.push(resultDict.reward);
+        // console.log(resultDict.reward, resultDict.terminal);
         // Add the new tuple to the buffer
         this.ddpg.memory.pushExperience(prevStateBuffer,
                                         expanded_prevStateBuffer,
@@ -163,19 +181,22 @@ class Agent {
             this.rewardsList = [];
             this.stepList = [];
             this.distanceList = [];
-            delete this.scene;
-            this.scene = new Training_Scene();
+            // await this.warmStart_actor();
+
+
             document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.epochs + "<br>";
             for (let c = 0; c < this.config.nbEpochsCycle; c++) {
+
                 if (c%5==0){ logTfMemory(); }
+                this.scene.update_intent_scale(30 + this.epoch);
                 this.scene.start_new_trajectory();
                 let tensorDict = this.scene.Spikey.get_rl_tensors();
                 let prevStepTensor = tensorDict.global_52;
                 let expanded_prevStepTensor = tensorDict.split_336;
                 let step = 0;
                 console.time("EnvLoopTime");
-                for (step = 0; step < this.config.maxStep; step++) {
-                    let resultDict = this.stepTrain(prevStepTensor, expanded_prevStepTensor);
+                for (step = 0; step < this.maxStep; step++) {
+                    let resultDict = await this.stepTrain(prevStepTensor, expanded_prevStepTensor);
                     prevStepTensor = resultDict.newStateTensor;
                     expanded_prevStepTensor = resultDict.expanded_newStateTensor;
                     if(resultDict.terminal){
@@ -183,6 +204,7 @@ class Agent {
                     }
                     await tf.nextFrame();
                 }
+                // console.log(this.scene.Spikey.pos);
                 this.stepList.push(step);
                 let distance = this.ddpg.adaptNoise();
                 this.distanceList.push(distance[0]);
@@ -192,10 +214,11 @@ class Agent {
                 expanded_prevStepTensor.dispose();
 
                 console.timeEnd("EnvLoopTime");
-                if (this.epoch > 1) {
+                if (this.epoch > 4) {
                     this._optimize();
                     this.ddpg.targetUpdate();
                 }
+
             }
             if (this.epoch % this.config.saveInterval == 0 && this.epoch != 0) {
                 await this.save("model-ddpg-epoch-" + this.epoch);
@@ -203,12 +226,15 @@ class Agent {
             setMetric("Reward", mean(this.rewardsList));
             setMetric("EpisodeDuration", mean(this.stepList));
             setMetric("NoiseDistance", mean(this.distanceList));
+
             await tf.nextFrame();
         }
     }
 
     act(inputTensor){
-        return this.ddpg.predict(inputTensor).mul(tf.scalar(40));
+        let actions = this.ddpg.actor.predict(inputTensor);
+        actions.print();
+        return actions;
     }
 
 }

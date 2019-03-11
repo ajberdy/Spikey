@@ -914,7 +914,8 @@ class Canvas_Manager {
             canvas,
             globals: {
                 animate: true,
-                graphics_state: new Graphics_State()
+                graphics_state: new Graphics_State(),
+                gl: this.gl
             }
         });
         
@@ -940,7 +941,8 @@ class Canvas_Manager {
         
         // A single red pixel, as a placeholder image to prevent a console warning:
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 0, 0, 255]));
-
+        
+        this.globals.gl = gl;
         // Find the correct browser's version of requestAnimationFrame()
         // needed for queue-ing up re-display events:
         window.requestAnimFrame = (w => 

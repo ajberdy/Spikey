@@ -164,8 +164,8 @@ class Physics_Object {
 
     update(dt) {
 
-        this.momentum = this.momentum.plus(this.F.times(dt));
-        this.L = this.L.plus(this.T.times(dt));
+        this.momentum = this.momentum.plus(this.F.times(dt)).times(1 - .01);
+        this.L = this.L.plus(this.T.times(dt)).times(1 - .01);
 
         this.recalc();
 
@@ -244,6 +244,17 @@ class Ball extends Physics_Object {
 
     support(d) {
         return this.pos.plus(d.normalized().times(this.r));
+    }
+}
+
+class Planet extends Ball {
+    constructor(scene, pos, vel, w, orientation, mass, radius, material, g) {
+        super(scene, pos, vel, w, orientation, mass, radius, material);
+        this.g = g;
+    }
+
+    static of(...args) {
+        return new Planet(...args);
     }
 }
 
@@ -425,16 +436,16 @@ class Cone_Object extends Physics_Object {
 }
 
 class Spike_Object extends Physics_Object {
-    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, material, d, submass, strength) {
+    constructor(scene, pos, vel, w, orientation, mass, radius, height_range, height, material, d, submass, strength) {
         super(scene, pos, vel, w, orientation, mass, material, Vec.of(0, 0, -height_range[1]/3));
         this.submass = submass;
         this.strength = strength;
         this.r = radius;
         this.min_h = height_range[0];
         this.max_h = height_range[1];
-        this.h = this.max_h;
+        this.h = height;
         this._dh = 0;
-        this.max_dh = .5;
+        this.max_dh = 1;
         this.I = Mat3.of(
             [2*this.h**2 + 3*this.r**2, 0, 0],
             [0, 2*this.h**2 + 3*this.r**2, 0],
@@ -459,6 +470,7 @@ class Spike_Object extends Physics_Object {
         this.bounding_radius = Math.max(this.r, this.h);
 
         this._actuation_impulse = Vec.of(0, 0, 0);
+        this.jext = Vec.of(0, 0, 0);
     }
 
     static of(...args) {
@@ -502,10 +514,15 @@ class Spike_Object extends Physics_Object {
     }
 
     set actuation_impulse(ja) {
-        this.dh = ja * 3 / this.submass * this.strength;         
+//         if (this.jext.norm())
+//             console.log(ja, this.jext, this.jext.dot(this.h_axis.normalized()))
+        this.dh = (ja*this.strength + this.jext.dot(this.h_axis.normalized())) * 3 / this.submass;
+//             console.log(this.dh)
+                 
 //         var j = this.submass/3 * this.dh * this.strength;
 //         console.log(ja, j);
         this._actuation_impulse = this.h_axis.normalized().times(ja);
+//         console.log(ja);
     }
 
     actuate(ja) {
@@ -1015,8 +1032,10 @@ class Collision_Detection {
                 var collision_info = Collision_Detection.get_collision_info(a_i, b);
 
                 if (!collision_info) {
-                    if (a instanceof Spikey_Object && i != 0)
+                    if (a instanceof Spikey_Object && i != 0) {
                         a.update_state(i - 1, a_i.h, Vec.of(0, 0, 0));
+                        a_i.jext = Vec.of(0, 0, 0);
+                    }
                     continue;
                 }
 
@@ -1035,6 +1054,8 @@ class Collision_Detection {
 
                 if (a instanceof Spikey_Object && i != 0) {
                     a.update_state(i - 1, a_i.h, impulse_a);    // i - 1 because body
+                    a_i.jext = collision_info.impulse_a.plus(collision_info.friction_impulse_a);
+//                     console.log(a_i.jext);
                 }
 
             }

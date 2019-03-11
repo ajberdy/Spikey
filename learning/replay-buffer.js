@@ -8,6 +8,8 @@ class ReplayBuffer {
         this.max_size = max_size;
         this.count = 0;
         this.buffer = [];
+        this.noRewardBuffer = [];
+        this.withRewardBuffer = [];
     }
 
     /**
@@ -34,6 +36,38 @@ class ReplayBuffer {
            terminal: terminal
         });
         this.count += 1;
+    }
+
+    pushExperiencePlus(state, expanded_state, action, new_state, expanded_new_state, reward, terminal){
+        // console.log(reward);
+        if(reward != 0){
+            if(this.withRewardBuffer.length == this.max_size){
+                this.withRewardBuffer.shift();
+            }
+            this.withRewardBuffer.push({
+                state: state,
+                expanded_state: expanded_state,
+                action: action,
+                new_state: new_state,
+                expanded_new_state: expanded_new_state,
+                reward: reward,
+                terminal: terminal
+            })
+        }
+        else{
+            if(this.noRewardBuffer.length == this.max_size){
+                this.noRewardBuffer.shift();
+            }
+            this.noRewardBuffer.push({
+                state: state,
+                expanded_state: expanded_state,
+                action: action,
+                new_state: new_state,
+                expanded_new_state: expanded_new_state,
+                reward: reward,
+                terminal: terminal
+            })
+        }
     }
 
     /**
@@ -80,6 +114,64 @@ class ReplayBuffer {
         // console.log(Array.from(batch['states']));
         // console.log(batch.states.flat(1));
         // tf.tensor2d(batch.states, [batch_size, 52]).print();
+        return batch;
+    }
+
+    sample_batch_plus(batch_size, good_ratio) {
+        // console.log(batch_size, this.count);
+        const batch = {
+            'states': [],
+            'expanded_states': [],
+            'actions': [],
+            'new_states': [],
+            'expanded_new_states': [],
+            'rewards': [],
+            'terminals': []
+        };
+        if (batch_size > this.noRewardBuffer.length + this.withRewardBuffer.length) {
+            // console.warn("Batch size greater than buffer size, returning empty batch.");
+            return batch;
+        }
+        if (this.withRewardBuffer.length == 0 || this.noRewardBuffer.length == 0) {
+            return batch;
+        }
+        let sample_bucket = null;
+        if (this.withRewardBuffer.length != 0) {
+            sample_bucket = Array.from(Array(this.withRewardBuffer.length).keys());
+            for (let i = 0; i < Math.floor(batch_size * good_ratio); i++) {
+                let idx = Math.floor(Math.random() * sample_bucket.length);
+                batch['states'].push(Array.from(this.withRewardBuffer[sample_bucket[idx]].state));
+                batch['expanded_states'].push(Array.from(this.withRewardBuffer[sample_bucket[idx]].expanded_state));
+                batch['actions'].push(Array.from(this.withRewardBuffer[sample_bucket[idx]].action));
+                batch['new_states'].push(Array.from(this.withRewardBuffer[sample_bucket[idx]].new_state));
+                batch['expanded_new_states'].push(Array.from(this.withRewardBuffer[sample_bucket[idx]].expanded_new_state));
+                batch['rewards'].push(this.withRewardBuffer[sample_bucket[idx]].reward);
+                batch['terminals'].push(this.withRewardBuffer[sample_bucket[idx]].terminal);
+                }
+            for (let i = 0; i < Math.ceil(batch_size * (1-good_ratio)); i++){
+                let idx = Math.floor(Math.random() * sample_bucket.length);
+                batch['states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].state));
+                batch['expanded_states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].expanded_state));
+                batch['actions'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].action));
+                batch['new_states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].new_state));
+                batch['expanded_new_states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].expanded_new_state));
+                batch['rewards'].push(this.noRewardBuffer[sample_bucket[idx]].reward);
+                batch['terminals'].push(this.noRewardBuffer[sample_bucket[idx]].terminal);
+            }
+        }else{
+            sample_bucket = Array.from(Array(this.noRewardBuffer.length).keys());
+            for (let i = 0; i < Math.ceil(batch_size); i++){
+                let idx = Math.floor(Math.random() * sample_bucket.length);
+                batch['states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].state));
+                batch['expanded_states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].expanded_state));
+                batch['actions'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].action));
+                batch['new_states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].new_state));
+                batch['expanded_new_states'].push(Array.from(this.noRewardBuffer[sample_bucket[idx]].expanded_new_state));
+                batch['rewards'].push(this.noRewardBuffer[sample_bucket[idx]].reward);
+                batch['terminals'].push(this.noRewardBuffer[sample_bucket[idx]].terminal);
+            }
+        }
+
         return batch;
     }
 

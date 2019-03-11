@@ -7,6 +7,8 @@ class DDPG {
     this.noise = noise;
     this.config = config;
     this.gamma = tf.scalar(config.gamma);
+    this.actionReg = config.actionReg;
+    this.goodRatio = config.goodRatio;
 
     this.modelObservationInput = tf.input({batchShape: [null, 52]});
     this.singleObservationInput = tf.input({batchShape: [null, 28]});
@@ -65,8 +67,19 @@ class DDPG {
   trainActor(observations, expanded_observations){
     const actorLoss = this.actorOptimizer.minimize(() => {
       const predQ = this.criticWithActor(observations, expanded_observations);
-      return tf.mean(predQ).mul(tf.scalar(-1.))
+      // console.log("predQ", predQ.buffer().values);
+      const actuation = this.actor.predict(expanded_observations);
+      // console.log("Actuation", actuation.buffer().values);
+      const sum = actuation.abs().sum(1).mean();
+      const regularized_actuation_mag = tf.maximum(tf.scalar(0), sum.sub(tf.scalar(5)).mul(tf.scalar(this.actionReg)));
+      // console.log("Regularized", regularized_actuation_mag.buffer().values);
+      return predQ.mean().mul(tf.scalar(-1.)).add(regularized_actuation_mag);
     }, true, this.actorWeights);
+
+    // const actorLoss = this.actorOptimizer.minimize(() => {
+    //   const predQ = this.criticWithActor(observations, expanded_observations);
+    //   return tf.mean(predQ).mul(tf.scalar(-1.));
+    // }, true, this.actorWeights);
 
     const loss = actorLoss.buffer().values[0];
     actorLoss.dispose();
@@ -124,6 +137,7 @@ class DDPG {
    * @returns {*|void}
    */
   noisyPredict(observation){
+    // console.log(this.noisyActor.model.trainableWeights.map(x => console.log(x.val.buffer().values)));
     return this.noisyActor.predict(observation);
   }
 
@@ -155,10 +169,10 @@ class DDPG {
     }
 
     const distance = this.noiseDistance(expanded_states);
-    addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
     let distanceV = distance.buffer().values;
     this.noise.adapt(distanceV[0]);
+    addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
     // Dispose our created tensors
     states.dispose();

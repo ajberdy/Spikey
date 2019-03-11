@@ -196,13 +196,18 @@ function addNoise(model, noisyModel, stdDev, seed){
     const weights = model.model.trainableWeights;
     for (let i=0; i < weights.length; i++){
       let shape = noisyModel.model.trainableWeights[i].val.shape;
+      // console.log(stdDev);
       let randomTensor = tf.randomNormal(shape, 0, stdDev, "float32", seed);
+      // randomTensor.print();
       let newValue = weights[i].val.add(randomTensor);
+      // console.log("newValue:");
+      // newValue.print();
       noisyModel.model.trainableWeights[i].val.assign(newValue);
       randomTensor.dispose();
     }
   })
 }
+
 
 function mean(numbers) {
     var total = 0, i;
@@ -210,4 +215,18 @@ function mean(numbers) {
         total += numbers[i];
     }
     return total / numbers.length;
+}
+
+/**
+ * Downloads an object to the downloads folder
+ * @param content
+ * @param fileName
+ * @param contentType
+ */
+function download(content, fileName, contentType) {
+  var a = document.createElement("a");
+  var file = new Blob([JSON.stringify(content)], {type: contentType});
+  a.href = URL.createObjectURL(file);
+  a.download = fileName;
+  a.click();
 }

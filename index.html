@@ -12,14 +12,16 @@
 <script src=  "spikey_agent.js" ></script>
 <script src= "agent_physics.js" ></script>
 <script src=        "octree.js" ></script>
-<script src="training-scene.js" ></script>
-<script src=    "main-scene.js" ></script>
 <script src="learning/utils.js"></script>
 <script src="learning/replay-buffer.js"></script>
 <script src="learning/noise.js"></script>
 <script src="learning/actor_critic.js"></script>
 <script src="learning/ddpg.js"></script>
 <script src="learning/agent.js"></script>
+<script src=   "webgl-obj-loader.js" ></script>
+<script src=   "adversary.js" ></script>
+<script src=   "main-scene.js" ></script>
+<script src="training-scene.js" ></script>
 <style>
   * { font-family: monospace }
   body { background: DarkGray }
@@ -57,7 +59,7 @@
   // First, list the names of scenes we will add to our canvas.  These will register themselves
   // with this widget's Canvas_Manager so that their code can be called upon every time a 
   // draw / keyboard / mouse event happens on the web page.
-  const scenes = [ "Assignment_Two_Skeleton" ];
+  const scenes = [ "Assignment_Two_Skeleton"];
   
   // Use the Canvas_Widget class to display the WebGL demo.  Pass in
   // the name of the HTML element we are to replace with the widget.

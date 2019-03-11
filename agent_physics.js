@@ -9,7 +9,7 @@ const spikey_body_mass = 20,
       max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01,
-      spikey_strength = 2;
+      spikey_strength = 10;
 
 const spikey_consts = {
             spikey_body_mass: spikey_body_mass,
@@ -43,7 +43,7 @@ class Spikey_Object extends Physics_Object {
 
         this.spike_vector = Vec.of(1, 1, 1, 1,
                                    1, 1, 1, 1,
-                                   1, 1, 1, 1).times(spikey_consts.max_spike_protrusion);
+                                   1, 1, 1, 1).times(spikey_consts.min_spike_protrusion);
 
         this._convex_decomposition = this.init_convex_decomposition();
 
@@ -80,7 +80,7 @@ class Spikey_Object extends Physics_Object {
 //             scene: this.scene   // for debugging
 //         }
 
-        this._intent = Vec.of(-1, 0, 0);
+        this._intent = Vec.of(-30, 0, 0);
         this.last_intent = Vec.of(1, 0, 0);
         
         this.state = {
@@ -159,9 +159,16 @@ class Spikey_Object extends Physics_Object {
         
     }
 
-    update_state(i, h, impulse) {
-        if (impulse != undefined)
-            this.state.spikes[i].impulse = impulse;
+    update_state(i, h, impulse, actuation, moving_avg = true) {
+        if (impulse != undefined) {
+            if (moving_avg) {
+                const alpha = .9;
+                this.state.spikes[i].impulse = this.state.spikes[i].impulse.times(alpha).plus(impulse.times(1 - alpha));
+            }
+            else
+                this.state.spikes[i].impulse = impulse;
+        }
+
         
         this.state.spikes[i].h = h;
         this.state.orientation = this.orientation;
@@ -192,7 +199,8 @@ class Spikey_Object extends Physics_Object {
 
         var r2 = Math.sqrt(r**2 + R**2);
 
-        for (var spike of spike_vectors) {
+        for (var i in spike_vectors) {
+            let spike = spike_vectors[i];
                        
             var x = spike[0],
                 y = spike[1],
@@ -229,7 +237,8 @@ class Spikey_Object extends Physics_Object {
 
             var cone = Spike_Object.of(this.scene, this.pos, this.vel, this.w, this.orientation.times(q).normalized(), 
                             spikey_consts.spikey_mass,  spikey_consts.spike_base_radius, 
-                            Vec.of(spikey_consts.min_spike_protrusion, spikey_consts.max_spike_protrusion), 
+                            Vec.of(spikey_consts.min_spike_protrusion, spikey_consts.max_spike_protrusion),
+                            this.spike_vector[i],
                             this.spikey_material, translate_vec.times(-1), spikey_consts.spikey_spike_mass, 
                             spikey_consts.spikey_strength);
 
@@ -277,6 +286,7 @@ class Spikey_Object extends Physics_Object {
     set intent(intent) {
         this.last_intent = this.intent;
         this._intent = intent;
+        this.state.intent = intent;
     }
 
     update(dt) {
