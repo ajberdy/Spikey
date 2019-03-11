@@ -102,7 +102,7 @@ const default_parameterization = {
 
 class Adversary extends Box{
     constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
-        super(scene, pos, vel, w, orientation, mass, dims, material);
+        super(scene, pos, vel, w, orientation, mass, dims.times(1), material);
         this.crab = crab;
         this.tip_positions = {};
     }
@@ -112,15 +112,16 @@ class Adversary extends Box{
     
     draw(graphics_state, light_shader_mat){
         // console.log(this.base_points);
-        this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos));
-
+        this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos).times(Mat4.scale(1, 1, 1)),
+            default_rotations, light_shader_mat);
+        return;
         let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
 
         let param = default_parameterization;
 //         for (var leg of ['L1', 'L2', 'L3', 'L4'])
 //             Adversary.bend(leg, PI/2, param);
         let rotations = Adversary.rotation_from_params(param);
-        this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), rotations);
+        this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), default_rotations);
     }
 
     static rotation_from_params(param) {
@@ -344,7 +345,7 @@ class Crab{
 
     //target position is vector from origin indicating where ball/tip should be (should be homogenous vector)
     //socket center also contains information about orientation of parent
-    draw_limb_segment ( graphics_state, socket_center, rotation, limb, right = false){
+    draw_limb_segment ( graphics_state, socket_center, rotation, limb, right, light_shader_mat = null){
         var sock_vector;
         var move_center;
         var ball_vec;
@@ -368,26 +369,26 @@ class Crab{
         this.limbs[limb].draw(
                 graphics_state,
                 position,
-                this.shaders[limb]
+                light_shader_mat ? light_shader_mat : this.shaders[limb]
         );
         return rotation.times(ball_vec);
     }
-    draw_leg(graphics_state, socket_center, rotations, right = false){
+    draw_leg(graphics_state, socket_center, rotations, right, light_shader_mat = null){
         var result_positions = {};
         var limbs = ['upper_leg', 'mid_leg', 'lower_leg', 'foot'];
         for(var i = 0; i < limbs.length; i+=1){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right);
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right, light_shader_mat);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
             result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
         return result_positions;
     }
 
-    draw_arm(graphics_state, socket_center, rotations, right = false){
+    draw_arm(graphics_state, socket_center, rotations, right, light_shader_mat = null){
         var result_positions = {};
         var limbs = ['arm', 'lower_claw', 'upper_claw'];
         for(var i = 0; i < limbs.length; i+=1){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right);
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right, light_shader_mat);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
             result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
@@ -396,13 +397,13 @@ class Crab{
 
     //rotations has the structure {'L1' : [ <rotation about y>, {'upper_leg' : <rotation_matrix>, 'mid_leg' .. }, ... }]
     //theta in radians
-    draw ( graphics_state, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
+    draw ( graphics_state, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations, light_shader_mat = null){
         if (this.initialized){
             var result_positions = {};
             this.limbs['body'].draw(
                 graphics_state,
                 origin_translation.times(Mat4.scale(this.scale)),
-                this.shaders['body']
+                light_shader_mat ? light_shader_mat : this.shaders['body']
             );
             for(var i = 0; i < 2; i +=1){
                 for(var leg in {'1': 0, '2': 0, '3': 0, '4': 0}){
@@ -410,11 +411,11 @@ class Crab{
                         graphics_state, 
                         origin_translation.times(Mat4.translation(this.ball_vectors['body'][(!!i ? 'R' : 'L') + leg])).times(rotations[(!!i ? 'R' : 'L') + leg][0]), 
                         rotations[(!!i ? 'R' : 'L') + leg][1], 
-                        !!i);
+                        !!i, light_shader_mat);
                 }              
             }      
-            result_positions['LA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1]);
-            result_positions['RA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], true);
+            result_positions['LA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1], false, light_shader_mat);
+            result_positions['RA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], true, light_shader_mat);
             return result_positions;
         }
         return {};
@@ -429,11 +430,7 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
-<<<<<<< HEAD
         let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
-=======
-        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize, true);
->>>>>>> rl-agent
         // create_vectors(mesh.indices, mesh.indexBuffer.itemSize);
 
         this.positions.push(...Vec.cast(...positions));        

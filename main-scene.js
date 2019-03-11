@@ -65,11 +65,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
 
-<<<<<<< HEAD
-        this.paused = true;
-=======
-//         this.crab = new Crab(this, context, 2);
->>>>>>> rl-agent
 
         // Make some Material objects available to you:
         this.clay = context.get_instance(Phong_Shader).material(Color.of(.9, .5, .9, 1), {
@@ -96,7 +91,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             simplebox: "assets/tetrahedron-texture2.png",
             cone: "assets/hypnosis.jpg",
             circle: "assets/hypnosis.jpg",
-<<<<<<< HEAD
+
             arm:'adversary/arm.png',
             body:'adversary/body.png',
             foot: 'adversary/foot.png',
@@ -106,9 +101,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
             upper_claw: 'adversary/upper_claw.png',
             upper_leg: 'adversary/upper_leg.png',
 
-=======
             spikey: "assets/spikey_texture.jpg"
->>>>>>> rl-agent
+
         };
         for (let t in shape_textures)
             this.shape_materials[t] = this.texture_base.override({
@@ -121,6 +115,14 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         this.camera_shader = context.get_instance(Camera_Shader);
 
         this.camera_shader.load_light_shader(this.light_shader);
+
+//         this.shadow_texture_base = this.camera_shader.material(Color.of(0, 0, 0, 1), {
+//             ambient: 1,
+//             diffusivity: 0.4,
+//             specularity: 0.3,
+//             do_perlin: false,
+            
+//         });
 
         
         this.shader_mats = {
@@ -142,8 +144,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 ambient: .2,
                 diffusivity: .9,
                 specularity: .2,
-<<<<<<< HEAD
-                smoothness: 20
+                smoothness: 20,
+                texture: context.get_instance[shape_textures.spikey]
             }),
             'arm':this.texture_base.override({
                 texture: context.get_instance(shape_textures.arm)
@@ -169,10 +171,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'upper_leg': this.texture_base.override({
                 texture: context.get_instance(shape_textures.upper_leg)
             }),
-=======
-                smoothness: 20,
-                texture: context.get_instance[shape_textures.spikey]
-            }),
             shadow_spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
                 ambient: .2,
                 diffusivity: .9,
@@ -193,7 +191,6 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 scaleb: 1.5,
                 freq_global: 5
             })
->>>>>>> rl-agent
         };
         this.crab = new Crab(this, context, this.shader_mats, 2);
 
@@ -249,9 +246,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.pulsate = false;
 
         this.entities = [];
-        this.gcenters = [];
-        this.initialize_entities(CHAOS);
-        this.initialize_gcenters()
+//         this.gcenters = [];
+        this.initialize_entities(ADVERSARY);
+//         this.initialize_gcenters()
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
 //         this.octree.initialize(this.entities);
@@ -314,11 +311,11 @@ class Assignment_Two_Skeleton extends Scene_Component {
         // Use the lights stored in this.lights.
         graphics_state.lights = this.lights;
         let light_position = this.lights[0].position;
-        graphics_state.light_view_matrix = Mat4.look_at(this.entities[1].pos.plus(Vec.of(0, 100, 0)), this.entities[1].pos, Vec.of(0, 0, -1))
+//         graphics_state.light_view_matrix = Mat4.look_at(this.entities[1].pos.plus(Vec.of(0, 100, 0)), this.entities[1].pos, Vec.of(0, 0, -1))
 //         var sx = this.entities[1].x, sz = this.entities[1].z;
 //         var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
 //         camera_location[1] = 30;
-        graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(this.entities[1].pos[0], 30, this.entities[1].pos[2]), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
+//         graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(this.entities[1].pos[0], 30, this.entities[1].pos[2]), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
                 
         // Find how much time has passed in seconds, and use that to place shapes.
@@ -449,11 +446,11 @@ class Assignment_Two_Skeleton extends Scene_Component {
         }
         
         if (scene_type == ADVERSARY) {
-            this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
-                50, Vec.of(10, 25, 10), this.materials.crab, this.crab));
             this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
-                Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
-
+                Infinity, Vec.of(3000, 100, 5000), this.materials.sand));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+            
+            this.entities.push(new Adversary(this, Vec.of(0, 10, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
+                50, Vec.of(10, 25, 10), this.materials.crab, this.crab));
             return;
         }
 
