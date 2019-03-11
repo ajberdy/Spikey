@@ -9,7 +9,7 @@ const spikey_body_mass = 20,
       max_spike_protrusion = 20,
       spike_base_radius = 3,
       spikey_restitution = .01,
-      spikey_strength = 2;
+      spikey_strength = 10;
 
 const spikey_consts = {
             spikey_body_mass: spikey_body_mass,
@@ -162,7 +162,7 @@ class Spikey_Object extends Physics_Object {
         if (impulse != undefined) {
             if (moving_avg) {
                 const alpha = .9;
-                this.state.spikes[i].impulse = this.state.spikes[i].impulse * alpha + impulse * (1 - decay);
+                this.state.spikes[i].impulse = this.state.spikes[i].impulse * alpha + impulse * (1 - alpha);
             }
             else
                 this.state.spikes[i].impulse = impulse;

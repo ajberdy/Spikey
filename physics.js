@@ -280,7 +280,7 @@ class Box extends Physics_Object {
         this.base_normals = scene.shapes.box.normals;
 
         this.bounding_radius = this.dims.norm();
-        this.shape = this.scene.shapes.box;
+        this.shape = this.scene.shapes.simplebox;
     }
 
     get transform() {
@@ -445,7 +445,7 @@ class Spike_Object extends Physics_Object {
         this.max_h = height_range[1];
         this.h = this.max_h;
         this._dh = 0;
-        this.max_dh = .5;
+        this.max_dh = 1;
         this.I = Mat3.of(
             [2*this.h**2 + 3*this.r**2, 0, 0],
             [0, 2*this.h**2 + 3*this.r**2, 0],
@@ -528,6 +528,7 @@ class Spike_Object extends Physics_Object {
     actuate(ja) {
         this.actuation_impulse = ja;
         this.move_spike();
+        console.log(this.dh)
     }
 
 //     update(dt) {
