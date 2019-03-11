@@ -50,10 +50,11 @@ const default_rotations = {
 };
 
 class Adversary extends Box{
-    constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
+    constructor(scene, pos, vel, w, orientation, mass, dims, material, crab, shaders) {
         super(scene, pos, vel, w, orientation, mass, dims, material);
         this.crab = crab;
         this.tip_positions = {};
+        this.shaders = shaders;
     }
     get_tip_positions(){
         return this.tip_positions;
@@ -61,18 +62,19 @@ class Adversary extends Box{
     
     draw(graphics_state){
         // console.log(this.base_points);
-        this.tip_positions = this.crab.draw(graphics_state, this.shader_mat, Mat4.translation(this.pos));
+        this.tip_positions = this.crab.draw(graphics_state, this.shaders, Mat4.translation(this.pos));
     }
 }
 
 class Crab{
-    constructor(scene_component, context, scale = 1){
+    constructor(scene_component, context, shaders, scale = 1){
         this.limbs = {};
         this.scene_component = scene_component;
         this.gl = context.globals.gl;
         this.context = context;
         this.scale = scale;
         this.origin = Vec.of(0,0,0,0);
+        this.shaders = shaders;
 
         this.socket_vectors = {
             'arm': Vec.of(2.70374, 0, 0.04129, 0),
@@ -225,11 +227,11 @@ class Crab{
             ball_vec = right ? Vec.of(...Mat4.rotation(Math.PI, Vec.of(0,1,0,0)).times(ball_vec)) : ball_vec;
             position = socket_center.times(rotation).times(Mat4.rotation(right ? Math.PI : 0, Vec.of(0,1,0)).times(this.base_orientation[limb]).times(move_center));
         }
-    
+        
         this.limbs[limb].draw(
                 graphics_state,
                 position,
-                shader
+                this.shaders[limb]
         );
         return rotation.times(ball_vec);
     }
@@ -240,32 +242,30 @@ class Crab{
             var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], shader, right);
             socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
             result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
-
-            
         }
         return result_positions;
     }
 
     draw_arm(graphics_state, socket_center, rotations,  shader, right = false){
         var result_positions = {};
-        for(var limb in {'arm': 0, 'lower_claw' : 0, 'upper_claw' : 0}){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, shader, right);
-            socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limb]);
-            result_positions[limb] = socket_center.times(Vec.of(0,0,0,1));
-
+        var limbs = ['arm', 'lower_claw', 'upper_claw'];
+        for(var i = 0; i < limbs.length; i+=1){
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], shader, right);
+            socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
+            result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
         return result_positions;
     }
 
     //rotations has the structure {'L1' : [ <rotation about y>, {'upper_leg' : <rotation_matrix>, 'mid_leg' .. }, ... }]
     //theta in radians
-    draw ( graphics_state,  shader, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
+    draw ( graphics_state, shader, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
         if (this.initialized){
             var result_positions = {};
             this.limbs['body'].draw(
                 graphics_state,
                 origin_translation.times(Mat4.scale(this.scale)),
-                shader
+                this.shaders['body']
             );
             for(var i = 0; i < 2; i +=1){
                 for(var leg in {'1': 0, '2': 0, '3': 0, '4': 0}){
@@ -293,12 +293,12 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
-        // let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
+        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
         // create_vectors(mesh.indices, mesh.indexBuffer.itemSize);
 
         this.positions.push(...Vec.cast(...positions));        
         this.normals.push(...Vec.cast(...normals));
-        this.texture_coords.push(...Vec.cast(...positions));
+        this.texture_coords.push(...Vec.cast(...textures));
         this.indices.push(...mesh.indices);
     }
 }
@@ -314,7 +314,7 @@ function create_vectors( values, vec_length){
             j += 1;
         }
         vecs.push(vec);
-        i += 3;
+        i += vec_length;
     }
     return vecs;
 }
