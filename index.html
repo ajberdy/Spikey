@@ -4,14 +4,24 @@
          window.classes = {}                    
          </script>        
 <script src="tiny-graphics.js" ></script>  <!--  Javascript "include" files.  Any code in them gets executed as part of the page loading. //-->
-<script src= "dependencies.js" ></script>
-<script src=       "shapes.js" ></script>
-<script src=      "physics.js" ></script>
-<script src=    "materials.js" ></script>
-<script src= "spikey_agent.js" ></script>
-<script src="agent_physics.js" ></script>
-<script src=       "octree.js" ></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.11.6"> </script> <!-- Tensorflow for the model training -->
+<script src=  "dependencies.js" ></script>
+<script src=        "shapes.js" ></script>
+<script src=       "physics.js" ></script>
+<script src=     "materials.js" ></script>
+<script src=  "spikey_agent.js" ></script>
+<script src= "agent_physics.js" ></script>
+<script src=        "octree.js" ></script>
+<script src="learning/utils.js"></script>
+<!--<script src="learning/replay-buffer.js"></script>-->
+<!--<script src="learning/noise.js"></script>-->
+<!--<script src="learning/actor_critic.js"></script>-->
+<!--<script src="learning/ddpg.js"></script>-->
+<!--<script src="learning/agent.js"></script>-->
+<script src=   "webgl-obj-loader.js" ></script>
+<script src=   "adversary.js" ></script>
 <script src=   "main-scene.js" ></script>
+<script src="training-scene.js" ></script>
 <style>
   * { font-family: monospace }
   body { background: DarkGray }
@@ -38,6 +48,7 @@
 </head><body>       <!-- Begin typing the next of your web page here. //-->
 
 <div id="main-canvas" class="canvas-widget"></div>
+<audio src="./assets/underwater.wav" id="background" ></audio>
 <!-- <div id="alternate-canvas" class="canvas-widget"></div> -->
 <script>
 // ********************* THE ENTRY POINT OF YOUR WHOLE PROGRAM STARTS HERE ********************* 
@@ -49,12 +60,13 @@
   // First, list the names of scenes we will add to our canvas.  These will register themselves
   // with this widget's Canvas_Manager so that their code can be called upon every time a 
   // draw / keyboard / mouse event happens on the web page.
-  const scenes = [ "Assignment_Two_Skeleton" ];
+  const scenes = [ "Assignment_Two_Skeleton"];
   
   // Use the Canvas_Widget class to display the WebGL demo.  Pass in
   // the name of the HTML element we are to replace with the widget.
   new Canvas_Widget( "main-canvas", scenes );
 //   new Canvas_Widget( "alternate-canvas", scenes );
+
                                              
 </script>
 </body></html>
