@@ -173,7 +173,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.gcenters = [];
         // this.initialize_entities(ADVERSARY);
         // this.initialize_gcenters()
-        // this.initialize_entities('rl_render');
+        this.initialize_entities('rl_render');
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
 //         this.octree.initialize(this.entities);
@@ -372,7 +372,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         }
         if(scene_type == 'rl_render'){
             this.agent = new Agent(this);
-            // this.agent.restore();
+            // this.agent.restoreOld();
             this.spikey_starting_pos = Vec.of(0, spikey_consts.sphere_radius + spikey_consts.max_spike_protrusion, 0);
             let floor_material = this.materials.shadow_wood;
             this.Spikey = Spikey_Object.of(this, this.spikey_starting_pos, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), RL_AGENT);

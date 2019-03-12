@@ -45,8 +45,8 @@ class DDPG {
       });
     };
 
-    this.actorOptimizer = tf.train.adam(this.config.actorLearningRate);
-    this.criticOptimizer = tf.train.adam(this.config.criticLearningRate);
+    this.actorOptimizer = tf.train.adam(this.config.actorLearningRate, 0.9, 0.99, 1e-8);
+    this.criticOptimizer = tf.train.adam(this.config.criticLearningRate, 0.9, 0.99, 1e-8);
 
     this.criticWeights = [];
     for (let w = 0; w < this.critic.model.trainableWeights.length; w++){
@@ -67,19 +67,13 @@ class DDPG {
   trainActor(observations, expanded_observations){
     const actorLoss = this.actorOptimizer.minimize(() => {
       const predQ = this.criticWithActor(observations, expanded_observations);
-      // console.log("predQ", predQ.buffer().values);
       const actuation = this.actor.predict(expanded_observations);
-      // console.log("Actuation", actuation.buffer().values);
+      console.log("Actuation", actuation.buffer().values);
       const sum = actuation.abs().sum(1).mean();
       const regularized_actuation_mag = tf.maximum(tf.scalar(0), sum.sub(tf.scalar(5)).mul(tf.scalar(this.actionReg)));
-      // console.log("Regularized", regularized_actuation_mag.buffer().values);
+      console.log("Regularized", regularized_actuation_mag.buffer().values);
       return predQ.mean().mul(tf.scalar(-1.)).add(regularized_actuation_mag);
     }, true, this.actorWeights);
-
-    // const actorLoss = this.actorOptimizer.minimize(() => {
-    //   const predQ = this.criticWithActor(observations, expanded_observations);
-    //   return tf.mean(predQ).mul(tf.scalar(-1.));
-    // }, true, this.actorWeights);
 
     const loss = actorLoss.buffer().values[0];
     actorLoss.dispose();
@@ -174,7 +168,6 @@ class DDPG {
     this.noise.adapt(distanceV[0]);
     addNoise(this.actor, this.noisyActor, this.noise.currentStddev, this.config.seed);
 
-    // Dispose our created tensors
     states.dispose();
     expanded_states.dispose();
     distance.dispose();

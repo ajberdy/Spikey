@@ -3,13 +3,13 @@ class Agent {
     constructor(scene) {
         let config = {};
         this.config = {
-            "seed": config.seed || 121,
+            "seed": config.seed || 136,
             "batchSize": config.batchSize || 64,
             "memorySize": config.memorySize || 30000,
-            "actorLearningRate": config.LearningRate || 0.001,
-            "criticLearningRate": config.LearningRate || 0.001,
+            "actorLearningRate": config.LearningRate || 0.005,
+            "criticLearningRate": config.LearningRate || 0.01,
             "gamma": config.gamma || 0.99,
-            "noiseDecay": config.noiseDecay || 0.95,
+            "noiseDecay": config.noiseDecay || 0.99,
             "rewardScale": config.rewardScale || 1,
             "epochs": config.epochs || 100,
             "nbEpochsCycle": config.nbEpochsCycle || 10,
@@ -20,7 +20,7 @@ class Agent {
             "adoptionCoefficient": config.adoptionCoefficient || 1.01,
             "maxStep": config.maxStep || 30,
             "saveInterval": config.saveInterval || 5,
-            "actionReg": config.actionReg || 0.15,
+            "actionReg": config.actionReg || 0.01,
             "goodRatio": config.goodRatio || 0.2
         };
 
@@ -41,7 +41,6 @@ class Agent {
 
         // Seed javascript
         Math.seedrandom(0);
-
         this.rewardsList = [];
         this.ddpg = new DDPG(this.actor, this.critic, this.memory, this.noise, this.config);
     }
@@ -52,7 +51,7 @@ class Agent {
     }
 
     async warmStart_critic() {
-        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-warm.json');
+        const critic = await tf.loadModel('../models/critic-model-ddpg-epoch-50.json');
 
         this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
 
@@ -60,7 +59,7 @@ class Agent {
     }
 
     async warmStart_actor() {
-        const actor = await tf.loadModel('../good_models/actor-model-ddpg-epoch-2.json');
+        const actor = await tf.loadModel('../models/actor-model-ddpg-epoch-50.json');
 
         this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
 
@@ -69,12 +68,16 @@ class Agent {
 
         this.ddpg.setLearningOp();
     }
+    async restoreOld(){
+        this.oldActor = await tf.loadModel('good_models/actor-model-ddpg-epoch-warm.json');
+        // this.oldActor = await tf.loadModel('models/actor-model-ddpg-epoch-70.json')
+    }
     async restore(folder, name) {
         /*
             Restore the weights of the network
         */
-        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-14.json');
-        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-14.json");
+        const critic = await tf.loadModel('models/critic-model-ddpg-epoch-65.json');
+        const actor = await tf.loadModel("models/actor-model-ddpg-epoch-65.json");
 
         this.ddpg.critic = this.copyFromSave(critic, Critic, this.config, this.ddpg.modelObservationInput, this.ddpg.actionInput);
         this.ddpg.actor = this.copyFromSave(actor, Actor, this.config, this.ddpg.singleObservationInput, this.ddpg.actionInput);
@@ -161,13 +164,13 @@ class Agent {
         this.ddpg.noise.desiredActionStddev = Math.max(0.1, this.config.noiseDecay * this.ddpg.noise.desiredActionStddev);
         let lossValuesCritic = [];
         let lossValuesActor = [];
-        console.time("TrainTime");
+        // console.time("TrainTime");
         for (let t = 0; t < this.config.trainSteps; t++) {
             let losses = this.ddpg.optimizeActorCritic();
             lossValuesCritic.push(losses.lossC);
             lossValuesActor.push(losses.lossA);
         }
-        console.timeEnd("TrainTime");
+        // console.timeEnd("TrainTime");
         setMetric("CriticLoss", mean(lossValuesCritic));
         setMetric("ActorLoss", mean(lossValuesActor));
     }
@@ -182,7 +185,7 @@ class Agent {
             this.stepList = [];
             this.distanceList = [];
             // await this.warmStart_actor();
-
+            // this.restore();
 
             document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.epochs + "<br>";
             for (let c = 0; c < this.config.nbEpochsCycle; c++) {
@@ -204,7 +207,6 @@ class Agent {
                     }
                     await tf.nextFrame();
                 }
-                // console.log(this.scene.Spikey.pos);
                 this.stepList.push(step);
                 let distance = this.ddpg.adaptNoise();
                 this.distanceList.push(distance[0]);
@@ -235,6 +237,29 @@ class Agent {
         let actions = this.ddpg.actor.predict(inputTensor);
         actions.print();
         return actions;
+    }
+
+    oldAct(inputTensor){
+        return tf.tidy(() => {
+            let out0 = this.oldActor.predict(inputTensor.slice([0, 0], [-1, 28])).reshape([-1]);
+            let out1 = this.oldActor.predict(inputTensor.slice([0, 28], [-1, 28])).reshape([-1]);
+            let out2 = this.oldActor.predict(inputTensor.slice([0, 56], [-1, 28])).reshape([-1]);
+            let out3 = this.oldActor.predict(inputTensor.slice([0, 84], [-1, 28])).reshape([-1]);
+            let out4 = this.oldActor.predict(inputTensor.slice([0, 112], [-1, 28])).reshape([-1]);
+            let out5 = this.oldActor.predict(inputTensor.slice([0, 140], [-1, 28])).reshape([-1]);
+            let out6 = this.oldActor.predict(inputTensor.slice([0, 168], [-1, 28])).reshape([-1]);
+            let out7 = this.oldActor.predict(inputTensor.slice([0, 196], [-1, 28])).reshape([-1]);
+            let out8 = this.oldActor.predict(inputTensor.slice([0, 224], [-1, 28])).reshape([-1]);
+            let out9 = this.oldActor.predict(inputTensor.slice([0, 252], [-1, 28])).reshape([-1]);
+            let out10 = this.oldActor.predict(inputTensor.slice([0, 280], [-1, 28])).reshape([-1]);
+            let out11 = this.oldActor.predict(inputTensor.slice([0, 308], [-1, 28])).reshape([-1]);
+            // for(var i in [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]){
+            //   let list = [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11];
+            //   console.log("out" + i + ":");
+            //   list[i].print();
+            // }
+            return tf.stack([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11], 1);
+        })
     }
 
 }

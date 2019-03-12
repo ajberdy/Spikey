@@ -158,25 +158,37 @@ class RL_Agent extends Spikey_Agent {
         var rl_tensors = this.get_rl_tensors(state),
           split_tensor = rl_tensors.split_336;
 
-        if (state.scene instanceof Assignment_Two_Skeleton) {
-            state.scene.shapes.vector.draw(
-              state.scene.globals.graphics_state,
-              Mat4.y_to_vec(intent.times(50), state.scene.Spikey.com),
-              state.scene.physics_shader.material(Color.of(0, 1, 1, 1)),
-              "LINES");
-        }
-
-        if(this.timesteps_since_last_update == 25) {
+        // if (state.scene instanceof Assignment_Two_Skeleton) {
+        //     state.scene.shapes.vector.draw(
+        //       state.scene.globals.graphics_state,
+        //       Mat4.y_to_vec(intent.times(-50), state.scene.Spikey.com),
+        //       state.scene.physics_shader.material(Color.of(0, 1, 1, 1)),
+        //       "LINES");
+        // }
+        if(this.agent instanceof Agent) {
+          if (this.timesteps_since_last_update == 25) {
             split_tensor.print();
-            let actuation = this.agent.act(split_tensor);
+            let actuation = this.agent.oldAct(split_tensor);
             actuation.print();
-            this.update_actuation(actuation.buffer().values);
+            let actBuf = actuation.buffer().values;
+            let processed_actBuf = actBuf.map(x => Math.sign(x-0.25) ? 4*x : -1);
+            if(this.prev_actuation) {
+              let actBufDiff = processed_actBuf.map((element, idx) => {
+                return Math.abs(element) - Math.abs(this.prev_actuation[idx])
+              });
+              if (actBufDiff.reduce((accum, elem) => {return accum + Math.abs(elem)}) < 0.3) {
+                processed_actBuf = processed_actBuf.map(x => Math.random() * 2 - 1);
+              }
+            }
+            // let processed_actBuf = actBuf;
+            this.update_actuation(processed_actBuf);
+            this.prev_actuation = processed_actBuf;
             actuation.dispose();
             // console.log(this.actuation);
             this.timesteps_since_last_update = 0;
-        }
-        else{
+          } else {
             this.timesteps_since_last_update += 1
+          }
         }
         return this.actuation;
     }

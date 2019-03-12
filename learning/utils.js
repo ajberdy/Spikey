@@ -90,7 +90,7 @@ function setMetric(name, value){
   let size = chart.data.datasets[0].data.length - 1;
 
   if (chart.data.datasets[0].data.length > 500){
-    chart.data.datasets[0].data = chart.data.datasets[0].data.slice(1, size);
+    chart.data.datasets[0].data.shift();
     size -= 1;
   }
   chart.data.datasets[0].data.push({y: value, x: chart.data.datasets[0].data[size].x + 1});
