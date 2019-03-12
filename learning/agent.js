@@ -115,17 +115,8 @@ class Agent {
         // Get actions
         let prevStateBuffer = prevStateTensor.buffer().values;
         let expanded_prevStateBuffer = expanded_prevStateTensor.buffer().values;
-        // expanded_prevStateTensor.print();
         const actionTensor = this.ddpg.noisyPredict(expanded_prevStateTensor);
         let actionTensorBuffer = actionTensor.buffer().values;
-
-        // if(isNaN(actionTensorBuffer[0])){
-        //     actionTensor.print();
-        // }
-        // actionTensor.print();
-
-        // TODO: this is where the training interacts with the environment
-        // console.log(actionTensorBuffer);
         let resultDict = await this.scene.run_simulation(25, 0.02, actionTensorBuffer, this.scene.Spikey.intent);
         let tensorDict = this.scene.Spikey.get_rl_tensors();
 
@@ -136,7 +127,6 @@ class Agent {
         let expanded_newStateBuffer = expanded_newStateTensor.buffer().values;
 
         this.rewardsList.push(resultDict.reward);
-        // console.log(resultDict.reward, resultDict.terminal);
         // Add the new tuple to the buffer
         this.ddpg.memory.pushExperience(prevStateBuffer,
                                         expanded_prevStateBuffer,
@@ -164,13 +154,13 @@ class Agent {
         this.ddpg.noise.desiredActionStddev = Math.max(0.1, this.config.noiseDecay * this.ddpg.noise.desiredActionStddev);
         let lossValuesCritic = [];
         let lossValuesActor = [];
-        // console.time("TrainTime");
+        console.time("TrainTime");
         for (let t = 0; t < this.config.trainSteps; t++) {
             let losses = this.ddpg.optimizeActorCritic();
             lossValuesCritic.push(losses.lossC);
             lossValuesActor.push(losses.lossA);
         }
-        // console.timeEnd("TrainTime");
+        console.timeEnd("TrainTime");
         setMetric("CriticLoss", mean(lossValuesCritic));
         setMetric("ActorLoss", mean(lossValuesActor));
     }
@@ -184,8 +174,6 @@ class Agent {
             this.rewardsList = [];
             this.stepList = [];
             this.distanceList = [];
-            // await this.warmStart_actor();
-            // this.restore();
 
             document.getElementById("trainingProgress").innerHTML = "Progression: " + this.epoch + "/" + this.config.epochs + "<br>";
             for (let c = 0; c < this.config.nbEpochsCycle; c++) {
@@ -253,11 +241,6 @@ class Agent {
             let out9 = this.oldActor.predict(inputTensor.slice([0, 252], [-1, 28])).reshape([-1]);
             let out10 = this.oldActor.predict(inputTensor.slice([0, 280], [-1, 28])).reshape([-1]);
             let out11 = this.oldActor.predict(inputTensor.slice([0, 308], [-1, 28])).reshape([-1]);
-            // for(var i in [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]){
-            //   let list = [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11];
-            //   console.log("out" + i + ":");
-            //   list[i].print();
-            // }
             return tf.stack([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11], 1);
         })
     }

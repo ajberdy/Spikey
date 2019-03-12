@@ -107,11 +107,12 @@ class DDPG {
     criticLoss.dispose();
 
     return loss;
-
   }
 
+  /**
+   * Updates target critic and actor
+   */
   targetUpdate(){
-    // Define in js/DDPG/models.js
     targetUpdate(this.criticTarget, this.critic, this.config);
     targetUpdate(this.actorTarget, this.actor, this.config);
   }

@@ -1,22 +1,17 @@
 class Spikey_Agent {
-    constructor() {
-        
-    }
+    constructor(){}
 
     static new_agent(agent_type, arg1) {
-        if (agent_type == CHAOS_AGENT)
+        if (agent_type === CHAOS_AGENT)
             return new Chaos_Agent();
-        else if (agent_type == THROB_AGENT)
+        else if (agent_type === THROB_AGENT)
             return new Throb_Agent();
-        else if (agent_type == RL_AGENT)
+        else if (agent_type === RL_AGENT)
             return new RL_Agent(arg1);
-        else if (agent_type == NRL_AGENT)
+        else if (agent_type === NRL_AGENT)
             return new NRL_Agent(arg1);
-        else if (agent_type == CONSTANT_AGENT)
+        else if (agent_type === CONSTANT_AGENT)
             return new Constant_Agent();
-        else if (agent_type == REGR_AGENT)
-          return new RegressionAgent();
-
         return new Null_Agent();
     }
 
@@ -28,9 +23,7 @@ class Spikey_Agent {
 }
 
 class Null_Agent {
-    constructor() {
-        
-    }
+    constructor() {}
 
     get_actuation() {
         return [0, 0, 0, 0,
@@ -44,8 +37,6 @@ class Constant_Agent {
         this.actuation = [0, 0, 0, 0,
                           0, 0, 0, 0,
                           0, 0, 0, 0];
-
-
     }
 
     get_actuation() {
@@ -60,10 +51,9 @@ class Constant_Agent {
 class Chaos_Agent extends Spikey_Agent {
 
     get_actuation(state) {
-        var t = state.t;
-
-        var actuation = Array.apply(null, Array(num_spikes));
-        for (var i in actuation)
+        let t = state.t;
+        let actuation = Array.apply(null, Array(num_spikes));
+        for (let i in actuation)
             actuation[i] = Math.cos(.4/100*t + i*2)*40;
         return actuation;
     }
@@ -72,10 +62,9 @@ class Chaos_Agent extends Spikey_Agent {
 class Fake_Agent extends Spikey_Agent {
 
     get_actuation(state) {
-        var t = state.t;
-
-        var actuation = Array.apply(null, Array(num_spikes));
-        for (var i in actuation)
+        let t = state.t;
+        let actuation = Array.apply(null, Array(num_spikes));
+        for (let i in actuation)
             actuation[i] = Math.cos(.4/100*t + i*2);
         return actuation;
     }
@@ -84,10 +73,9 @@ class Fake_Agent extends Spikey_Agent {
 class Throb_Agent extends Spikey_Agent {
 
     get_actuation(state) {
-        var t = state.t;
-
-        var actuation = Array.apply(null, Array(num_spikes));
-        for (var i in actuation)
+        let t = state.t;
+        let actuation = Array.apply(null, Array(num_spikes));
+        for (let i in actuation)
             actuation[i] = Math.cos(.4/100*t)*20;
         return actuation;
     }
@@ -120,39 +108,8 @@ class RL_Agent extends Spikey_Agent {
         this.timesteps_since_last_update = 0;
     }
 
-//     get_actuation(state, intent) {
-//         /*
-//         state: {
-//             t: time,
-//             spikes: [{
-//                         impulse: Vec(3),
-//                         h: Float32
-//                     }],
-//             orientation: Quaternion
-//         }
-        
-//         intent: Vec(3)
-//         */
-//         var t = state.t;
-
-//         var symmetric_states = this.get_symmetric_states(state, intent);
-//         var rl_tensors = this.get_rl_tensors(state, intent, symmetric_states);
-
-//         // symmetric_states is the input to the NN
-
-// //         return this.get_rl_actuation(symmetric_states, intent);
-
-        
-//         var actuation = Array.apply(null, Array(num_spikes));
-//         for (var i in actuation)
-//             actuation[i] = Math.cos(.4/100*t + i*2)*20;
-//         return actuation;
-
-//     }
-
     load_agent(agent, set_policy_mode) {
         this.agent = agent;
-
         if (set_policy_mode)
             this.on_policy = true;
     }
@@ -171,7 +128,8 @@ class RL_Agent extends Spikey_Agent {
             );
             return this.actuation;
         }
-        // var rl_tensors = this.get_rl_tensors(state),
+        // TENSORFLOW STUFF
+        // let rl_tensors = this.get_rl_tensors(state),
         //   split_tensor = rl_tensors.split_336;
 
         // if (state.scene instanceof Assignment_Two_Skeleton) {
@@ -216,26 +174,22 @@ class RL_Agent extends Spikey_Agent {
     symmetrify_state(state, spike_ix) {
 
         const intent = state.intent;
-//         console.log(state, intent, spike_ix);
-        var spikey_orientation = state.orientation;
+        let spikey_orientation = state.orientation;
 
-        var spike_0_q = spikey_orientation.times(this.subshapes[spike_ix].q).normalized(),
+        let spike_0_q = spikey_orientation.times(this.subshapes[spike_ix].q).normalized(),
             spike_0_q_inv = spike_0_q.inverse();
 
-        var q_transform_0 = Quaternion.of(0.7071, 0.7071, 0, 0).normalized().times(spike_0_q_inv);
-//         var q_transform = Quaternion.unit().times(spike_0_q_inv);
+        let q_transform_0 = Quaternion.of(0.7071, 0.7071, 0, 0).normalized().times(spike_0_q_inv);
 
-
-        var neighborhood = this.neighborhoods[spike_ix],
+        let neighborhood = this.neighborhoods[spike_ix],
             orientations = neighborhood.map(i => spikey_orientation.times(this.subshapes[i].q).normalized()),
             filtered_subshapes = neighborhood.map(i => this.subshapes[i]);
 
-        var impulses = neighborhood.map(i => state.spikes[i].impulse),
+        let impulses = neighborhood.map(i => state.spikes[i].impulse),
             relative_impulses = impulses.map((impulse, i) => 
                 Mat4.quaternion_rotation(orientations[i]).times(impulse));
-//         console.log(relative_impulses);
 
-        var transformed_1 = Mat4.quaternion_rotation(q_transform_0.times(orientations[1]).normalized()).times(
+        let transformed_1 = Mat4.quaternion_rotation(q_transform_0.times(orientations[1]).normalized()).times(
             Vec.of(0, 0, 1)).to3(),
             flat_1 = transformed_1.minus(transformed_1.project_onto(Vec.of(0, 1, 0))).normalized(),
             theta = Math.atan(flat_1[0]/flat_1[2]) + (flat_1[2] < 0 ? PI : 0),
@@ -245,16 +199,16 @@ class RL_Agent extends Spikey_Agent {
             R_transform = Mat4.quaternion_rotation(q_transform),
             Rinv_transform = Mat4.quaternion_rotation(q_transform.inverse());
 
-        var transformed_orientations = orientations.map(orientation => q_transform.times(orientation)),
+        let transformed_orientations = orientations.map(orientation => q_transform.times(orientation)),
             transformed_impulses = impulses.map((impulse, i) => Rinv_transform.times(impulse).to3()),
             transformed_intent = Rinv_transform.times(intent).to3();
 
-        var symmetric_state = {
+        let symmetric_state = {
             transformed_spikes: [],
             intent: transformed_intent
         }
 
-        for (var i in neighborhood) {
+        for (let i in neighborhood) {
             symmetric_state.transformed_spikes.push({
                 impulse: transformed_impulses[i],
                 h: filtered_subshapes[i].shape.h
@@ -262,77 +216,34 @@ class RL_Agent extends Spikey_Agent {
         }
 
         return symmetric_state;
-            
-
-//         for (var i in relative_impulses) {
-//             if (!transformed_impulses[0].norm())
-//                 continue;
-//             state.scene.shapes.vector.draw(
-//                 state.scene.globals.graphics_state,
-//                 Mat4.y_to_vec(transformed_impulses[0], Vec.of(20, 20, 20)),
-// //                     state.scene.entities[1].com.plus(filtered_subshapes[i].d)),
-//                 state.scene.physics_shader.material(Color.of(1, 0, 0, 1)),
-//                 "LINES");
-//         }
-        
-//         console.log(spike_0_q);
-    
-
-        
-//         for (var i in orientations)
-//             state.scene.shapes.cone.draw(
-//                 state.scene.globals.graphics_state,
-//                 Mat4.translation(Vec.of(0, 20, 20)).times(//).plus(
-// //                     R.times(this.filtered_subshapes[i].d).minus(filtered_subshapes[i].shape.R.times(filtered_subshapes[i].shape.d)))).times(
-//                 Mat4.quaternion_rotation(q_transform.times(orientations[i]).normalized())).times(
-//                 Mat4.translation(filtered_subshapes[i].shape.d)).times(
-//                 Mat4.scale(Vec.of(2, 2, 20))),
-//                 state.scene.shader_mats.floor
-//                 );
-
-//         for (var i in orientations)
-//             state.scene.shapes.cone.draw(
-//                 state.scene.globals.graphics_state,
-//                 Mat4.translation(Vec.of(20, 20, 20)).times(//).plus(
-// //                     R.times(this.filtered_subshapes[i].d).minus(filtered_subshapes[i].shape.R.times(filtered_subshapes[i].shape.d)))).times(
-//                 Mat4.quaternion_rotation(q_transform.times(orientations[i]).normalized())).times(
-//                 Mat4.translation(filtered_subshapes[i].shape.d)).times(
-//                 Mat4.scale(Vec.of(2, 2, 20))),
-//                 state.scene.shader_mats.floor
-//                 );
     }
 
     get_symmetric_states(state) {
-        var symmetric_states = Array.apply(null, Array(num_spikes));
+        let symmetric_states = Array.apply(null, Array(num_spikes));
         return symmetric_states.map((x, i) => this.symmetrify_state(state, i));
     }
 
-    get_rl_actuation(symmetric_states, intent) {
-        return Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    }
-
     get_rl_tensors(state) {
-        var intent = state.intent,
+        let intent = state.intent,
             symmetric_states = this.get_symmetric_states(state);
 
-        var rl_tensors = {
+        let rl_tensors = {
             global_52: null,
             split_336: null
         };
 
-        var transformed_intent = Mat4.quaternion_rotation(state.orientation.inverse()).times(intent);
+        let transformed_intent = Mat4.quaternion_rotation(state.orientation.inverse()).times(intent);
 
-        var global_13x4 = state.spikes.map(spike => [...spike.impulse, spike.h]);
+        let global_13x4 = state.spikes.map(spike => [...spike.impulse, spike.h]);
         global_13x4.push([...transformed_intent]);
 
-        var split_12x7x4 = symmetric_states.map(sym_state =>
+        let split_12x7x4 = symmetric_states.map(sym_state =>
             sym_state.transformed_spikes.map(spike => [...spike.impulse, spike.h]).concat([[...sym_state.intent.to4(0)]]));
 
-        rl_tensors.global_52 = tf.tensor(global_13x4.flat(), [1, 52]);
-//         rl_tensors.global_52.print();
-
-        rl_tensors.split_336 = tf.tensor(split_12x7x4.flat(2), [1, 336]);
-//         console.log(rl_tensors.split_336[0]);
+        // TENSORFLOW STUFF
+        // rl_tensors.global_52 = tf.tensor(global_13x4.flat(), [1, 52]);
+        //
+        // rl_tensors.split_336 = tf.tensor(split_12x7x4.flat(2), [1, 336]);
 
         return rl_tensors;
     }
@@ -341,7 +252,7 @@ class RL_Agent extends Spikey_Agent {
 
 class NRL_Agent extends RL_Agent {
     constructor(subshapes) {
-        super(subshapes)
+        super(subshapes);
         this.params = new Mat();
         this.params.set_identity(12, 12);
         this.bias = Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);

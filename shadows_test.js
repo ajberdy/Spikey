@@ -3,29 +3,29 @@
  */
 
 // gl-mat4 helps us to matrix math
-var glMat4 = require('gl-mat4')
+let glMat4 = require('gl-mat4')
 // standford dragon gives us vertex data for drawing a dragon
-var stanfordDragon = require('stanford-dragon/4')
+let stanfordDragon = require('stanford-dragon/4')
 
 // We insert our canvas into the page
-var canvas = document.createElement('canvas')
+let canvas = document.createElement('canvas')
 canvas.width = 500
 canvas.height = 500
-var mountLocation = document.getElementById('webgl-shadow-map-tut') || document.body
+let mountLocation = document.getElementById('webgl-shadow-map-tut') || document.body
 mountLocation.appendChild(canvas)
 
 // We get our WebGL context and enable depth testing so that we can tell when an object
 // is behind another object
-var gl = canvas.getContext('webgl')
+let gl = canvas.getContext('webgl')
 gl.enable(gl.DEPTH_TEST)
 
 // We set up controls so that we can drag our mouse or finger to adjust the rotation of
 // the camera about the X and Y axes
-var canvasIsPressed = false
-var xRotation = Math.PI / 20
-var yRotation = 0
-var lastPressX
-var lastPressY
+let canvasIsPressed = false
+let xRotation = Math.PI / 20
+let yRotation = 0
+let lastPressX
+let lastPressY
 canvas.onmousedown = function (e) {
   canvasIsPressed = true
   lastPressX = e.pageX
@@ -74,8 +74,8 @@ canvas.addEventListener('touchmove', function (e) {
 // We create a vertex shader from the light's point of view. You never see this in the
 // demo. It is used behind the scenes to create a texture that we can use to test testing whether
 // or not a point is inside of our outside of the shadow
-var shadowDepthTextureSize = 1024
-var lightVertexGLSL = `
+let shadowDepthTextureSize = 1024
+let lightVertexGLSL = `
 attribute vec3 aVertexPosition;
 uniform mat4 uPMatrix;
 uniform mat4 uMVMatrix;
@@ -83,7 +83,7 @@ void main (void) {
   gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
 }
 `
-var lightFragmentGLSL = `
+let lightFragmentGLSL = `
 precision mediump float;
 vec4 encodeFloat (float depth) {
   const vec4 bitShift = vec4(

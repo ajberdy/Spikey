@@ -19,14 +19,10 @@ class Noise {
      * @param distance number
      */
     adapt(distance){
-        // if d(π, _π_) > δ then σ = σ/α
         if (distance > this.desiredActionStddev){
-            // Decrease σ
             this.currentStddev /= this.adoptionCoefficient;
         }
         else{
-            // σ = σ*α
-            // Increase σ
             this.currentStddev *= this.adoptionCoefficient;
         }
     }

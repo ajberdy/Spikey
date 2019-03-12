@@ -25,7 +25,7 @@ window.Basic_Shader = window.classes.Basic_Shader = class Basic_Shader extends S
         }[name];
     }
 
-    // Define how to synchronize our JavaScript's variables to the GPU's:
+    // Define how to synchronize our JavaScript's letiables to the GPU's:
     update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
         const PCM = g_state.projection_transform.times(g_state.camera_transform).times(model_transform);
         gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));

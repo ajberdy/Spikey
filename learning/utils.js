@@ -196,21 +196,21 @@ function addNoise(model, noisyModel, stdDev, seed){
     const weights = model.model.trainableWeights;
     for (let i=0; i < weights.length; i++){
       let shape = noisyModel.model.trainableWeights[i].val.shape;
-      // console.log(stdDev);
       let randomTensor = tf.randomNormal(shape, 0, stdDev, "float32", seed);
-      // randomTensor.print();
       let newValue = weights[i].val.add(randomTensor);
-      // console.log("newValue:");
-      // newValue.print();
       noisyModel.model.trainableWeights[i].val.assign(newValue);
       randomTensor.dispose();
     }
   })
 }
 
-
+/**
+ * Takes the mean of an array
+ * @param numbers
+ * @returns {number}
+ */
 function mean(numbers) {
-    var total = 0, i;
+    let total = 0, i;
     for (i = 0; i < numbers.length; i += 1) {
         total += numbers[i];
     }
@@ -224,18 +224,20 @@ function mean(numbers) {
  * @param contentType
  */
 function download(content, fileName, contentType) {
-  var a = document.createElement("a");
-  var file = new Blob([JSON.stringify(content)], {type: contentType});
+  let a = document.createElement("a");
+  let file = new Blob([JSON.stringify(content)], {type: contentType});
   a.href = URL.createObjectURL(file);
   a.download = fileName;
   a.click();
 }
 
+/**
+ * Utilities to play audio
+ */
 const AudioContext = window.AudioContext || window.webkitAudioContext;
-var audioContext = new AudioContext();
-
+let audioContext = new AudioContext();
 function playSound(buffer) {
-  var source = context.createBufferSource();
+  let source = context.createBufferSource();
   source.buffer = buffer;
   source.connect(context.destination);
   source.start(0);

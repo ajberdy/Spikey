@@ -21,8 +21,8 @@ class Training_Scene extends Assignment_Two_Skeleton{
         this.step(dt);
         var original_pos = this.Spikey.pos;
 
-
-        for(var i=0; i<num_steps;){
+        // Awful way to have it render, I sincerely apologize.
+        for(let i=0; i<num_steps;){
             if(this.objects_to_render){
                 await null;
             }
@@ -31,34 +31,8 @@ class Training_Scene extends Assignment_Two_Skeleton{
                 i++;
             }
         }
-      // for(var i=0; i<Math.floor(num_steps/2);){
-      //   if(this.objects_to_render){
-      //     await null;
-      //   }
-      //   else{
-      //     this.step(dt);
-      //     i++;
-      //   }
-      // }
-      // this.give_actuation(actuation.map(x => -x));
-      // for(var i=0; i<Math.ceil(num_steps/2);){
-      //   if(this.objects_to_render){
-      //     await null;
-      //   }
-      //   else{
-      //     this.step(dt);
-      //     i++;
-      //   }
-      // }
-        // for (var i in Array.apply(null, Array(Math.floor(num_steps/2)))) {
-        //     this.step(dt);
-        // }
-        // this.give_actuation(actuation.map(x => -x));
-        // for (var i in Array.apply(null, Array(Math.ceil(num_steps/2)))) {
-        //     this.step(dt);
-        // }
 
-        var final_pos = this.Spikey.pos;
+        let final_pos = this.Spikey.pos;
 
         return this.reward(original_pos, final_pos);
     }
@@ -77,7 +51,7 @@ class Training_Scene extends Assignment_Two_Skeleton{
     }
 
     apply_forces() {
-        for (var entity of this.entities) {
+        for (let entity of this.entities) {
             if (!this.gravity_off) {
                 entity.force(Vec.of(0, -entity.m*G, 0), Vec.of(0, 0, 0));
             }
@@ -85,7 +59,7 @@ class Training_Scene extends Assignment_Two_Skeleton{
     }
 
     update_entities(dt) {
-        for (var entity of this.entities) {
+        for (let entity of this.entities) {
             entity.update(dt);
         }
     }
@@ -102,23 +76,6 @@ class Training_Scene extends Assignment_Two_Skeleton{
         this.Spikey.brain.update_actuation(actuation);
     }
 
-    // reward(original_pos, final_pos) {
-    //     // console.log(final_pos);
-    //     let displacement = Vec.of(final_pos[0], 0, final_pos[2]).minus(Vec.of(0, 0, 0)),
-    //         on_intent = displacement.project_onto(this.global_intent),
-    //         off_intent = displacement.minus(on_intent).norm();
-    //
-    //     on_intent = Math.sign(displacement.dot(this.global_intent)) * on_intent.norm();
-    //
-    //     // console.log(off_intent, on_intent)
-    //     let reward = Math.floor(on_intent / 4);
-    //     let terminal = off_intent > 15 || (on_intent < -15);
-    //
-    //     return {
-    //         reward,
-    //         terminal
-    //     }
-    // }
     reward(original_pos, final_pos){
       let displacement = Vec.of(final_pos[0], 0, final_pos[2]).minus(Vec.of(0, 0, 0)),
                 on_intent = displacement.project_onto(this.global_intent),
@@ -131,8 +88,7 @@ class Training_Scene extends Assignment_Two_Skeleton{
     }
 
     get_random_intent() {
-        var random_intent = Vec.of(Math.random() - 0.5, 0, Math.random() - 0.5).times(this.scale * 2);
-        return random_intent;
+        return Vec.of(Math.random() - 0.5, 0, Math.random() - 0.5).times(this.scale * 2);
     }
 
     reset_spiky_pos(reset_y=false) {

@@ -1,5 +1,3 @@
-
-
 class Actor{
   constructor(config){
     this.seed = config.seed;
@@ -43,15 +41,10 @@ class Actor{
     this.singlePredict = (tfState) => {
       return tf.tidy(() => {
         if (tfState) {
-          // tfState.print();
           observation = tfState;
         }
         let normed1 = this.layer1.apply(observation);
         let normed2 = this.layer2.apply(normed1);
-        // console.log(this.layer2.weights[1].val.buffer().values);
-        // if (tfState) {
-        //   console.log(normed2.buffer().values);
-        // }
         return this.outputLayer.apply(normed2);
       });
     };
@@ -67,7 +60,6 @@ class Actor{
    * @param observation
    */
   predict(observation){
-    // observation.print();
     return tf.tidy(() => {
       let out0 = this.singlePredict(observation.slice([0, 0], [-1, 28])).reshape([-1]);
       let out1 = this.singlePredict(observation.slice([0, 28], [-1, 28])).reshape([-1]);
@@ -81,11 +73,6 @@ class Actor{
       let out9 = this.singlePredict(observation.slice([0, 252], [-1, 28])).reshape([-1]);
       let out10 = this.singlePredict(observation.slice([0, 280], [-1, 28])).reshape([-1]);
       let out11 = this.singlePredict(observation.slice([0, 308], [-1, 28])).reshape([-1]);
-      // for(var i in [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11]){
-      //   let list = [out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11];
-      //   console.log("out" + i + ":");
-      //   list[i].print();
-      // }
       return tf.stack([out0, out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11], 1);
     })
   }

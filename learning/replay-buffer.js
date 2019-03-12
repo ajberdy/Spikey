@@ -38,7 +38,7 @@ class ReplayBuffer {
         this.count += 1;
     }
 
-    pushExperiencePlus(state, expanded_state, action, new_state, expanded_new_state, reward, terminal){
+    pushExperienceBalanced(state, expanded_state, action, new_state, expanded_new_state, reward, terminal){
         // console.log(reward);
         if(reward != 0){
             if(this.withRewardBuffer.length == this.max_size){
@@ -111,14 +111,10 @@ class ReplayBuffer {
             batch['terminals'].push(this.buffer[sample_bucket[idx]].terminal);
             sample_bucket.splice(idx, 1);
         }
-        // console.log(Array.from(batch['states']));
-        // console.log(batch.states.flat(1));
-        // tf.tensor2d(batch.states, [batch_size, 52]).print();
         return batch;
     }
 
-    sample_batch_plus(batch_size, good_ratio) {
-        // console.log(batch_size, this.count);
+    sample_batch_balanced(batch_size, good_ratio) {
         const batch = {
             'states': [],
             'expanded_states': [],
@@ -129,7 +125,6 @@ class ReplayBuffer {
             'terminals': []
         };
         if (batch_size > this.noRewardBuffer.length + this.withRewardBuffer.length) {
-            // console.warn("Batch size greater than buffer size, returning empty batch.");
             return batch;
         }
         if (this.withRewardBuffer.length == 0 || this.noRewardBuffer.length == 0) {
