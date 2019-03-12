@@ -80,14 +80,15 @@ class Spikey_Object extends Physics_Object {
 //             scene: this.scene   // for debugging
 //         }
 
-        this._intent = Vec.of(1, 0, 0);
+        this._intent = Vec.of(Math.random(), 0, Math.random());
         this.last_intent = Vec.of(1, 0, 0);
         
         this.state = {
             t: 0,
             spikes: Array.apply(null, Array(num_spikes)),
             orientation: this.orientation,
-            intent: this.intent
+            intent: this.intent,
+            scene: this.scene
         }
 
         for (var i in this.state.spikes)
@@ -295,6 +296,7 @@ class Spikey_Object extends Physics_Object {
             (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1/this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
         this.state.t = this.scene.globals.graphics_state.animation_time;
+//         console.log(this.com);
         
     }
 
@@ -338,8 +340,8 @@ class Spikey_Object extends Physics_Object {
         for (var i in this.spikes) {
             var subshape = this.spikes[i].shape,
                 submass = this.spikes[i].submass,
-                d = this.spikes[i].d,
-                I_0 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m);
+                d = this.spikes[i].d;
+//                 I_0 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m);
             
 //             var actuation = 0;
 //             if (this.scene.pulsate)
@@ -348,24 +350,25 @@ class Spikey_Object extends Physics_Object {
 
             if (true) {
                 this.spike_vector[i] = this.spikes[i].shape.h;
-                var I_1 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m),
-                    dI = I_1.minus(I_0);
-                this.I = this.I.plus(dI);
+//                 var I_1 = subshape.I_of(this.com.minus(this.pos.plus(this.R.times(d).minus(subshape.R.times(subshape.d)))).times(-1)).times(submass/this.m),
+//                     dI = I_1.minus(I_0);
+//                 this.I = this.I.plus(dI);
                 this.update_subshape(this.spikes[i].shape, this.spikes[i].d, this.spikes[i].q);
             }
             
         }
-        var I_4 = Mat4.of(
-                [this.I[0][0], this.I[0][1], this.I[0][2], 0],
-                [this.I[1][0], this.I[1][1], this.I[1][2], 0],
-                [this.I[2][0], this.I[2][1], this.I[2][2], 0],
-                [0, 0, 0, 1]
-            ),
-            I_4_inv = Mat4.inverse(I_4);
-        this.I_inv = Mat3.of(
-            [I_4_inv[0][0], I_4_inv[0][1], I_4_inv[0][2]],
-            [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
-            [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
-        );
+//         var I_4 = Mat4.of(
+//                 [this.I[0][0], this.I[0][1], this.I[0][2], 0],
+//                 [this.I[1][0], this.I[1][1], this.I[1][2], 0],
+//                 [this.I[2][0], this.I[2][1], this.I[2][2], 0],
+//                 [0, 0, 0, 1]
+//             ),
+//             I_4_inv = Mat4.inverse(I_4);
+//         this.I_inv = Mat3.of(
+//             [I_4_inv[0][0], I_4_inv[0][1], I_4_inv[0][2]],
+//             [I_4_inv[1][0], I_4_inv[1][1], I_4_inv[1][2]],
+//             [I_4_inv[2][0], I_4_inv[2][1], I_4_inv[2][2]],
+//         );
+//         console.log(this.I)
     }
 }

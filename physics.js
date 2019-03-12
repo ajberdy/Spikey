@@ -522,13 +522,13 @@ class Spike_Object extends Physics_Object {
 //         var j = this.submass/3 * this.dh * this.strength;
 //         console.log(ja, j);
         this._actuation_impulse = this.h_axis.normalized().times(ja);
-        console.log(ja);
+//         console.log(ja);
     }
 
     actuate(ja) {
         this.actuation_impulse = ja;
         this.move_spike();
-        console.log(this.dh)
+//         console.log(this.dh)
     }
 
 //     update(dt) {

@@ -1,4 +1,4 @@
-SHADOW_DEPTH_TEXTURE_SIZE = 2048;
+SHADOW_DEPTH_TEXTURE_SIZE = 2048/2;
 
 
 // Subclasses of Shader each store and manage a complete GPU program.  This Shader is 
@@ -1035,7 +1035,7 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                   perlin_color = perlin(f_tex_coord.x, f_tex_coord.y);
               vec4 phong_color = phong(perlin_color);
 
-              if (!shadows || length(shadowPos.xy) > 1.) {
+              if (!shadows) {
                   gl_FragColor = phong_color;
                   return;
               }

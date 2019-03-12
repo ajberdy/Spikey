@@ -6,7 +6,8 @@ const NULL_AGENT = 0,
       CHAOS_AGENT = 1,
       THROB_AGENT = 2,
       RL_AGENT = 3,
-      CONSTANT_AGENT = 4;
+      CONSTANT_AGENT = 4,
+      NRL_AGENT = 5;
 
 const TOWER = 0,
       CHAOS = 1,
@@ -270,7 +271,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         context.globals.graphics_state.light_view_matrix = Mat4.look_at(this.lights[0].position, Vec.of(0, 0, 0), Vec.of(0, 0, -1))
 //         context.globals.graphics_state.light_view_matrix = Mat4.look_at(Vec.of(100, 200, 0), Vec.of(0, 0, 0), Vec.of(0, 0, -1));
 //         context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-1000, 1000, -1000, 1000, -900, 500);
-        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 150);
+        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 110);
 
     }
 
@@ -312,9 +313,10 @@ class Assignment_Two_Skeleton extends Scene_Component {
     display(graphics_state) {
         // Use the lights stored in this.lights.
         graphics_state.lights = this.lights;
-        let light_position = this.lights[0].position;
-//         graphics_state.light_view_matrix = Mat4.look_at(this.entities[1].pos.plus(Vec.of(0, 100, 0)), this.entities[1].pos, Vec.of(0, 0, -1))
-//         var sx = this.entities[1].x, sz = this.entities[1].z;
+//         let light_position = this.lights[0].position;
+        var sx = this.Spikey.x, sz = this.Spikey.z;
+        graphics_state.light_view_matrix = Mat4.look_at(Vec.of(sx, 100, sz), this.Spikey.pos, Vec.of(0, 0, -1))
+        
 //         var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
 //         camera_location[1] = 30;
 //         graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(this.entities[1].pos[0], 30, this.entities[1].pos[2]), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
@@ -422,16 +424,17 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         if (this.scene_type == MAIN) {
             this.Spikey = Spikey_Object.of(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
-                CHAOS_AGENT);
+                NRL_AGENT);
+            this.entities.push(this.Spikey);
             this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
                 Infinity, Vec.of(3000, 100, 5000), this.materials.sand));
             
-            let num_crabs = 1;
-            for (var i of Array.apply(null, Array(num_crabs))); {
-                let crab = new Crab(this, context, this.shader_mats, 5);
-                this.entities.push(new Adversary(this, Vec.of(0, 10, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
-                    50, Vec.of(10, 25, 10), this.materials.crab, crab));
-            }
+//             let num_crabs = 0;
+//             for (var i of Array.apply(null, Array(num_crabs))); {
+//                 let crab = new Crab(this, context, this.shader_mats, 5);
+//                 this.entities.push(new Adversary(this, Vec.of(0, 10, -300*0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
+//                     50, Vec.of(10, 13, 10), this.materials.crab, crab));
+//             }
         }
 
         if (scene_type == TOWER) {
@@ -470,7 +473,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             return;
         }
 
-        if (scene_type == CHAOS) {
+        if (this.scene_type == CHAOS) {
 //           this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
           this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(10000, 100, 10000), this.materials.sand));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
           this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),

@@ -10,6 +10,8 @@ class Spikey_Agent {
             return new Throb_Agent();
         else if (agent_type == RL_AGENT)
             return new RL_Agent(arg1);
+        else if (agent_type == NRL_AGENT)
+            return new NRL_Agent(arg1);
         else if (agent_type == CONSTANT_AGENT)
             return new Constant_Agent();
 
@@ -292,4 +294,28 @@ class RL_Agent extends Spikey_Agent {
         return rl_tensors;
     }
 
+}
+
+class NRL_Agent extends RL_Agent {
+    constructor(subshapes) {
+        super(subshapes)
+        this.params = new Mat();
+        this.params.set_identity(12, 12);
+        this.bias = Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
+    
+    get_actuation(state) {
+        state.scene.shapes.vector.draw(
+            state.scene.globals.graphics_state,
+            Mat4.y_to_vec(state.intent.times(100), state.scene.Spikey.com),
+            state.scene.physics_shader.material(Color.of(0, 0, 1, 1)),
+            "LINES");
+
+        let axes = this.subshapes.map(x => x.shape.h_axis),
+            intent = state.intent,
+
+            X = Vec.of(...axes.map(x => -x.dot(intent)));
+
+        return this.params.times(X).plus(this.bias);
+    }
 }
