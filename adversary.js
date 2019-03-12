@@ -51,70 +51,241 @@ const default_rotations = {
 
 const default_parameterization = {
     'LA' : {'base': {rad: .5, axis: Vec.of(0,-1,0,0)}, 
-            'arm': {rad: .5, axis: Vec.of(0,-1,0,0)},
-            'lower_claw': {rad: .6, axis: Vec.of(0,-1,0,0)},
+            'arm': {rad: 1, axis: Vec.of(0,-1,0,0)},
+            'lower_claw': {rad: 1, axis: Vec.of(0,-1,0,0)},
             'upper_claw': {rad: .1, axis: Vec.of(0,-1,0,0)}},
+
     'L1' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,-1,0)},},
+
     'L2' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,-1,0)},},
+
     'L3' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,-1,0)},},
+
     'L4' : {'base': {rad: 0, axis: Vec.of(0,-1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,-1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,-1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,-1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,-1,0)},},
+
     'RA' : {'base': {rad: .5, axis: Vec.of(0,1,0,0)}, 
-            'arm': {rad: .5, axis: Vec.of(0,1,0,0)},
-            'lower_claw': {rad: .6, axis: Vec.of(0,1,0,0)},
+            'arm': {rad: 1, axis: Vec.of(0,1,0,0)},
+            'lower_claw': {rad: 1, axis: Vec.of(0,1,0,0)},
             'upper_claw': {rad: .1, axis: Vec.of(0,1,0,0)}},
+
     'R1' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,1,0)},},
+
     'R2' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,1,0)},},
+
     'R3' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,1,0)},},
+
     'R4' : {'base': {rad: 0, axis: Vec.of(0,1,0,0)}, 
             'foot': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'lower_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'mid_leg': {rad: .5, axis: Vec.of(0,0,1,0)},
-            'upper_leg': {rad: .5, axis: Vec.of(0,0,1,0)},},
+            'lower_leg': {rad: 1.5, axis: Vec.of(0,0,1,0)},
+            'mid_leg': {rad: -.5, axis: Vec.of(0,0,1,0)},
+            'upper_leg': {rad: .2, axis: Vec.of(0,0,1,0)},},
 };
 
 class Adversary extends Box{
     constructor(scene, pos, vel, w, orientation, mass, dims, material, crab) {
-        super(scene, pos, vel, w, orientation, mass, dims, material);
+        super(scene, pos, vel, w, orientation, mass, dims.times(crab.scale/2), material);
         this.crab = crab;
+        this.tip_positions = {};
+        this.t = 1.2;   // used this for fitting motion
+        this.param = default_parameterization;
+        this.leg_names = ['LA', 'L1', 'L2', 'L3', 'L4', 
+                          'RA', 'R1', 'R2', 'R3', 'R4']
+        this.init_param();
+    }
+
+    get initialized() {
+        return this.crab.initialized;
+    }
+
+    get_tip_positions(){
+        return this.tip_positions;
+    }
+
+    update(dt) {
+        if (!this.initialized)
+            return
+
+        this.t += dt;
+        let dparam = this.get_dparam();
+
+//         if (this.tip_positions["L1"])
+//             console.log(this.tip_positions["L1"]["foot"][1], this.t);
+        for (var leg of this.leg_names) {
+            for (var subleg of Object.keys(this.param[leg])) {
+                this.param[leg][subleg].rad += dparam[leg][subleg]*dt;
+            }
+        }
+
+        let vel = Math.sin(this.t - 3*PI/8)*Math.cos(this.t - 3*PI/8) < 0 ? Vec.of(0, 0, 10) : Vec.of(0, 0, 6);
+        vel = Vec.of(-1, 0, 5);
+        this.w = Vec.of(0, .01, 0);
+
+        this.orientation.normalize();
+        
+        this.spin = Quaternion.of(0, this.w[0], this.w[1], this.w[2]).times(0.5).times(this.orientation);
+        this.orientation = this.orientation.plus(this.spin.times(dt)).normalized();
+        this.com = this.com.plus(vel.times(dt));
     }
     
     draw(graphics_state, light_shader_mat){
-        // console.log(this.base_points);
-        let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
-
-        let param = default_parameterization;
-//         for (var leg of ['L1', 'L2', 'L3', 'L4'])
-//             Adversary.bend(leg, PI/2, param);
+        let param = this.param;
         let rotations = Adversary.rotation_from_params(param);
-        this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), rotations);
+        this.tip_positions = this.crab.draw(graphics_state, Mat4.translation(this.pos).times(Mat4.quaternion_rotation(this.orientation)),
+            rotations, light_shader_mat);
+        return;
+
+
+//         let shader_mat = light_shader_mat ? light_shader_mat : this.shader_mat;
+
+//         let param = default_parameterization;
+// //         for (var leg of ['L1', 'L2', 'L3', 'L4'])
+// //             Adversary.bend(leg, PI/2, param);
+//         let rotations = Adversary.rotation_from_params(param);
+//         this.crab.draw(graphics_state, shader_mat, Mat4.translation(this.pos), default_rotations);
+    }
+
+    get_dparam() {
+        let cos = Math.cos, sin = Math.sin, t = this.t,
+            t2 = t + PI/8, t3 = t2 + PI/8, t4 = t3 + PI/8;
+        return {
+            'LA' : {'base': 0, 
+                    'arm': 1/4*cos(t - 1),
+                    'lower_claw': 2*1/4*sin(2*t),
+                    'upper_claw': 2*.4*cos(2*t)},
+            'L1' : {'base': .3*sin(t)*cos(t), 
+                    'foot': sin(t)*cos(t) > 0 ? 2*sin(2*t)*cos(2*t) : 0,
+                    'lower_leg': sin(t)*cos(t) > 0 ? -1*sin(2*t)*cos(2*t) : 0,
+                    'mid_leg': sin(t)*cos(t) > 0 ? sin(2*t - PI)*cos(2*t - PI) : 0,
+                    'upper_leg': sin(t)*cos(t) > 0 ? -2*sin(2*t)*cos(2*t) : 0},
+            'L2' : {'base': .3*sin(t2)*cos(t2), 
+                    'foot': sin(t2)*cos(t2) > 0 ? 2*sin(2*t2)*cos(2*t2) : 0,
+                    'lower_leg': sin(t2)*cos(t2) > 0 ? -1*sin(2*t2)*cos(2*t2) : 0,
+                    'mid_leg': sin(t2)*cos(t2) > 0 ? sin(2*t2 - PI)*cos(2*t2 - PI) : 0,
+                    'upper_leg': sin(t2)*cos(t2) > 0 ? -2*sin(2*t2)*cos(2*t2) : 0},
+            'L3' : {'base': .3*sin(t3)*cos(t3), 
+                    'foot': sin(t3)*cos(t3) > 0 ? 2*sin(2*t3)*cos(2*t3) : 0,
+                    'lower_leg': sin(t3)*cos(t3) > 0 ? -1*sin(2*t3)*cos(2*t3) : 0,
+                    'mid_leg': sin(t3)*cos(t3) > 0 ? sin(2*t3 - PI)*cos(2*t3 - PI) : 0,
+                    'upper_leg': sin(t3)*cos(t3) > 0 ? -2*sin(2*t3)*cos(2*t3) : 0},
+            'L4' : {'base': .3*sin(t4)*cos(t4), 
+                    'foot': sin(t4)*cos(t4) > 0 ? 2*sin(2*t)*cos(2*t) : 0,
+                    'lower_leg': sin(t4)*cos(t4) > 0 ? -1*sin(2*t4)*cos(2*t4) : 0,
+                    'mid_leg': sin(t4)*cos(t4) > 0 ? sin(2*t4 - PI)*cos(2*t4 - PI) : 0,
+                    'upper_leg': sin(t4)*cos(t4) > 0 ? -2*sin(2*t4)*cos(2*t4) : 0},
+            'RA' : {'base': 0, 
+                    'arm': 1/4*cos(t - 1),
+                    'lower_claw': 2*1/4*sin(2*t),
+                    'upper_claw': 2*.4*cos(2*t)},
+            'R1' : {'base': .3*sin(t)*cos(t), 
+                    'foot': sin(t)*cos(t) > 0 ? 2*sin(2*t)*cos(2*t) : 0,
+                    'lower_leg': sin(t)*cos(t) > 0 ? -1*sin(2*t)*cos(2*t) : 0,
+                    'mid_leg': sin(t)*cos(t) > 0 ? sin(2*t - PI)*cos(2*t - PI) : 0,
+                    'upper_leg': sin(t)*cos(t) > 0 ? -2*sin(2*t)*cos(2*t) : 0},
+            'R2' : {'base': .3*sin(t2)*cos(t2), 
+                    'foot': sin(t2)*cos(t2) > 0 ? 2*sin(2*t2)*cos(2*t2) : 0,
+                    'lower_leg': sin(t2)*cos(t2) > 0 ? -1*sin(2*t2)*cos(2*t2) : 0,
+                    'mid_leg': sin(t2)*cos(t2) > 0 ? sin(2*t2 - PI)*cos(2*t2 - PI) : 0,
+                    'upper_leg': sin(t2)*cos(t2) > 0 ? -2*sin(2*t2)*cos(2*t2) : 0},
+            'R3' : {'base': .3*sin(t3)*cos(t3), 
+                    'foot': sin(t3)*cos(t3) > 0 ? 2*sin(2*t3)*cos(2*t3) : 0,
+                    'lower_leg': sin(t3)*cos(t3) > 0 ? -1*sin(2*t3)*cos(2*t3) : 0,
+                    'mid_leg': sin(t3)*cos(t3) > 0 ? sin(2*t3 - PI)*cos(2*t3 - PI) : 0,
+                    'upper_leg': sin(t3)*cos(t3) > 0 ? -2*sin(2*t3)*cos(2*t3) : 0},
+            'R4' : {'base': .3*sin(t4)*cos(t4), 
+                    'foot': sin(t4)*cos(t4) > 0 ? 2*sin(2*t)*cos(2*t) : 0,
+                    'lower_leg': sin(t4)*cos(t4) > 0 ? -1*sin(2*t4)*cos(2*t4) : 0,
+                    'mid_leg': sin(t4)*cos(t4) > 0 ? sin(2*t4 - PI)*cos(2*t4 - PI) : 0,
+                    'upper_leg': sin(t4)*cos(t4) > 0 ? -2*sin(2*t4)*cos(2*t4) : 0},
+        };
+
+    }
+
+    init_param() {
+        let cos = Math.cos, sin = Math.sin, t = this.t;
+//             t2 = t - PI/8, t3 = t2 - PI/8, t4 = t3 - PI/8;
+        let dparam_0 =  {
+            'LA' : {'base': 0, 
+                    'arm': 0,
+                    'lower_claw': 0,
+                    'upper_claw': 0},
+            'L1' : {'base': 0, 
+                    'foot': 0,
+                    'lower_leg': 0,
+                    'mid_leg': 0,
+                    'upper_leg': 0},
+            'L2' : {'base': 0*-1/2*cos(2*PI/8)**2, 
+                    'foot': -1/4*cos(2*PI/8)**2,
+                    'lower_leg': 1/8*cos(4*PI/8),
+                    'mid_leg': -1/8*cos(4*PI/8),
+                    'upper_leg': 1/4*cos(4*PI/8)},
+            'L3' : {'base': -1/2*cos(2*PI/4)**2, 
+                    'foot': -1/4*cos(2*PI/8)**2,
+                    'lower_leg': 1/8*cos(4*PI/8),
+                    'mid_leg': -1/8*cos(4*PI/8),
+                    'upper_leg': 1/4*cos(4*PI/8)},
+            'L4' : {'base': -1/2*cos(3*2*PI/8)**2, 
+                    'foot': -1/4*cos(2*PI/8)**2,
+                    'lower_leg': 1/8*cos(4*PI/8),
+                    'mid_leg': -1/8*cos(4*PI/8),
+                    'upper_leg': 1/4*cos(4*PI/8)},
+            'RA' : {'base': 0, 
+                    'arm': 0,
+                    'lower_claw': 0,
+                    'upper_claw': 0},
+            'R1' : {'base': 0, 
+                    'foot': 0,
+                    'lower_leg': 0,
+                    'mid_leg': 0,
+                    'upper_leg': 0},
+            'R2' : {'base': 0*-1/2*cos(2*PI/8)**2, 
+                    'foot': -1/4*cos(2*PI/8)**2,
+                    'lower_leg': 1/8*cos(4*PI/8),
+                    'mid_leg': -1/8*cos(4*PI/8),
+                    'upper_leg': 1/4*cos(4*PI/8)},
+            'R3' : {'base': -1/2*cos(2*PI/4)**2, 
+                    'foot': -1/4*cos(2*PI/8)**2,
+                    'lower_leg': 1/8*cos(4*PI/8),
+                    'mid_leg': -1/8*cos(4*PI/8),
+                    'upper_leg': 1/4*cos(4*PI/8)},
+            'R4' : {'base': -1/2*cos(3*2*PI/8)**2, 
+                    'foot': -1/4*cos(2*PI/8)**2,
+                    'lower_leg': 1/8*cos(4*PI/8),
+                    'mid_leg': -1/8*cos(4*PI/8),
+                    'upper_leg': 1/4*cos(4*PI/8)},
+        };
+        for (var leg of this.leg_names) {
+            for (var subleg of Object.keys(this.param[leg])) {
+                this.param[leg][subleg].rad += dparam_0[leg][subleg];
+            }
+        }
     }
 
     static rotation_from_params(param) {
@@ -198,13 +369,14 @@ class Adversary extends Box{
 }
 
 class Crab{
-    constructor(scene_component, context, scale = 1){
+    constructor(scene_component, context, shaders, scale = 1){
         this.limbs = {};
         this.scene_component = scene_component;
         this.gl = context.globals.gl;
         this.context = context;
         this.scale = scale;
         this.origin = Vec.of(0,0,0,0);
+        this.shaders = shaders;
 
         this.socket_vectors = {
             'arm': Vec.of(2.70374, 0, 0.04129, 0),
@@ -337,7 +509,7 @@ class Crab{
 
     //target position is vector from origin indicating where ball/tip should be (should be homogenous vector)
     //socket center also contains information about orientation of parent
-    draw_limb_segment ( graphics_state, socket_center, rotation, limb, shader, right = false){
+    draw_limb_segment ( graphics_state, socket_center, rotation, limb, right, light_shader_mat = null){
         var sock_vector;
         var move_center;
         var ball_vec;
@@ -357,46 +529,60 @@ class Crab{
             ball_vec = right ? Vec.of(...Mat4.rotation(Math.PI, Vec.of(0,1,0,0)).times(ball_vec)) : ball_vec;
             position = socket_center.times(rotation).times(Mat4.rotation(right ? Math.PI : 0, Vec.of(0,1,0)).times(this.base_orientation[limb]).times(move_center));
         }
-    
+        
         this.limbs[limb].draw(
                 graphics_state,
                 position,
-                shader
+                light_shader_mat ? light_shader_mat : this.shaders[limb]
         );
         return rotation.times(ball_vec);
     }
-    draw_leg(graphics_state, socket_center, rotations, shader, right = false){
-        for(var limb in {'upper_leg':0, 'mid_leg':1, 'lower_leg':2, 'foot': 3}){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, shader, right);
-            socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limb]);
+    draw_leg(graphics_state, socket_center, rotations, right, light_shader_mat = null){
+        var result_positions = {};
+        var limbs = ['upper_leg', 'mid_leg', 'lower_leg', 'foot'];
+        for(var i = 0; i < limbs.length; i+=1){
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right, light_shader_mat);
+            socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
+            result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
+        return result_positions;
     }
 
-    draw_arm(graphics_state, socket_center, rotations,  shader, right = false){
-        for(var limb in {'arm': 0, 'lower_claw' : 0, 'upper_claw' : 0}){
-            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limb], limb, shader, right);
-            socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limb]);
+    draw_arm(graphics_state, socket_center, rotations, right, light_shader_mat = null){
+        var result_positions = {};
+        var limbs = ['arm', 'lower_claw', 'upper_claw'];
+        for(var i = 0; i < limbs.length; i+=1){
+            var ball_vec = this.draw_limb_segment(graphics_state, socket_center, rotations[limbs[i]], limbs[i], right, light_shader_mat);
+            socket_center = socket_center.times(Mat4.translation(ball_vec)).times(rotations[limbs[i]]);
+            result_positions[limbs[i]] = socket_center.times(Vec.of(0,0,0,1));
         }
+        return result_positions;
     }
 
     //rotations has the structure {'L1' : [ <rotation about y>, {'upper_leg' : <rotation_matrix>, 'mid_leg' .. }, ... }]
     //theta in radians
-    draw ( graphics_state,  shader, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations){
+    draw ( graphics_state, origin_translation = Mat4.translation(Vec.of(0,0,0,0)), rotations = default_rotations, light_shader_mat = null){
         if (this.initialized){
-            var i;
+            var result_positions = {};
             this.limbs['body'].draw(
                 graphics_state,
                 origin_translation.times(Mat4.scale(this.scale)),
-                shader
+                light_shader_mat ? light_shader_mat : this.shaders['body']
             );
             for(var i = 0; i < 2; i +=1){
                 for(var leg in {'1': 0, '2': 0, '3': 0, '4': 0}){
-                    this.draw_leg(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body'][(!!i ? 'R' : 'L') + leg])).times(rotations[(!!i ? 'R' : 'L') + leg][0]), rotations[(!!i ? 'R' : 'L') + leg][1], shader, !!i);
+                    result_positions[(!!i ? 'R' : 'L') + leg] = this.draw_leg(
+                        graphics_state, 
+                        origin_translation.times(Mat4.translation(this.ball_vectors['body'][(!!i ? 'R' : 'L') + leg])).times(rotations[(!!i ? 'R' : 'L') + leg][0]), 
+                        rotations[(!!i ? 'R' : 'L') + leg][1], 
+                        !!i, light_shader_mat);
                 }              
             }      
-            this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1], shader);
-            this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], shader, true);
+            result_positions['LA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['LA'])).times(rotations['LA'][0]), rotations['LA'][1], false, light_shader_mat);
+            result_positions['RA'] = this.draw_arm(graphics_state, origin_translation.times(Mat4.translation(this.ball_vectors['body']['RA'])).times(rotations['RA'][0]), rotations['RA'][1], true, light_shader_mat);
+            return result_positions;
         }
+        return {};
     }
 }
 
@@ -408,12 +594,12 @@ window.BlenderObject = window.classes.BlenderObject = class BlenderObject extend
 
         let positions = create_vectors(mesh.vertices, mesh.vertexBuffer.itemSize);
         let normals = create_vectors(mesh.vertexNormals, mesh.normalBuffer.itemSize);
-        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize, true);
+        let textures = create_vectors(mesh.textures, mesh.textureBuffer.itemSize);
         // create_vectors(mesh.indices, mesh.indexBuffer.itemSize);
 
         this.positions.push(...Vec.cast(...positions));        
         this.normals.push(...Vec.cast(...normals));
-        this.texture_coords.push(...Vec.cast(...positions));
+        this.texture_coords.push(...Vec.cast(...textures));
         this.indices.push(...mesh.indices);
     }
 }

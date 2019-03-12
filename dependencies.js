@@ -720,7 +720,8 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
         // Possible properties: ambient, diffusivity, specularity, smoothness, texture.
         return new class Material {
             constructor(shader, color=Color.of(0, 0, 0, 1), ambient=0, diffusivity=1, specularity=1, smoothness=40, shadows=true,
-                do_perlin = true) {
+                do_perlin = true, color1=Color.of(0, 0, 0, 1), scale1=0, freq1=1, color2=Color.of(0, 0, 0, 1), scale2=0,
+                freq2=1, scaleb=1, freq_global=1) {
                 // Assign defaults.
                 Object.assign(this, {
                     shader,
@@ -730,7 +731,15 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                     specularity,
                     smoothness,
                     shadows,
-                    do_perlin
+                    do_perlin,
+                    color1,
+                    scale1,
+                    freq1,
+                    color2,
+                    scale2,
+                    freq2,
+                    scaleb,
+                    freq_global
                 });
 
                 // Optionally override defaults.
@@ -1026,7 +1035,7 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                   perlin_color = perlin(f_tex_coord.x, f_tex_coord.y);
               vec4 phong_color = phong(perlin_color);
 
-              if (!shadows || length(shadowPos.xy) > 1.) {
+              if (!shadows) {
                   gl_FragColor = phong_color;
                   return;
               }
