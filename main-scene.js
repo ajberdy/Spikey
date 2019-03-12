@@ -7,6 +7,7 @@ const NULL_AGENT = 0,
       THROB_AGENT = 2,
       RL_AGENT = 3,
       CONSTANT_AGENT = 4;
+      REGR_AGENT = 6;
 
 const TOWER = 0,
       CHAOS = 1,
@@ -203,7 +204,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.entities = [];
         this.gcenters = [];
-        this.initialize_entities(CHAOS);
+        this.initialize_entities('rl_render');
         this.initialize_gcenters()
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
@@ -226,6 +227,31 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-1000, 1000, -1000, 1000, -900, 500);
         context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 150);
         context.globals.graphics_state.lights = this.lights;
+
+
+        this.volume = 30;
+        this.audioPlaying = false;
+        this.backgroundMusic = document.getElementById('background');
+        this.backgroundMusic.onended = (event) => {
+            this.backgroundMusic.play();
+        }
+        this.backgroundTrack = audioContext.createMediaElementSource(this.backgroundMusic);
+
+        this.gainNode = audioContext.createGain();
+        this.backgroundTrack.connect(this.gainNode).connect(audioContext.destination);
+        this.gainNode.gain.setValueAtTime(this.volume/100, audioContext.currentTime);
+
+        this.collisionNoises = false;
+        this.regression = new RegressionAgent();
+    }
+
+    pauseAudio(){
+        this.backgroundMusic.pause();
+        this.audioPlaying = false;
+    }
+    playAudio(){
+        this.backgroundMusic.play();
+        this.audioPlaying = true;
     }
 
 
@@ -245,12 +271,25 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.key_triggered_button("Toggle Shadows", ["h"], () => {
             this.globals.graphics_state.shadows = !this.globals.graphics_state.shadows;
         });
+        this.new_line();
         this.key_triggered_button("Toggle Perlin", ["c"], () => {
             this.globals.graphics_state.perlin = !this.globals.graphics_state.perlin;
         });
 
         this.key_triggered_button("End Simulation", ["0"], () => {
             this.end_simulation();
+        });
+
+        this.key_triggered_button("Sound", ["k"], () => {
+            if (audioContext.state === 'suspended'){
+                audioContext.resume();
+            }
+            else if (!this.audioPlaying){
+                this.playAudio();
+            }
+            else if (this.audioPlaying){
+                this.pauseAudio()
+            }
         });
 
 //         this.key_triggered_button("Toggle Pulsate", ["x"], () => {
@@ -417,14 +456,14 @@ class Assignment_Two_Skeleton extends Scene_Component {
           return;
         }
         if(scene_type == 'rl_render'){
-            this.agent = new Agent(this);
+            // this.agent = new Agent(this);
             // this.agent.restoreOld();
             this.spikey_starting_pos = Vec.of(0, spikey_consts.sphere_radius + spikey_consts.max_spike_protrusion, 0);
             let floor_material = this.materials.shadow_wood;
             this.Spikey = Spikey_Object.of(this, this.spikey_starting_pos, Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), RL_AGENT);
             this.floor = Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(100000, 100, 100000), floor_material);
             this.entities = [this.Spikey, this.floor];
-            this.Spikey.brain.load_agent(this.agent, true);
+            this.Spikey.brain.load_agent(this.regression, true);
             return;
         }
 

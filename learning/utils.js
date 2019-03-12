@@ -230,3 +230,13 @@ function download(content, fileName, contentType) {
   a.download = fileName;
   a.click();
 }
+
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+var audioContext = new AudioContext();
+
+function playSound(buffer) {
+  var source = context.createBufferSource();
+  source.buffer = buffer;
+  source.connect(context.destination);
+  source.start(0);
+}

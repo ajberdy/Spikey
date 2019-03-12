@@ -528,7 +528,7 @@ class Spike_Object extends Physics_Object {
     actuate(ja) {
         this.actuation_impulse = ja;
         this.move_spike();
-        console.log(this.dh)
+//         console.log(this.dh)
     }
 
 //     update(dt) {

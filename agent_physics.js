@@ -88,7 +88,8 @@ class Spikey_Object extends Physics_Object {
             spikes: Array.apply(null, Array(num_spikes)),
             orientation: this.orientation,
             intent: this.intent,
-            scene: scene
+            scene: scene,
+            x: Vec.of(...this.spikes.map(x => -x.shape.h_axis.dot(this.intent)))
         }
 
         for (var i in this.state.spikes)

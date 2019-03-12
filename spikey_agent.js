@@ -12,6 +12,8 @@ class Spikey_Agent {
             return new RL_Agent(arg1);
         else if (agent_type == CONSTANT_AGENT)
             return new Constant_Agent();
+        else if (agent_type == REGR_AGENT)
+          return new RegressionAgent();
 
         return new Null_Agent();
     }
@@ -167,8 +169,8 @@ class RL_Agent extends Spikey_Agent {
             );
             return this.actuation;
         }
-        var rl_tensors = this.get_rl_tensors(state),
-          split_tensor = rl_tensors.split_336;
+        // var rl_tensors = this.get_rl_tensors(state),
+        //   split_tensor = rl_tensors.split_336;
 
         // if (state.scene instanceof Assignment_Two_Skeleton) {
         //     state.scene.shapes.vector.draw(
@@ -177,32 +179,32 @@ class RL_Agent extends Spikey_Agent {
         //       state.scene.physics_shader.material(Color.of(0, 1, 1, 1)),
         //       "LINES");
         // }
-        if(this.agent instanceof Agent) {
-          if (this.timesteps_since_last_update == 25) {
-            split_tensor.print();
-            let actuation = this.agent.oldAct(split_tensor);
-            actuation.print();
-            let actBuf = actuation.buffer().values;
-            let processed_actBuf = actBuf.map(x => Math.sign(x-0.25) ? 4*x : -1);
-            if(this.prev_actuation) {
-              let actBufDiff = processed_actBuf.map((element, idx) => {
-                return Math.abs(element) - Math.abs(this.prev_actuation[idx])
-              });
-              if (actBufDiff.reduce((accum, elem) => {return accum + Math.abs(elem)}) < 0.3) {
-                processed_actBuf = processed_actBuf.map(x => Math.random() * 2 - 1);
-              }
-            }
-            // let processed_actBuf = actBuf;
-            this.update_actuation(processed_actBuf);
-            this.prev_actuation = processed_actBuf;
-            actuation.dispose();
-            // console.log(this.actuation);
-            this.timesteps_since_last_update = 0;
-          } else {
-            this.timesteps_since_last_update += 1
-          }
-        }
-        return this.actuation;
+        // if(this.agent instanceof Agent) {
+        //   if (this.timesteps_since_last_update == 25) {
+        //     split_tensor.print();
+        //     let actuation = this.agent.oldAct(split_tensor);
+        //     actuation.print();
+        //     let actBuf = actuation.buffer().values;
+        //     let processed_actBuf = actBuf.map(x => Math.sign(x-0.25) ? 4*x : -1);
+        //     if(this.prev_actuation) {
+        //       let actBufDiff = processed_actBuf.map((element, idx) => {
+        //         return Math.abs(element) - Math.abs(this.prev_actuation[idx])
+        //       });
+        //       if (actBufDiff.reduce((accum, elem) => {return accum + Math.abs(elem)}) < 0.3) {
+        //         processed_actBuf = processed_actBuf.map(x => Math.random() * 2 - 1);
+        //       }
+        //     }
+        //     // let processed_actBuf = actBuf;
+        //     this.update_actuation(processed_actBuf);
+        //     this.prev_actuation = processed_actBuf;
+        //     actuation.dispose();
+        //     // console.log(this.actuation);
+        //     this.timesteps_since_last_update = 0;
+        //   } else {
+        //     this.timesteps_since_last_update += 1
+        //   }
+        // }
+        return this.regression.get_actuation(state);
     }
 
     update_actuation(new_actuation) {
