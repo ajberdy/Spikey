@@ -38,8 +38,8 @@ window.Vector = window.classes.Vector = class Vector extends Shape {
 
         
         let head_length = .1,
-            angle = Math.PI/8,
-            radius = Math.atan(angle) * head_length,
+            angle = Math.PI/4,
+            radius = 1,//Math.atan(angle) * head_length,
             y = 1 - head_length;
 
         let n = 8;

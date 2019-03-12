@@ -1,6 +1,8 @@
 const PI = Math.PI,
       G = 5*9.8,
-      PHI = (1 + Math.sqrt(5)) / 2;
+      PHI = (1 + Math.sqrt(5)) / 2,
+      octree_size=100000000000,
+      octree_coord=-50000000;
 
 const NULL_AGENT = 0,
       CHAOS_AGENT = 1,
@@ -178,13 +180,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
         };
 
         this.materials = {
-            wood: Material.of(.35, .1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
+            wood: Material.of(.35, .1, .01, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, .91), {
                 ambient: 0,
                 diffusivity: .4,
                 specularity: .5,
                 smoothness: 20
             })),
-            sand: Material.of(.35, .3, .01, this.camera_shader.material(Color.of(.91, .89, .86, .2), {
+            sand: Material.of(.55, .4, .01, this.camera_shader.material(Color.of(.91, .89, .86, .2), {
                 ambient: 0,
                 diffusivity: .4,
                 specularity: .5,
@@ -197,7 +199,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 scale2: 15,
                 freq2: 180,
                 scaleb: 1.5,
-                freq_global: 700
+                freq_global: 150
             })),
             slick_wood: Material.of(0, 0.01, .0, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
                 ambient: .3,
@@ -218,7 +220,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                        new Light(Vec.of(0, 10, 100, .1), Color.of(1, 1, .7, 1), 1000)];
 
         this.t = 0;
-//         this.use_octree = false;
+        this.use_octree = false;
         this.debug = false;
 
         this.friction_off = false;
@@ -232,8 +234,19 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.physics_shader = context.get_instance(Physics_Shader);
 
+        this.SpikeyOctree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.001);
+
+        this.points_collection=[];
+
+        for (var e = 0; e < this.entities.length; ++e) {
+            
+           this.temp=Vec.of(this.entities[e].pos[0],this.entities[e].pos[1],this.entities[e].pos[2])
+           this.SpikeyOctree.add(this.temp);
+           this.points_collection.push(Math.pow(this.entities[e].pos[0],2)+Math.pow(this.entities[e].pos[1],2)+Math.pow(this.entities[e].pos[2],2)+this.entities[e].pos[0]*this.entities[e].pos[1]+this.entities[e].pos[0]*this.entities[e].pos[2]+this.entities[e].pos[2]*this.entities[e].pos[1])
+        }
+
         context.globals.graphics_state.light_view_matrix = Mat4.look_at(this.lights[0].position, Vec.of(0, 0, 0), Vec.of(0, 0, -1));
-        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 150);
+        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-300, 300, -300, 300, -100, 110);
         context.globals.graphics_state.lights = this.lights;
 
 
@@ -254,6 +267,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.camera_spline = false;
         this.rev_spline = false;
         this.drawSplinePoints = false;
+
+        this.num_phyics_objects = 0;
+        this.paused = true;
     }
 
     pauseAudio(){
@@ -303,22 +319,43 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }
         });
 
-//         this.key_triggered_button("Toggle Octree", ["c"], () => {
-//             this.use_octree = !this.use_octree;
-//         });
+        this.key_triggered_button("Toggle Octree", ["l"], () => {
+            this.use_octree = !this.use_octree;
+        });
 
         this.key_triggered_button("Toggle Debug Mode", ["q"], () => {
             this.debug = !this.debug;
         });
         this.new_line();
-        this.key_triggered_button("Camera Spline", ["x"], () => {
+        this.key_triggered_button("Camera Spline (Spikey)", ["x"], () => {
             this.camera_spline = !this.camera_spline;
+            this.crab_camera_spline = false;
             this.spline_t = 0;
             this.rev_spline = false;
         });
         this.key_triggered_button("Draw Spline Points", ["i"], () => {
             this.drawSplinePoints = !this.drawSplinePoints;
-        })
+        });
+        this.key_triggered_button("Camera Spline (Crab)", ["y"], () => {
+            this.crab_camera_spline = !this.crab_camera_spline;
+            this.camera_spline = false;
+            this.spline_t = 0;
+            this.rev_spline = false;
+        });
+
+        this.new_line();
+        this.key_triggered_button("Drop Box", ["9"], () => {
+            this.initialize_physics("box");
+        });
+        this.key_triggered_button("Drop Ball", ["8"], () => {
+            this.initialize_physics("ball");
+        });
+//         this.key_triggered_button("Drop Cone", ["7"], () => {
+//             this.initialize_physics("cone");
+//         });
+        this.key_triggered_button("Phyiscs View", ["7"], () => {
+            this.physics = !this.physics;
+        });
     }
 
 
@@ -330,9 +367,69 @@ class Assignment_Two_Skeleton extends Scene_Component {
         graphics_state.light_view_matrix = Mat4.look_at(Vec.of(sx, 100, sz), this.Spikey.pos, Vec.of(0, 0, -1));
 
         let camera_pos = null;
+        let old_t = this.t;
+        if (!this.paused)
+            this.t += graphics_state.animation_delta_time / 1000;
+        const t = this.t;
+        let dt = t - old_t;
 
-        if(this.camera_spline){
-            let intent = this.Spikey.intent.normalized();
+        if (this.physics) {
+            let intent = Vec.of(0, 0, 1),
+                px = 100, py = 30, pz = 100;
+            let frontEdge = Vec.of(px, 0, pz).plus(intent.times(190));
+            let point1 = frontEdge.plus(intent.cross(Vec.of(0, 1, 0)).times(300));
+            let point4 = frontEdge.minus(intent.cross(Vec.of(0, 1, 0)).times(300));
+            let backEdge = Vec.of(px, 0, pz).minus(intent.times(310));
+            let point2 = backEdge.plus(intent.cross(Vec.of(0, 1, 0)).times(300)) ;
+            let point3 = backEdge.minus(intent.cross(Vec.of(0, 1, 0)).times(300));
+            camera_pos = (point1.times((1-this.spline_t)**3))
+              .plus(point2.times(3 * ((1-this.spline_t)**2) * this.spline_t))
+              .plus(point3.times(3 * (1-this.spline_t) * (this.spline_t**2)))
+              .plus(point4.times(this.spline_t**3))
+              .plus(Vec.of(0, 75, 0));
+            if(this.drawSplinePoints){
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point1).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic
+                );
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point2).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic.override({color: Color.of(1, 0, 0, 1)})
+                );
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point3).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic.override({color: Color.of(1, 1, 0, 1)})
+                );
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point4).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic.override({color: Color.of(1, 1, 1, 1)})
+                );
+            }
+            if(this.rev_spline && dt){
+                this.spline_t -= 0.005
+            }
+            else if (dt){
+                this.spline_t += 0.005
+            }
+            if(this.spline_t > 1 && dt){
+                this.rev_spline = true;
+            }
+            else if(this.spline_t < 0){
+                this.rev_spline = false;
+            }
+            graphics_state.camera_transform = Mat4.look_at(
+              camera_pos,
+              Vec.of(px, py, pz),
+              Vec.of(0, 1, 0));
+
+        }
+
+        else if(this.camera_spline){
+            let intent = Vec.of(0, 0, 1);
             let frontEdge = Vec.of(sx, 0, sz).plus(intent.times(90));
             let point1 = frontEdge.plus(intent.cross(Vec.of(0, 1, 0)).times(150));
             let point4 = frontEdge.minus(intent.cross(Vec.of(0, 1, 0)).times(150));
@@ -366,41 +463,93 @@ class Assignment_Two_Skeleton extends Scene_Component {
                   this.plastic.override({color: Color.of(1, 1, 1, 1)})
                 );
             }
-            if(this.rev_spline){
+            if(this.rev_spline && dt){
                 this.spline_t -= 0.005
             }
-            else{
+            else if (dt){
                 this.spline_t += 0.005
             }
-            if(this.spline_t > 1){
+            if(this.spline_t > 1 && dt){
                 this.rev_spline = true;
             }
             else if(this.spline_t < 0){
                 this.rev_spline = false;
             }
+            graphics_state.camera_transform = Mat4.look_at(
+              camera_pos,
+              this.Spikey.pos,
+              Vec.of(0, 1, 0));
+        }
+        
+        else if(this.crab_camera_spline){
+            let intent = Vec.of(1, 0, -1);
+            let frontEdge = Vec.of(this.crab.pos[0], 0, this.crab.pos[2]).plus(intent.times(90));
+            let point1 = frontEdge.plus(intent.cross(Vec.of(0, 1, 0)).times(150));
+            let point4 = frontEdge.minus(intent.cross(Vec.of(0, 1, 0)).times(150));
+            let backEdge = Vec.of(this.crab.pos[0], 0, this.crab.pos[2]).minus(intent.times(210));
+            let point2 = backEdge.plus(intent.cross(Vec.of(0, 1, 0)).times(150)) ;
+            let point3 = backEdge.minus(intent.cross(Vec.of(0, 1, 0)).times(150));
+            camera_pos = (point1.times((1-this.spline_t)**3))
+              .plus(point2.times(3 * ((1-this.spline_t)**2) * this.spline_t))
+              .plus(point3.times(3 * (1-this.spline_t) * (this.spline_t**2)))
+              .plus(point4.times(this.spline_t**3))
+              .plus(Vec.of(0, 75, 0));
+            if(this.drawSplinePoints){
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point1).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic
+                );
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point2).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic.override({color: Color.of(1, 0, 0, 1)})
+                );
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point3).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic.override({color: Color.of(1, 1, 0, 1)})
+                );
+                this.shapes.ball.draw(
+                  graphics_state,
+                  Mat4.translation(point4).times(Mat4.scale(Vec.of(10, 10, 10))),
+                  this.plastic.override({color: Color.of(1, 1, 1, 1)})
+                );
+            }
+            if(this.rev_spline && dt){
+                this.spline_t -= 0.005
+            }
+            else if (dt){
+                this.spline_t += 0.005
+            }
+            if(this.spline_t > 1 && dt){
+                this.rev_spline = true;
+            }
+            else if(this.spline_t < 0){
+                this.rev_spline = false;
+            }
+            graphics_state.camera_transform = Mat4.look_at(
+              camera_pos,
+              this.crab.pos,
+              Vec.of(0, 1, 0));
         }
         else{
             camera_pos = Vec.of(sx, 0, sz).minus(Vec.of(0, 0, 1).times(300)).plus(Vec.of(0, 75, 0))
+            graphics_state.camera_transform = Mat4.look_at(
+              camera_pos,
+              this.Spikey.pos,
+              Vec.of(0, 1, 0));
         }
-        graphics_state.camera_transform = Mat4.look_at(
-          camera_pos,
-          this.Spikey.pos,
-          Vec.of(0, 1, 0));
+        
                 
-        // Find how much time has passed in seconds, and use that to place shapes.
-        let old_t = this.t;
-        if (!this.paused)
-            this.t += graphics_state.animation_delta_time / 1000;
-        const t = this.t;
-        let dt = t - old_t;
         if (dt) {
 
             this.apply_forces();
 
             if (this.use_octree) {
-                this.octree.collide_entities(this.entities, this.collide);
+                for (var x = 0; x < this.entities.length; ++x) {if (x==0){for (var y=1;y<this.entities.length;++y){this.collide(this.entities[0], this.entities[y])}}else{this.temp_collision=this.SpikeyOctree.point_search(Vec.of(this.entities[x].pos[0],this.entities[x].pos[1],this.entities[x].pos[2]),200).points; for (var k = 0; k < this.temp_collision.length; ++k) {
+                     this.check=Math.pow(this.temp_collision[k][0],2)+Math.pow(this.temp_collision[k][1],2)+Math.pow(this.temp_collision[k][2],2)+this.temp_collision[k][0]*this.temp_collision[k][1]+this.temp_collision[k][0]*this.temp_collision[k][2]+this.temp_collision[k][2]*this.temp_collision[k][1]; this.index=this.points_collection.indexOf(this.check); if (x!=this.index && this.index>x){this.collide(this.entities[x], this.entities[this.index])}}}}
             }
-
             else {
                 for (var i in this.entities)
                     for (var j = 0; j < i; ++j) {
@@ -461,18 +610,17 @@ class Assignment_Two_Skeleton extends Scene_Component {
     initialize_entities(scene_type, context) {
 
         if (this.scene_type == MAIN) {
-            this.Spikey = Spikey_Object.of(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
+            this.Spikey = Spikey_Object.of(this, Vec.of(-20, 50, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
                 EVOLUTIONARY_AGENT);
             this.entities.push(this.Spikey);
             this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
                 Infinity, Vec.of(3000, 100, 5000), this.materials.sand));
 
-//             let num_crabs = 0;
-//             for (var i of Array.apply(null, Array(num_crabs))); {
-//                 let crab = new Crab(this, context, this.shader_mats, 5);
-//                 this.entities.push(new Adversary(this, Vec.of(0, 10, -300*0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
-//                     50, Vec.of(10, 13, 10), this.materials.crab, crab));
-//             }
+            let num_crabs = 1;
+            let crab = new Crab(this, context, this.shader_mats, 5);
+            this.crab = new Adversary(this, Vec.of(0, 10, -300), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
+                    50, Vec.of(10, 13, 10), this.materials.crab, crab)
+            this.entities.push(this.crab);
         }
 
         if (scene_type === TOWER) {
@@ -540,30 +688,89 @@ class Assignment_Two_Skeleton extends Scene_Component {
         }
     }
 
-    initialize_gcenters() {
-        for (var e of this.entities) {
-            if (e instanceof Planet) {
-                this.gcenters.push(e);
-            }
+    initialize_physics(dropping) {
+//         this.num_phyics_objects = 0
+        if (dropping == "box") {
+            this.entities.push(Box.of(this, Vec.of(100, 150, 100), Vec.of(Math.random()-.5, Math.random()-.5, Math.random()-.5).times(30), 
+                            Vec.of(Math.random(), Math.random(), Math.random()), Quaternion.unit(),
+                            100, Vec.of(1, 1, 1).times(40), this.materials.wood));
+            this.num_phyics_objects += 1;
         }
-    }
+        else if (dropping == "ball") {
+            this.entities.push(Ball.of(this, Vec.of(100, 150, 100), Vec.of(Math.random()-.5, Math.random()-.5, Math.random()-.5).times(100), 
+                            Vec.of(Math.random(), Math.random(), Math.random()).times(50), Quaternion.unit(),
+                            100, 20, this.materials.wood));
+            this.num_phyics_objects += 1;
+        }
+//         else if (dropping == "cone") {
+//             this.entities.push(new Cone_Object(this, Vec.of(100, 40, 100), Vec.of(0, 0, 0), Vec.of(0, 60, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
+//                     20, 20, 70, Material.of(.5, .1, .01, this.plastic)));
+//         }
+//         for (var i = 0; i < 1; ++i) {
+//             var entity;
+//             let num_blocks = 30,
+//                 base_pos = Vec.of(100, 0, 100).plus(Vec.of(Math.cos(2*PI/30*i), 0, Math.sin(2*PI/30*i)).times(20)),
+//                 side_length = 10,
+//                 mass = 10,
+//                 spacing = 5,
+//                 epsilon = .1,
+//                 mat = this.materials.wood.override({e: .1});
+//             if (Math.random() < -.3) {
+//                     entity = Box.of(this, base_pos.plus(Vec.of(-side_length - epsilon, side_length/2 + epsilon, 0)).plus(
+//                         Vec.of(5*Math.random(), (side_length + spacing)*i, 5*Math.random())), Vec.of(Math.random(), Math.random(), Math.random()), 
+//                         Vec.of(0, 0, 0), Quaternion.unit(),
+//                         mass, Vec.of(1, 1, 1).times(side_length), mat);
+//                 this.entities.push(
+//                 entity
+//             );
+//             }
+//             else {
+// //                 this.entities.push(new Cone_Object(this, Vec.of(100, 40, 100), Vec.of(0, 0, 0), Vec.of(0, 60, 1), Quaternion.of(.7, .7, 0, 0).normalized(),
+// //                     20, 10, 30, Material.of(.5, .1, .01, this.plastic)));
 
-    apply_gravity() {
-        for (var e of this.entities) {
-            for (var p of this.gcenters) {
-                if (!this.gravity_off) {
-                    e.force(p.com.minus(e.com).normalized().times(p.g*e.m), Vec.of(0, 0, 0));
-                }
-            }
-        }
-        
+//                 entity = Box.of(this, Vec.of(100, 40, 100), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 
+//                         Vec.of(0, .3, 1), Quaternion.unit(),
+//                         mass, Vec.of(1, 1, 1).times(side_length), mat);
+//                 this.entities.push(
+//                 entity
+//             );
+//             entity = Box.of(this, Vec.of(100, 50, 100), Vec.of(Math.random(), Math.random(), Math.random()).times(10), 
+//                         Vec.of(0, .3, 1), Quaternion.unit(),
+//                         mass, Vec.of(1, 1, 1).times(side_length), mat);
+//                 this.entities.push(
+//                 entity
+//             );
+//             entity = Box.of(this, Vec.of(80, 40, 100), Vec.of(Math.random()-.5, 20, Math.random()-.5).times(30), 
+//                         Vec.of(0, .3, 1), Quaternion.unit(),
+//                         mass, Vec.of(1, 1, 1).times(side_length), mat);
+//                 this.entities.push(
+//                 entity
+//             );
+//             entity = Box.of(this, Vec.of(100, 40, 90), Vec.of(Math.random()-.5, Math.random()-.5, Math.random()-.5).times(30), 
+//                         Vec.of(0, .3, 1), Quaternion.unit(),
+//                         mass, Vec.of(1, 1, 1).times(side_length), mat);
+//                 this.entities.push(
+//                 entity
+//             );
+//             entity = Box.of(this, Vec.of(110, 40, 20), Vec.of(Math.random()-.5, Math.random()-.5, Math.random()-.5).times(30), 
+//                         Vec.of(0, .3, 1), Quaternion.unit(),
+//                         mass, Vec.of(1, 1, 1).times(side_length), mat);
+//                 this.entities.push(
+//                 entity
+//             );
+//             }
+//             this.num_phyics_objects += 1;
+//             }
     }
 
     apply_forces() {
         for (let e in this.entities) {
             let entity = this.entities[e];
             if (!this.gravity_off) {
-                entity.force(Vec.of(0, -entity.m*G, 0), Vec.of(0, 0, 0));
+                if (e < this.entities.length - this.num_phyics_objects)
+                    entity.force(Vec.of(0, -entity.m*G, 0), Vec.of(0, 0, 0));
+                else
+                    entity.force(Vec.of(0, -entity.m*G/3, 0), Vec.of(0, 0, 0));
             }
         }
     }

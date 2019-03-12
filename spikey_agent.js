@@ -263,8 +263,13 @@ class Evolutionary_Agent extends RL_Agent {
     get_actuation(state) {
         state.scene.shapes.vector.draw(
             state.scene.globals.graphics_state,
-            Mat4.y_to_vec(state.intent.times(1000), state.scene.Spikey.com),
-            state.scene.physics_shader.material(Color.of(0, 0, 1, 1)),
+            Mat4.y_to_vec(state.intent.normalized().times(100), state.scene.Spikey.com),
+            state.scene.physics_shader.material(Color.of(1, 1, 0, 1)),
+            "TRIANGLES");
+        state.scene.shapes.vector.draw(
+            state.scene.globals.graphics_state,
+            Mat4.y_to_vec(state.intent.normalized().times(100), state.scene.Spikey.com),
+            state.scene.physics_shader.material(Color.of(1, 1, 0, 1)),
             "LINES");
 
         let axes = this.subshapes.map(x => x.shape.h_axis),
@@ -288,7 +293,7 @@ class Evolutionary_Agent extends RL_Agent {
 
     update_distribution() {
         this.global_mu = this.global_mu*this.weight + this.mu*this.reward;
-        this.weight += this.reward;
+        this.weight += Math.abs(this.reward);
         this.global_mu /= this.weight;
         this.sigma = this.sigma * (this.weight/(this.weight + 1));
         this.mu = this.sample_normal(this.global_mu, this.sigma);

@@ -1,48 +1,10 @@
-const octree_size=10000
-
-const octree_coord=-50
-
-
 function myOctree(position, size, accuracy) {
-  this.maxDistance = Math.max(size.x, Math.max(size.y, size.z));
+  this.maxDistance = Math.max(size[0], Math.max(size[1], size[1]));
   this.accuracy = 0;
   this.root = new myOctree.Cell(this, position, size, 0);
-  this.points_collection = [];
 }
 
-myOctree.prototype.collide_entities = function(entities, collision_function) {
-    for (let x = 1; x < entities.length; ++x) {
-
-        this.temp_collision = this.point_search(entities[x].pos, 80, true).points;
-        console.log(this.temp_collision);
-        for (let k = 0; k < this.temp_collision.length; ++k) {
-
-            this.check = this.temp_collision[k].dot(this.temp_collision[k]) + 
-                         this.temp_collision[k][0]*this.temp_collision[k][1] + 
-                         this.temp_collision[k][0]*this.temp_collision[k][2] +
-                         this.temp_collision[k][2]*this.temp_collision[k][1];
-
-            this.index = this.points_collection.indexOf(this.check);
-
-            collision_function(entities[x], entities[this.index]);
-
-        }
-
-    }
-}
-
-myOctree.prototype.initialize = function(entities) {
-    let points_collection=[];
-    for (let e = 0; e < entities.length; ++e) {
-       this.add(entities[e].pos);
-       this.points_collection.push(entities[e].pos.dot(entities[e].pos) +
-                                   entities[e].pos[0]*entities[e].pos[1] +
-                                   entities[e].pos[0]*entities[e].pos[2] +
-                                   entities[e].pos[2]*entities[e].pos[1]);
-    }
-}
-
-myOctree.MaxLevel = 8;
+myOctree.MaxLevel = 2;
 
 myOctree.prototype.add = function (p, data) {
   this.root.add(p, data);
@@ -54,10 +16,11 @@ myOctree.prototype.is_part_of = function (x) {
 
 myOctree.prototype.point_search = function (p, r, options) {
   options = options || { };
-  let result = { points: [], data: [] };
+  var result = { points: [], data: [] };
   this.root.point_search(p, r, result, options);
   return result;
 };
+       
 
 myOctree.prototype.level = function (cell, level, result) {
   if (typeof level == 'undefined') {
@@ -94,18 +57,18 @@ myOctree.Cell.prototype.is_part_of = function (p) {
   if (!this.contains(p))
     return null;
   if (this.children.length > 0) {
-    for (let i = 0; i < this.children.length; i++) {
-      let duplicate = this.children[i].is_part_of(p);
+    for (var i = 0; i < this.children.length; i++) {
+      var duplicate = this.children[i].is_part_of(p);
       if (duplicate) {
         return duplicate;
       }
     }
     return null;
   } else {
-    let minDistSqrt = this.tree.accuracy * this.tree.accuracy;
-    for (let i = 0; i < this.points.length; i++) {
-      let o = this.points[i];
-      let distSq = p.squareDistance(o);
+    var minDistSqrt = this.tree.accuracy * this.tree.accuracy;
+    for (var i = 0; i < this.points.length; i++) {
+      var o = this.points[i];
+      var distSq = p.squareDistance(o);
       if (distSq <= minDistSqrt) {
         return o;
       }
@@ -127,7 +90,7 @@ myOctree.Cell.prototype.add = function (p, data) {
 };
 
 myOctree.Cell.prototype.addToChildren = function (p, data) {
-  for (let i = 0; i < this.children.length; i++) {
+  for (var i = 0; i < this.children.length; i++) {
     if (this.children[i].contains(p)) {
       this.children[i].add(p, data);
       break;
@@ -146,12 +109,12 @@ myOctree.Cell.prototype.contains = function (p) {
 
 
 myOctree.Cell.prototype.split = function () {
-  let x = this.position[0];
-  let y = this.position[1];
-  let z = this.position[2];
-  let w2 = this.size[0] / 2;
-  let h2 = this.size[1] / 2;
-  let d2 = this.size[2] / 2;
+  var x = this.position[0];
+  var y = this.position[1];
+  var z = this.position[2];
+  var w2 = this.size[0] / 2;
+  var h2 = this.size[1] / 2;
+  var d2 = this.size[2] / 2;
   this.children.push(new myOctree.Cell(this.tree, Vec.of(x, y, z), Vec.of(w2, h2, d2), this.level + 1));
   this.children.push(new myOctree.Cell(this.tree, Vec.of(x + w2, y, z), Vec.of(w2, h2, d2), this.level + 1));
   this.children.push(new myOctree.Cell(this.tree, Vec.of(x, y, z + d2), Vec.of(w2, h2, d2), this.level + 1));
@@ -160,7 +123,7 @@ myOctree.Cell.prototype.split = function () {
   this.children.push(new myOctree.Cell(this.tree, Vec.of(x + w2, y + h2, z), Vec.of(w2, h2, d2), this.level + 1));
   this.children.push(new myOctree.Cell(this.tree, Vec.of(x, y + h2, z + d2), Vec.of(w2, h2, d2), this.level + 1));
   this.children.push(new myOctree.Cell(this.tree, Vec.of(x + w2, y + h2, z + d2), Vec.of(w2, h2, d2), this.level + 1));
-  for (let i = 0; i < this.points.length; i++) {
+  for (var i = 0; i < this.points.length; i++) {
     this.addToChildren(this.points[i], this.data[i]);
   }
 };
@@ -168,8 +131,8 @@ myOctree.Cell.prototype.split = function () {
 
 myOctree.Cell.prototype.point_search = function (p, r, result, options) {
   if (this.points.length > 0 && this.children.length == 0) {
-    for (let i = 0; i < this.points.length; i++) {
-      let dist = this.points[i].minus(p).norm();
+    for (var i = 0; i < this.points.length; i++) {
+      var dist = this.points[i].minus(p).norm();
       if (dist <= r) {
         if (dist == 0 && options.notSelf)
           continue;
@@ -179,11 +142,11 @@ myOctree.Cell.prototype.point_search = function (p, r, result, options) {
     }
   }
 
-  let children = this.children;
+  var children = this.children;
 
   if (children.length > 0) {
-    for (let i = 0; i < children.length; i++) {
-      let child = children[i];
+    for (var i = 0; i < children.length; i++) {
+      var child = children[i];
       if (child.points.length > 0) {
         if (p[0] < child.position[0] - r || p[0] > child.position[0] + child.size[0] + r ||
             p[1] < child.position[1] - r || p[1] > child.position[1] + child.size[1] + r ||
