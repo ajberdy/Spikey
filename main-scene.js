@@ -9,7 +9,7 @@ const NULL_AGENT = 0,
       THROB_AGENT = 2,
       RL_AGENT = 3,
       CONSTANT_AGENT = 4,
-      NRL_AGENT = 5;
+      EVOLUTIONARY_AGENT = 5;
 
 const TOWER = 0,
       CHAOS = 1,
@@ -186,7 +186,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 specularity: .5,
                 smoothness: 20
             })),
-            sand: Material.of(.35, .1, .01, this.camera_shader.material(Color.of(.91, .89, .86, .2), {
+            sand: Material.of(.35, .3, .01, this.camera_shader.material(Color.of(.91, .89, .86, .2), {
                 ambient: 0,
                 diffusivity: .4,
                 specularity: .5,
@@ -214,7 +214,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 smoothness: 20
             })),
             crab:  Material.of(.5, .7, .9, context.get_instance(Phong_Shader).material(Color.of(.0429, .398, .137, 1)))
-        }
+        };
         
         this.lights = [new Light(Vec.of(0, 100, 0, .01), Color.of(1, 1, .7, 1), 100),
                        new Light(Vec.of(0, 10, 100, .1), Color.of(1, 1, .7, 1), 1000)];
@@ -398,7 +398,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }
         }
         else{
-            camera_pos = Vec.of(sx, 0, sz).minus(this.Spikey.intent.normalized().times(300)).plus(Vec.of(0, 75, 0))
+            camera_pos = Vec.of(sx, 0, sz).minus(Vec.of(0, 0, 1).times(300)).plus(Vec.of(0, 75, 0))
         }
         graphics_state.camera_transform = Mat4.look_at(
           camera_pos,
@@ -430,7 +430,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.shapes.revball.draw(
             graphics_state,
-            Mat4.rotation(PI/4, Vec.of(0, 1, 0)).times(Mat4.translation(camera_pos)).times(Mat4.scale(Vec.of(1, 1, 1).times(800))),
+            Mat4.translation(camera_pos).times(Mat4.rotation(PI/4, Vec.of(0, 1, 0))).times(Mat4.scale(Vec.of(1, 1, 1).times(800))),
             this.shader_mats.ocean);
     }
 
@@ -474,7 +474,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         if (this.scene_type == MAIN) {
             this.Spikey = Spikey_Object.of(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
-                NRL_AGENT);
+                EVOLUTIONARY_AGENT);
             this.entities.push(this.Spikey);
             this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
                 Infinity, Vec.of(3000, 100, 5000), this.materials.sand));
