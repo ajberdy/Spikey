@@ -87,8 +87,11 @@ class Spikey_Object extends Physics_Object {
         for (let i in this.state.spikes)
             this.state.spikes[i] = {
                 impulse: Vec.of(0, 0, 0),
-                h: this.spr
+                h:this.spr
             };
+        this.steps_since_learned = 0;
+        this.learning_interval = 200;
+        this.checkpoint_pos = pos;
 
     }
 
@@ -102,6 +105,10 @@ class Spikey_Object extends Physics_Object {
 
     get_rl_tensors() {
         return this.brain.get_rl_tensors(this.state);
+    }
+
+    reset_intent() {
+        this.intent = Vec.of(Math.random() - .5, 0, Math.random() - .5)
     }
 
     draw(graphics_state, light_shader_mat) {
@@ -123,6 +130,10 @@ class Spikey_Object extends Physics_Object {
 
         this.state.spikes[i].h = h;
         this.state.orientation = this.orientation;
+    }
+
+    learn(info) {
+        this.brain.learn(info);
     }
 
     init_convex_decomposition() {
@@ -235,6 +246,7 @@ class Spikey_Object extends Physics_Object {
     set intent(intent) {
         this.last_intent = this.intent;
         this._intent = intent;
+        this.state.intent = intent;
     }
 
     update(dt) {
@@ -247,7 +259,20 @@ class Spikey_Object extends Physics_Object {
           (a, b) => a.plus(b.shape.com.times(b.submass)), Vec.of(0, 0, 0)).times(1 / this.m);
         this._d = this.R_inv.times(this.pos.minus(new_com));
         this.state.t = this.scene.globals.graphics_state.animation_time;
+        this.steps_since_learned += 1;
+        if (this.steps_since_learned == this.learning_interval) {
+            let info = {displacement: this.displacement,
+                        intent: this.intent};
+            this.learn(info);
+            this.steps_since_learned = 0;
+            this.checkpoint_pos = this.pos;
+            this.reset_intent();
+        }
 
+    }
+
+    get displacement() {
+        return this.pos.minus(this.checkpoint_pos);
     }
 
     get_actuation(intent_vector) {

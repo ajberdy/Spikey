@@ -8,8 +8,8 @@ class Spikey_Agent {
             return new Throb_Agent();
         else if (agent_type === RL_AGENT)
             return new RL_Agent(arg1);
-        else if (agent_type === NRL_AGENT)
-            return new NRL_Agent(arg1);
+        else if (agent_type === EVOLUTIONARY_AGENT)
+            return new Evolutionary_Agent(arg1);
         else if (agent_type === CONSTANT_AGENT)
             return new Constant_Agent();
         return new Null_Agent();
@@ -250,26 +250,54 @@ class RL_Agent extends Spikey_Agent {
 
 }
 
-class NRL_Agent extends RL_Agent {
+class Evolutionary_Agent extends RL_Agent {
     constructor(subshapes) {
         super(subshapes);
-        this.params = new Mat();
-        this.params.set_identity(12, 12);
-        this.bias = Vec.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        this.sigma = 1;
+        this.mu = 1;
+        this.global_mu = 0;
+        this.weight = 100;
+        this.reward = 0;
     }
     
     get_actuation(state) {
         state.scene.shapes.vector.draw(
             state.scene.globals.graphics_state,
-            Mat4.y_to_vec(state.intent.times(100), state.scene.Spikey.com),
+            Mat4.y_to_vec(state.intent.times(1000), state.scene.Spikey.com),
             state.scene.physics_shader.material(Color.of(0, 0, 1, 1)),
             "LINES");
 
         let axes = this.subshapes.map(x => x.shape.h_axis),
-            intent = state.intent,
+            intent = state.intent;
 
-            X = Vec.of(...axes.map(x => -x.dot(intent)));
+        return Vec.of(...axes.map(x => this.mu*x.dot(intent)));
+    }
 
-        return this.params.times(X).plus(this.bias);
+    get_reward(displacement, intent) {
+        let d_par = displacement.project_onto(intent),
+            d_perp = displacement.minus(d_par),
+            gamma = .5;
+
+          return d_par.dot(intent) - d_perp.dot(intent);
+    }
+
+    sample_normal(mu, sigma) {
+        let z = Math.sqrt(-2*Math.log(Math.random()))*Math.cos(2*PI*Math.random());
+        return sigma*z + mu;
+    }
+
+    update_distribution() {
+        this.global_mu = this.global_mu*this.weight + this.mu*this.reward;
+        this.weight += this.reward;
+        this.global_mu /= this.weight;
+        this.sigma = this.sigma * (this.weight/(this.weight + 1));
+        this.mu = this.sample_normal(this.global_mu, this.sigma);
+    }
+
+    learn(info) {
+        this.reward = this.get_reward(info.displacement, info.intent);
+        this.update_distribution();
+        console.log(`Weight:${this.mu.toFixed(3)} Reward:${this.reward.toFixed(3)}\n(Mean:${this.global_mu.toFixed(3)} StdDev:${this.sigma.toFixed(3)})`);
+        this.reward = 0;
     }
 }
