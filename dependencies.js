@@ -936,13 +936,9 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                                  mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
                  return res;
              }
-
-             //	FAST32_hash
-             //	A very fast hashing function.  Requires 32bit support.
-             //	http://briansharpe.wordpress.com/2011/11/15/a-fast-and-simple-32bit-floating-point-hash-function/
+             
              void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
              {
-                // gridcell is assumed to be an integer coordinate
                 const vec2 OFFSET = vec2( 26.0, 61.0 );
                 const float DOMAIN = 71.0;
                 const vec2 SOMELARGEFLOATS = vec2( 2356.121616126, 982.126616 );
@@ -957,9 +953,6 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
 
              vec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
 
-             //	Perlin Noise 2D  ( gradient noise )
-             //	Return value range of -1.0->1.0
-             //	http://briansharpe.files.wordpress.com/2011/11/perlinsample.jpg
              float Perlin2D( vec2 P )
              {
                  //	establish our grid cell and unit position
@@ -982,10 +975,8 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                  return dot( grad_results, blend2.zxzx * blend2.wwyy );
              }
 
-             // Octave transform matrix from Alexander Alekseev aka TDM 
                 mat2 octave_m = mat2(1.8,1.2,-1.2,1.8);
 
-                // FBM Noise - mixing Value noise and Perlin Noise - also ridged turbulence at smaller octaves
                 float FractalNoise(in vec2 xy)
                 {
                    float m = 1.00;
@@ -1035,7 +1026,7 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
                   perlin_color = perlin(f_tex_coord.x, f_tex_coord.y);
               vec4 phong_color = phong(perlin_color);
 
-              if (!shadows) {
+              if (!shadows || fragmentDepth.x > 1. || fragmentDepth.y > 1. || fragmentDepth.x < 0. || fragmentDepth.y < 0.) {
                   gl_FragColor = phong_color;
                   return;
               }
@@ -1078,7 +1069,7 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
         gl.uniform1f( gpu.diffusivity_loc, material.diffusivity);
         gl.uniform1f( gpu.specularity_loc, material.specularity);
         gl.uniform1f( gpu.smoothness_loc,  material.smoothness);
-        gl.uniform1f( gpu.shadows_loc,     g_state.shadows);
+        gl.uniform1f( gpu.shadows_loc,     g_state.shadows && material.shadows);
         gl.uniform1f( gpu.do_perlin_loc,      g_state.perlin && material.do_perlin);
 
         // NOTE: To signal not to draw a texture, omit the texture parameter from Materials.
@@ -1150,320 +1141,6 @@ window.Perlin_Shader = window.classes.Perlin_Shader = class Perlin_Shader extend
     }
 }
 
-window.Perlin_Shader_ = window.classes.Perlin_Shader_ = class Perlin_Shader_ extends Shader {
-    material(color, properties) {
-        // Possible properties: ambient, diffusivity, specularity, smoothness, texture.
-        return new class Material {
-            constructor(shader, color=Color.of(0, 0, 0, 1), ambient=0, diffusivity=1, specularity=1, smoothness=40,
-                shadows=true) {
-                // Assign defaults.
-                Object.assign(this, {
-                    shader,
-                    color,
-                    ambient,
-                    diffusivity,
-                    specularity,
-                    smoothness,
-                    shadows
-                });
-
-                // Optionally override defaults.
-                Object.assign(this, properties);
-            }
-
-            // Easily make temporary overridden versions of a base material, such as
-            // of a different color or diffusivity.  Use "opacity" to override only that.
-            override(properties) {
-                const copied = new this.constructor();
-                Object.assign(copied, this);
-                Object.assign(copied, properties);
-                copied.color = copied.color.copy();
-                if (properties["opacity"] != undefined)
-                    copied.color[3] = properties["opacity"];
-                return copied;
-            }
-        }
-        (this,color);
-    }
-
-    map_attribute_name_to_buffer_name(name) {
-        // Use a simple lookup table.
-        return {
-            object_space_pos: "positions",
-            normal: "normals",
-            tex_coord: "texture_coords"
-        }[name];
-    }
-
-    shared_glsl_code()
-      { return `
-          precision mediump float;
-          const int N_LIGHTS = 2;                                                         // Be sure to keep this line up to date as you add more lights
-          uniform float ambient, diffusivity, shininess, smoothness, animation_time, attenuation_factor[N_LIGHTS];
-          uniform bool GOURAUD, COLOR_NORMALS, COLOR_VERTICES, USE_TEXTURE;               // Flags for alternate shading methods
-          uniform vec4 lightPosition[N_LIGHTS], lightColor[N_LIGHTS], shapeColor;
-          varying vec3 N, E, screen_space_pos;            // Spefifier "varying" means it will be passed from the vertex shader on to the fragment shader,
-          varying vec2 f_tex_coord;                       // then interpolated per-fragment, weighted by the pixel fragment's proximity to each of the 3 vertices.
-          varying vec4 VERTEX_COLOR;
-          varying vec3 L[N_LIGHTS], H[N_LIGHTS];
-          varying float dist[N_LIGHTS];
-
-          vec3 phong_model_lights( vec3 N )
-            { vec3 result = vec3(0.0);
-              for(int i = 0; i < N_LIGHTS; i++)
-                {
-                  float attenuation_multiplier = 1.0 / (1.0 + attenuation_factor[i] * (dist[i] * dist[i]));
-                  float diffuse  =      max( dot(N, L[i]), 0.0 );
-                  float specular = pow( max( dot(N, H[i]), 0.0 ), smoothness );
-
-                  result += attenuation_multiplier * ( shapeColor.xyz * diffusivity * diffuse + lightColor[i].xyz * shininess * specular );
-                }
-              return result;
-            }
-          `;
-      }
-
-    vertex_glsl_code()
-      { return `
-          attribute vec4 color;
-          attribute vec3 object_space_pos, normal;
-          attribute vec2 tex_coord;
-
-          uniform mat4 camera_transform, camera_model_transform, projection_camera_model_transform;
-          uniform mat3 inverse_transpose_modelview;
-
-          void main()
-          { gl_Position = projection_camera_model_transform * vec4(object_space_pos, 1.0);      // The vertex's final resting place onscreen in normalized coords.
-            N = normalize( inverse_transpose_modelview * normal );                              // The final normal vector in screen space.
-            f_tex_coord = tex_coord;                                                            // Directly use original texture coords to make a "varying" texture coord.
-
-            if( COLOR_NORMALS || COLOR_VERTICES )                                               // Bypass all lighting code if we're lighting up vertices some other way.
-            { VERTEX_COLOR   = COLOR_NORMALS ? ( vec4( N[0] > 0.0 ? N[0] : sin( animation_time * 3.0   ) * -N[0],             // In normals mode, rgb color = xyz quantity.
-                                                       N[1] > 0.0 ? N[1] : sin( animation_time * 15.0  ) * -N[1],             // Flash if it's negative.
-                                                       N[2] > 0.0 ? N[2] : sin( animation_time * 45.0  ) * -N[2] , 1.0 ) ) : color;
-              return;
-            }
-                                                                                  // The rest of this shader calculates some quantities that the Fragment shader will need:
-            screen_space_pos = ( camera_model_transform * vec4(object_space_pos, 1.0) ).xyz;
-            E = normalize( -screen_space_pos );
-
-            for( int i = 0; i < N_LIGHTS; i++ )
-            {
-              L[i] = normalize( ( camera_transform * lightPosition[i] ).xyz - lightPosition[i].w * screen_space_pos );   // Use w = 0 for a directional light source -- a
-              H[i] = normalize( L[i] + E );                                                                              // vector instead of a point.
-                                                      // Is it a point light source?  Calculate the distance to it from the object.  Otherwise use some arbitrary distance.
-              dist[i]  = lightPosition[i].w > 0.0 ? distance((camera_transform * lightPosition[i]).xyz, screen_space_pos)
-                                                  : distance( attenuation_factor[i] * -lightPosition[i].xyz, object_space_pos.xyz );
-            }
-
-            if( GOURAUD )         // Gouraud shading mode?  If so, finalize the whole color calculation here in the vertex shader, one per vertex, before we even
-            {                     // break it down to pixels in the fragment shader.   As opposed to Smooth "Phong" Shading, where we do calculate it afterwards.
-              VERTEX_COLOR      = vec4( shapeColor.xyz * ambient, shapeColor.w);
-              VERTEX_COLOR.xyz += phong_model_lights( N );
-            }
-          }`;
-      }    
-
-    fragment_glsl_code()
-      { return `
-         #define NOISE_PASSES 6
-
-         float Hash(in float n)
-         {
-             return fract(sin(n)*43758.5453123);
-         }
-
-         float Noise(in vec2 x)
-         {
-             vec2 p = floor(x);
-             vec2 f = fract(x);
-             f = f*f*(3.0-2.0*f);
-             float n = p.x + p.y*57.0;
-             float res = mix(mix( Hash(n+  0.0), Hash(n+  1.0),f.x),
-                             mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
-             return res;
-         }
-
-         //	FAST32_hash
-         //	A very fast hashing function.  Requires 32bit support.
-         //	http://briansharpe.wordpress.com/2011/11/15/a-fast-and-simple-32bit-floating-point-hash-function/
-         void FAST32_hash_2D( vec2 gridcell, out vec4 hash_0, out vec4 hash_1 )
-         {
-            // gridcell is assumed to be an integer coordinate
-            const vec2 OFFSET = vec2( 26.0, 161.0 );
-            const float DOMAIN = 71.0;
-            const vec2 SOMELARGEFLOATS = vec2( 951.135664, 642.949883 );
-            vec4 P = vec4( gridcell.xy, gridcell.xy + 1.0 );
-            P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;
-            P += OFFSET.xyxy;
-            P *= P;
-            P = P.xzxz * P.yyww;
-            hash_0 = fract( P * ( 1.0 / SOMELARGEFLOATS.x ) );
-            hash_1 = fract( P * ( 1.0 / SOMELARGEFLOATS.y ) );
-         }
-
-         vec2 Interpolation_C2( vec2 x ) { return x * x * x * (x * (x * 6.0 - 15.0) + 10.0); }
-
-         //	Perlin Noise 2D  ( gradient noise )
-         //	Return value range of -1.0->1.0
-         //	http://briansharpe.files.wordpress.com/2011/11/perlinsample.jpg
-         float Perlin2D( vec2 P )
-         {
-             //	establish our grid cell and unit position
-             vec2 Pi = floor(P);
-             vec4 Pf_Pfmin1 = P.xyxy - vec4( Pi, Pi + 1.0 );
-
-             //	calculate the hash.
-             vec4 hash_x, hash_y;
-             FAST32_hash_2D( Pi, hash_x, hash_y );
-
-             //	calculate the gradient results
-             vec4 grad_x = hash_x - 0.49999;
-             vec4 grad_y = hash_y - 0.49999;
-             vec4 grad_results = inversesqrt( grad_x * grad_x + grad_y * grad_y ) * ( grad_x * Pf_Pfmin1.xzxz + grad_y * Pf_Pfmin1.yyww );
-
-             //	Classic Perlin Interpolation
-             grad_results *= 1.4142135623730950488016887242097;
-             vec2 blend = Interpolation_C2( Pf_Pfmin1.xy );
-             vec4 blend2 = vec4( blend, vec2( 1.0 - blend ) );
-             return dot( grad_results, blend2.zxzx * blend2.wwyy );
-         }
-
-         // Octave transform matrix from Alexander Alekseev aka TDM 
-            mat2 octave_m = mat2(1.8,1.2,-1.2,1.8);
-
-            // FBM Noise - mixing Value noise and Perlin Noise - also ridged turbulence at smaller octaves
-            float FractalNoise(in vec2 xy)
-            {
-               float m = 1.00;
-               float w = 0.6;
-               float f = 0.0;
-               float time = animation_time*1.0;
-               for (int i = 0; i < NOISE_PASSES; i++)
-               {
-                  f += Noise(xy.xy+time*0.755) * m * 0.25;
-                  if (i < 3)
-                  {
-                     f += Perlin2D(xy.yx-time*0.533) * w * 0.1;
-                  }
-                  else
-                  {
-                     // ridged turbulence at smaller scales - moves 4x faster
-                     f += abs(Perlin2D(xy.yx-time*1.932) * w * 0.05)*1.75;
-                  }
-                  w *= 0.45;
-                  m *= 0.35;
-                  xy *= octave_m;
-               }
-               return f * (abs(sin(1.0-time * 0.025)) * 0.5 + 0.5) * (1.0*0.5);  // modulate overall noise
-            }
-
-       float DistWater(vec3 pos)
-            {
-            return dot(pos-vec3(0.0,-FractalNoise(pos.xz),0.0), vec3(1.0,1.,0.0));
-            }
-
-        void main()
-        {
-          float a = animation_time, u = f_tex_coord.x, v = f_tex_coord.y;
-
-          gl_FragColor = vec4(1., 0., 0., 1.);
-          return;
-
-         gl_FragColor = vec4(.76, .60, .5, .6) * 3.0*FractalNoise(20.0*vec2(u, v))  + 1.5*vec4(0.91, 0.9, 0.335, .2) + 
-                        10.0*vec4(.0, .0, 0., .6) * 0.5*FractalNoise(180.0*vec2(u,v));
-         return;
-
-         gl_FragColor = vec4(0.0, 0.0, 0.0, .6);
-          for (int i = 0; i < 1; i++) {
-                  float k = float(i);
-                  gl_FragColor += vec4(0.0, 0.0, DistWater(vec3(u, v, 40.0*sin(.2*animation_time - u) + 
-                       30.0*sin(.2*animation_time - .4*v))), .3);
-          }
-//              gl_FragColor = vec4(0.0, 0.0, DistWater(vec3(u, v, 40.0*sin(.2*animation_time - u) + 
-//              30.0*sin(.2*animation_time - .4*v))), 1.0);
-
-        }`;
-    }
-
-    update_GPU(g_state, model_transform, material, gpu=this.g_addrs, gl=this.gl) {
-        super.update_GPU(g_state, model_transform, material, gpu, gl)
-
-        // First, send the matrices to the GPU, additionally cache-ing some products of them we know we'll need:
-        this.update_matrices(g_state, model_transform, gpu, gl);
-        gl.uniform1f(gpu.animation_time_loc, g_state.animation_time / 1000);
-
-        if (g_state.gouraud === undefined) {
-            g_state.gouraud = g_state.color_normals = false;
-        }
-
-        // Keep the flags seen by the shader program up-to-date and make sure they are declared.
-        gl.uniform1i(gpu.GOURAUD_loc, g_state.gouraud);
-        gl.uniform1i(gpu.COLOR_NORMALS_loc, g_state.color_normals);
-
-        // Send the desired shape-wide material qualities to the graphics card, where they will
-        // tweak the Phong lighting formula.
-        gl.uniform4fv(gpu.shapeColor_loc,  material.color);
-        gl.uniform1f( gpu.ambient_loc,     material.ambient);
-        gl.uniform1f( gpu.diffusivity_loc, material.diffusivity);
-        gl.uniform1f( gpu.specularity_loc, material.specularity);
-        gl.uniform1f( gpu.smoothness_loc,  material.smoothness);
-
-        // NOTE: To signal not to draw a texture, omit the texture parameter from Materials.
-        if (material.texture) {
-            gpu.shader_attributes["tex_coord"].enabled = true;
-            gl.uniform1f(gpu.USE_TEXTURE_loc, 1);
-            gl.bindTexture(gl.TEXTURE_2D, material.texture.id);
-        }
-        else {
-            gl.uniform1f(gpu.USE_TEXTURE_loc, 0);
-            gpu.shader_attributes["tex_coord"].enabled = false;
-        }
-
-        if (!g_state.lights.length)
-            return;
-        var lightPositions_flattened = [],
-            lightColors_flattened = [],
-            lightAttenuations_flattened = [];
-        for (var i = 0; i < 4 * g_state.lights.length; i++) {
-            lightPositions_flattened.push(g_state.lights[Math.floor(i / 4)].position[i % 4]);
-            lightColors_flattened.push(g_state.lights[Math.floor(i / 4)].color[i % 4]);
-            lightAttenuations_flattened[Math.floor(i / 4)] = g_state.lights[Math.floor(i / 4)].attenuation;
-        }
-        gl.uniform4fv(gpu.lightPosition_loc, lightPositions_flattened);
-        gl.uniform4fv(gpu.lightColor_loc, lightColors_flattened);
-        gl.uniform1fv(gpu.attenuation_factor_loc, lightAttenuations_flattened);
-
-
-//         let light_pos = g_state.lights[0].position,
-// //             model_pos = model_transform.times(Vec.of(0, 0, 0, 1)),
-//             model_pos = Vec.of(0, 0, 0),
-//             up_dir = light_pos.minus(model_pos).cross(model_pos);
-
-//         if (up_dir.dot(up_dir))
-//             gl.uniformMatrix4fv(gpu.lightMVMatrix_loc, false, 
-//                 Mat.flatten_2D_to_1D(Mat4.look_at(light_pos, model_pos, up_dir).transposed()));
-    }
-
-    // Helper function for sending matrices to GPU.
-    update_matrices(g_state, model_transform, gpu, gl) {
-        // (PCM will mean Projection * Camera * Model)
-        let [P,C,M] = [g_state.projection_transform, g_state.camera_transform, model_transform],
-            CM = C.times(M),
-            PCM = P.times(CM),
-            inv_CM = Mat4.inverse(CM).sub_block([0, 0], [3, 3]);
-
-        // Send the current matrices to the shader.  Go ahead and pre-compute
-        // the products we'll need of the of the three special matrices and just
-        // cache and send those.  They will be the same throughout this draw
-        // call, and thus across each instance of the vertex shader.
-        // Transpose them since the GPU expects matrices as column-major arrays.                                  
-        gl.uniformMatrix4fv(gpu.camera_transform_loc, false, Mat.flatten_2D_to_1D(C.transposed()));
-        gl.uniformMatrix4fv(gpu.camera_model_transform_loc, false, Mat.flatten_2D_to_1D(CM.transposed()));
-        gl.uniformMatrix4fv(gpu.projection_camera_model_transform_loc, false, Mat.flatten_2D_to_1D(PCM.transposed()));
-        gl.uniformMatrix3fv(gpu.inverse_transpose_modelview_loc, false, Mat.flatten_2D_to_1D(inv_CM));
-    }
-}
 
 // THE DEFAULT SHADER: This uses the Phong Reflection Model, with optional Gouraud shading. 
 // Wikipedia has good defintions for these concepts.  Subclasses of class Shader each store 
