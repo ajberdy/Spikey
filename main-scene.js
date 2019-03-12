@@ -30,6 +30,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 //         context.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 0, 500), Vec.of(0, 0,0), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
         context.globals.graphics_state.projection_transform = Mat4.perspective(Math.PI / 4, r, .1, 1000);
+        context.globals.graphics_state.shadows = true;
+        context.globals.graphics_state.perlin = true;
         // console.log(context.globals.gl);
         // var crab_limbs = {};
         // loadCrab(context.globals.gl, crab_limbs);
@@ -56,13 +58,14 @@ class Assignment_Two_Skeleton extends Scene_Component {
             'cylinder': new Cylinder(15),
             'cone': new Closed_Cone(20),
             'ball': new Subdivision_Sphere(4),
+            'revball': new Reverse_Sphere(4),
 
             'spikey': new Spikey_Shape(spikey_consts)
         };
         this.submit_shapes(context, shapes);
         this.shape_count = Object.keys(shapes).length;
 
-        // this.crab = new Crab(this, context, 2);
+//         this.crab = new Crab(this, context, 2);
 
         // Make some Material objects available to you:
         this.clay = context.get_instance(Phong_Shader).material(Color.of(.9, .5, .9, 1), {
@@ -88,7 +91,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
             pyramid: "assets/tetrahedron-texture2.png",
             simplebox: "assets/tetrahedron-texture2.png",
             cone: "assets/hypnosis.jpg",
-            circle: "assets/hypnosis.jpg"
+            circle: "assets/hypnosis.jpg",
+            spikey: "assets/spikey_texture.jpg"
         };
         for (let t in shape_textures)
             this.shape_materials[t] = this.texture_base.override({
@@ -96,7 +100,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
             });
 
         this.light_shader = context.get_instance(Light_Shader);
-        this.camera_shader = context.get_instance(Phong_Shadow_Shader);
+        this.camera_shader = context.get_instance(Perlin_Shader);
+//         this.camera_shader = context.get_instance(Phong_Shadow_Shader);
 //         this.camera_shader = context.get_instance(Camera_Shader);
 
         this.camera_shader.load_light_shader(this.light_shader);
@@ -114,17 +119,35 @@ class Assignment_Two_Skeleton extends Scene_Component {
             soccer: this.texture_base.override({
                 texture: context.get_instance(shape_textures.ball)
             }),
+            spikey_textured: this.texture_base.override({
+                texture: context.get_instance(shape_textures.spikey)
+            }),
             spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
                 ambient: .2,
                 diffusivity: .9,
                 specularity: .2,
-                smoothness: 20
+                smoothness: 20,
+                texture: context.get_instance[shape_textures.spikey]
             }),
-            shadow_spikey: context.get_instance(Phong_Shadow_Shader).material(Color.of(.398, .199, .598, 1), {
+            shadow_spikey: context.get_instance(Phong_Shader).material(Color.of(.398, .199, .598, 1), {
                 ambient: .2,
                 diffusivity: .9,
                 specularity: .2,
-                smoothness: 20
+                smoothness: 20,
+                texture: context.get_instance[shape_textures.ball]
+            }),
+            ocean: this.camera_shader.material(Color.of(0, 1, 1, .55), {
+                ambient: .4,
+                diffusivity: .4,
+                shadows: 0,
+                color1: Color.of(.76, .6, .5, .3),
+                scale1: 3,
+                freq1: 30,
+                color2: Color.of(0, 0, 0, .6),
+                scale2: 15,
+                freq2: 180,
+                scaleb: 1.5,
+                freq_global: 5
             })
         };
 
@@ -135,11 +158,20 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 specularity: .5,
                 smoothness: 20
             })),
-            shadow_wood: Material.of(.35, .1, .01, this.camera_shader.material(Color.of(1, .96, .86, 1), {
+            sand: Material.of(.35, .1, .01, this.camera_shader.material(Color.of(.91, .89, .86, .2), {
                 ambient: 0,
                 diffusivity: .4,
                 specularity: .5,
-                smoothness: 20
+                smoothness: 20,
+                shadows: true,
+                color1: Color.of(.76, .6, .5, .3),
+                scale1: 3,
+                freq1: 20,
+                color2: Color.of(0, 0, 0, .6),
+                scale2: 15,
+                freq2: 180,
+                scaleb: 1.5,
+                freq_global: 700
             })),
             slick_wood: Material.of(0, 0.01, .0, context.get_instance(Phong_Shader).material(Color.of(1, .96, .86, 1), {
                 ambient: .3,
@@ -156,7 +188,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
             crab:  Material.of(.5, .7, .9, context.get_instance(Phong_Shader).material(Color.of(.0429, .398, .137, 1)))
         }
         
-        this.lights = [new Light(Vec.of(0, 100, 0, .1), Color.of(1, 1, .7, 1), 100000),
+        this.lights = [new Light(Vec.of(0, 100, 0, .01), Color.of(1, 1, .7, 1), 100),
                        new Light(Vec.of(0, 10, 100, .1), Color.of(1, 1, .7, 1), 1000)];
 
         this.t = 0;
@@ -171,9 +203,8 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.entities = [];
         this.gcenters = [];
-        // this.initialize_entities(ADVERSARY);
-        // this.initialize_gcenters()
-        this.initialize_entities('rl_render');
+        this.initialize_entities(CHAOS);
+        this.initialize_gcenters()
 
 //         this.octree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.01);
 //         this.octree.initialize(this.entities);
@@ -211,6 +242,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.key_triggered_button("Toggle Friction", ["m"], () => {
             this.friction_off = !this.friction_off;
         });
+        this.key_triggered_button("Toggle Shadows", ["h"], () => {
+            this.globals.graphics_state.shadows = !this.globals.graphics_state.shadows;
+        });
+        this.key_triggered_button("Toggle Perlin", ["c"], () => {
+            this.globals.graphics_state.perlin = !this.globals.graphics_state.perlin;
+        });
 
         this.key_triggered_button("End Simulation", ["0"], () => {
             this.end_simulation();
@@ -230,13 +267,15 @@ class Assignment_Two_Skeleton extends Scene_Component {
     }
 
 
-    display(graphics_state, nothing) {
+    display(graphics_state) {
         // Use the lights stored in this.lights.
-
+        graphics_state.lights = this.lights;
+        let light_position = this.lights[0].position;
+        graphics_state.light_view_matrix = Mat4.look_at(this.entities[1].pos.plus(Vec.of(0, 100, 0)), this.entities[1].pos, Vec.of(0, 0, -1))
 //         var sx = this.entities[1].x, sz = this.entities[1].z;
 //         var camera_location = Vec.of(0, 30, 150).minus(Vec.of(sx, 30, sz)).normalized().times(200).plus(Vec.of(sx, 30, sz));
 //         camera_location[1] = 30;
-        this.globals.graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), this.entities[0].pos, Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
+        graphics_state.camera_transform = Mat4.look_at(Vec.of(0, 30, 150), Vec.of(this.entities[1].pos[0], 30, this.entities[1].pos[2]), Vec.of(0,1,0));//Mat4.translation([0, 0, -35]);
 
                 
         // Find how much time has passed in seconds, and use that to place shapes.
@@ -245,8 +284,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
             this.t += graphics_state.animation_delta_time / 1000;
         const t = this.t;
         let dt = t - old_t;
-        dt = 0.02;
+
         if (dt) {
+
             this.apply_forces();
 //             this.apply_gravity();
 
@@ -269,6 +309,11 @@ class Assignment_Two_Skeleton extends Scene_Component {
         this.draw_with_shadows(graphics_state);
         this.draw_entities(graphics_state);
 
+
+        this.shapes.revball.draw(
+            graphics_state,
+            Mat4.rotation(PI/4, Vec.of(0, 1, 0)).times(Mat4.translation(Vec.of(0, 0, 150))).times(Mat4.scale(Vec.of(1, 1, 1).times(800))),
+            this.shader_mats.ocean);
     }
 
     draw_with_shadows(graphics_state) {
@@ -326,7 +371,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
         Collision_Detection.collide(a, b);
     }
 
-    initialize_entities(scene_type, context) {
+    initialize_entities(scene_type) {
 
         if (scene_type == TOWER) {
             let num_blocks = 30,
@@ -354,18 +399,19 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }
             return;
         }
-
+        
         if (scene_type == ADVERSARY) {
-            this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
+            this.entities.push(new Adversary(this, Vec.of(-45, 20, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
                 50, Vec.of(10, 25, 10), this.materials.crab, this.crab));
-            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(),
+            this.entities.push(Box.of(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), 
                 Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
 
             return;
         }
 
         if (scene_type == CHAOS) {
-          this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+//           this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(3000, 100, 5000), this.materials.shadow_wood));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
+          this.entities.push(new Box(this, Vec.of(0, -50, 0), Vec.of(0, 0, 0), Vec.of(0, 0, 0), Quaternion.unit(), Infinity, Vec.of(10000, 100, 10000), this.materials.sand));//Material.of(.2, .05, this.shader_mats.floor.override({diffusivity: .7, specularity: .1}))));
           this.entities.push(new Spikey_Object(this, Vec.of(-20, 40, 0), Vec.of(1, 0, 0), Vec.of(-1, 0, 0).times(1), Quaternion.unit(),
             CHAOS_AGENT));
           return;
@@ -456,7 +502,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                 }
             }
         }
-
+        
     }
 
     apply_forces() {
@@ -486,12 +532,12 @@ class Assignment_Two_Skeleton extends Scene_Component {
     draw_entities(graphics_state) {
         for (let e in this.entities) {
             this.entities[e].draw(graphics_state);
-
+        
         // this.shapes.box.draw(
         //     graphics_state,
         //     Mat4.scale(Vec.of(.001,.001,100)).times(Mat4.identity()),
         //     this.plastic.override({color: Color.of(1,0,1,1)})
-        // );
+        // );    
         // this.shapes.box.draw(
         //     graphics_state,
         //     Mat4.translation(Vec.of(0,0,0)).times(Mat4.scale(Vec.of(.001,100,.001))).times(Mat4.identity()),
@@ -512,13 +558,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
         //     graphics_state,
         //     Mat4.translation(Vec.of(-0.9704800248146057, 1.5378700494766235, -0.004470000043511391)).times(Mat4.scale(Vec.of(.001,.001,100)).times(Mat4.identity())),
         //     this.plastic.override({color: Color.of(1,0,1,1)})
-        // );
+        // );    
         // this.shapes.box.draw(
         //     graphics_state,
         //     Mat4.translation(Vec.of(-0.9704800248146057, 1.5378700494766235, -0.004470000043511391)).times(Mat4.scale(Vec.of(.001,100,.001))).times(Mat4.identity()),
         //     this.plastic.override({color: Color.of(0,1,1,1)})
         // );
-
+        
 //             this.shapes.vector.draw(
 //                 graphics_state,
 //                     Mat4.y_to_vec(this.entities[e].momentum, this.entities[e].com).times(

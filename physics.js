@@ -280,7 +280,7 @@ class Box extends Physics_Object {
         this.base_normals = scene.shapes.box.normals;
 
         this.bounding_radius = this.dims.norm();
-        this.shape = this.scene.shapes.box;
+        this.shape = this.scene.shapes.simplebox;
     }
 
     get transform() {
@@ -528,6 +528,7 @@ class Spike_Object extends Physics_Object {
     actuate(ja) {
         this.actuation_impulse = ja;
         this.move_spike();
+        console.log(this.dh)
     }
 
 //     update(dt) {

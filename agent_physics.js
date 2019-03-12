@@ -26,7 +26,7 @@ const spikey_consts = {
 
 class Spikey_Object extends Physics_Object {
     constructor(scene, pos, vel, w, q, agent_type) {
-        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey);
+        var spikey_material = Material.of(spikey_mu_s, spikey_mu_d, spikey_consts.spikey_restitution, scene.shader_mats.spikey_textured);
 
         super(scene, pos, vel, w, q, spikey_consts.spikey_mass, spikey_material);
         
