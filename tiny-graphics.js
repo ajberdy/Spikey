@@ -96,6 +96,10 @@ class Vec extends Float32Array {
         var v_norm2 = v.dot(v);
         return v_norm2 ? v.times(this.dot(v)/v_norm2) : this.times(0);
     }
+
+    pow(s) {
+        return this.map(x => x  ** s)
+    }
 }
 
 
