@@ -1,6 +1,8 @@
 const PI = Math.PI,
       G = 5*9.8,
-      PHI = (1 + Math.sqrt(5)) / 2;
+      PHI = (1 + Math.sqrt(5)) / 2,
+      octree_size=100000000000,
+      octree_coord=-50000000;
 
 const NULL_AGENT = 0,
       CHAOS_AGENT = 1,
@@ -218,7 +220,7 @@ class Assignment_Two_Skeleton extends Scene_Component {
                        new Light(Vec.of(0, 10, 100, .1), Color.of(1, 1, .7, 1), 1000)];
 
         this.t = 0;
-//         this.use_octree = false;
+        this.use_octree = false;
         this.debug = false;
 
         this.friction_off = false;
@@ -232,8 +234,19 @@ class Assignment_Two_Skeleton extends Scene_Component {
 
         this.physics_shader = context.get_instance(Physics_Shader);
 
+        this.SpikeyOctree = new myOctree(Vec.of(octree_coord,octree_coord,octree_coord), Vec.of(octree_size,octree_size,octree_size),0.001);
+
+        this.points_collection=[];
+
+        for (var e = 0; e < this.entities.length; ++e) {
+            
+           this.temp=Vec.of(this.entities[e].pos[0],this.entities[e].pos[1],this.entities[e].pos[2])
+           this.SpikeyOctree.add(this.temp);
+           this.points_collection.push(Math.pow(this.entities[e].pos[0],2)+Math.pow(this.entities[e].pos[1],2)+Math.pow(this.entities[e].pos[2],2)+this.entities[e].pos[0]*this.entities[e].pos[1]+this.entities[e].pos[0]*this.entities[e].pos[2]+this.entities[e].pos[2]*this.entities[e].pos[1])
+        }
+
         context.globals.graphics_state.light_view_matrix = Mat4.look_at(this.lights[0].position, Vec.of(0, 0, 0), Vec.of(0, 0, -1));
-        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 150);
+        context.globals.graphics_state.light_projection_transform = Mat4.orthographic(-200, 200, -200, 200, -100, 110);
         context.globals.graphics_state.lights = this.lights;
 
 
@@ -303,9 +316,9 @@ class Assignment_Two_Skeleton extends Scene_Component {
             }
         });
 
-//         this.key_triggered_button("Toggle Octree", ["c"], () => {
-//             this.use_octree = !this.use_octree;
-//         });
+        this.key_triggered_button("Toggle Octree", ["l"], () => {
+            this.use_octree = !this.use_octree;
+        });
 
         this.key_triggered_button("Toggle Debug Mode", ["q"], () => {
             this.debug = !this.debug;
@@ -330,6 +343,11 @@ class Assignment_Two_Skeleton extends Scene_Component {
         graphics_state.light_view_matrix = Mat4.look_at(Vec.of(sx, 100, sz), this.Spikey.pos, Vec.of(0, 0, -1));
 
         let camera_pos = null;
+        let old_t = this.t;
+        if (!this.paused)
+            this.t += graphics_state.animation_delta_time / 1000;
+        const t = this.t;
+        let dt = t - old_t;
 
         if(this.camera_spline){
             let intent = this.Spikey.intent.normalized();
@@ -366,13 +384,13 @@ class Assignment_Two_Skeleton extends Scene_Component {
                   this.plastic.override({color: Color.of(1, 1, 1, 1)})
                 );
             }
-            if(this.rev_spline){
+            if(this.rev_spline && dt){
                 this.spline_t -= 0.005
             }
-            else{
+            else if (dt){
                 this.spline_t += 0.005
             }
-            if(this.spline_t > 1){
+            if(this.spline_t > 1 && dt){
                 this.rev_spline = true;
             }
             else if(this.spline_t < 0){
@@ -387,20 +405,14 @@ class Assignment_Two_Skeleton extends Scene_Component {
           this.Spikey.pos,
           Vec.of(0, 1, 0));
                 
-        // Find how much time has passed in seconds, and use that to place shapes.
-        let old_t = this.t;
-        if (!this.paused)
-            this.t += graphics_state.animation_delta_time / 1000;
-        const t = this.t;
-        let dt = t - old_t;
         if (dt) {
 
             this.apply_forces();
 
             if (this.use_octree) {
-                this.octree.collide_entities(this.entities, this.collide);
+                for (var x = 0; x < this.entities.length; ++x) {if (x==0){for (var y=1;y<this.entities.length;++y){this.collide(this.entities[0], this.entities[y])}}else{this.temp_collision=this.SpikeyOctree.point_search(Vec.of(this.entities[x].pos[0],this.entities[x].pos[1],this.entities[x].pos[2]),200).points; for (var k = 0; k < this.temp_collision.length; ++k) {
+                     this.check=Math.pow(this.temp_collision[k][0],2)+Math.pow(this.temp_collision[k][1],2)+Math.pow(this.temp_collision[k][2],2)+this.temp_collision[k][0]*this.temp_collision[k][1]+this.temp_collision[k][0]*this.temp_collision[k][2]+this.temp_collision[k][2]*this.temp_collision[k][1]; this.index=this.points_collection.indexOf(this.check); if (x!=this.index && this.index>x){this.collide(this.entities[x], this.entities[this.index])}}}}
             }
-
             else {
                 for (var i in this.entities)
                     for (var j = 0; j < i; ++j) {
